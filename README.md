@@ -7,7 +7,7 @@
 
 ## URLs
 - **Sandbox (개발 미리보기)**: https://3000-im9044c37cori5huz389s-c81df28e.sandbox.novita.ai
-- **Production**: 미배포 (배포 경로 선택 대기 — BYOK / Genspark Hosted)
+- **Production**: https://seoul-dodam-dental.pages.dev (Cloudflare Pages, BYOK · 계정 sodanstjrwns@gmail.com)
 - **관리자**: `/admin/login` (비밀번호는 `.dev.vars`의 `ADMIN_PASSWORD`)
 
 ## 완료된 기능
@@ -21,23 +21,22 @@
 - 디자인: 스크롤 리빌/스태거/카운트업/스티키 시퀀스, `prefers-reduced-motion`, 모바일 가로 스크롤 0
 
 ## Data Architecture
-- **D1 (binding `DB`, `webapp-production`)**: users, sessions, cases, columns, notices, reservations, page_views, settings, encyclopedia inlink
-- **R2 (binding `R2`, `webapp-bucket`)**: 업로드 이미지 (`cases/before/*`, `cases/after/*`(게이팅), `columns/*`)
+- **D1 (binding `DB`, `seoul-dodam-dental-production`)**: users, sessions, cases, columns, notices, reservations, page_views, settings, encyclopedia inlink
+- **R2 (binding `R2`, `seoul-dodam-dental-bucket`)**: 업로드 이미지 (`cases/before/*`, `cases/after/*`(게이팅), `columns/*`)
 - **Migrations**: `migrations/0001_initial_schema.sql`, 시드 `seed.sql`
 
 ## 로컬 실행
 ```bash
 npm run build
-npx wrangler d1 migrations apply webapp-production --local
+npx wrangler d1 migrations apply seoul-dodam-dental-production --local
 pm2 start ecosystem.config.cjs      # wrangler pages dev dist --local --port 3000
 ```
 테스트 계정: `member2@example.com / Passw0rd!23` (AFTER 사진 확인용)
 
-## 배포 전 준비 (Production)
-1. D1 생성 후 `wrangler.jsonc`의 `database_id` 교체, `migrations apply` (remote)
-2. R2 버킷 `webapp-bucket` 생성
-3. Secrets: `ADMIN_PASSWORD`, `SESSION_SECRET`, `GOOGLE_CLIENT_ID/SECRET`, `RESEND_API_KEY`, `NOTIFICATION_EMAIL`, `SITE_URL`
-4. Google OAuth 리디렉션 URI(`https://<도메인>/auth/google/callback`), Resend 도메인 인증
+## 프로덕션 후속 설정
+1. Google OAuth: 콘솔에서 리디렉션 URI `https://seoul-dodam-dental.pages.dev/auth/google/callback` 등록 후 `wrangler pages secret put GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET`
+2. Resend: 도메인 인증 후 `wrangler pages secret put RESEND_API_KEY`
+3. 커스텀 도메인: `npx wrangler pages domain add <도메인> --project-name seoul-dodam-dental` 후 SITE_URL 시크릿 교체
 
 ## 미구현 / 다음 단계
 - 실제 병원 사진·의료진 사진 교체(현재 플레이스홀더), 실제 비급여 비용표 검수
@@ -45,4 +44,7 @@ pm2 start ecosystem.config.cjs      # wrangler pages dev dist --local --port 300
 - 프로덕션 배포 및 커스텀 도메인 연결
 
 ## Deployment
-- **Platform**: Cloudflare Pages · **Status**: ❌ 미배포(사용자 경로 선택 대기) · **Last Updated**: 2026-09-03
+- **Platform**: Cloudflare Pages (프로젝트 `seoul-dodam-dental`) · **Status**: ✅ Active · **Last Updated**: 2026-09-03
+- **D1**: `seoul-dodam-dental-production` (355781fd-…) · **R2**: `seoul-dodam-dental-bucket`
+- **Secrets 설정됨**: ADMIN_PASSWORD, SESSION_SECRET, NOTIFICATION_EMAIL, SITE_URL · **미설정**: GOOGLE_CLIENT_ID/SECRET(구글 로그인), RESEND_API_KEY(예약 알림 메일)
+- **재배포**: `npm run build && npx wrangler pages deploy dist --project-name seoul-dodam-dental --branch main`
