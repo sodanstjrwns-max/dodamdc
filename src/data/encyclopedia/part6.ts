@@ -1,59 +1,62 @@
-// 추가 용어 (마취·감염·미백·턱관절·일상 관리 보강)
+// 추가 용어 (500+ 달성)
 export const part6 = `
-needle-free-anesthesia|무통 마취|Painless Anesthesia|마취·통증관리|표면 마취 → 마취액 가온 → 컴퓨터 제어 주입 → 골내 마취 등 여러 방법을 조합해 주사 통증을 최소화하는 접근입니다. 도담치과의 모든 진료실에 무통 마취 장비가 갖춰져 있습니다.|restorative,pediatric
-anesthesia-failure|마취가 잘 안 되는 이유|Anesthesia Failure|마취·통증관리|급성 염증 조직은 산성이라 마취약이 잘 작용하지 않습니다. 이때 골내 마취나 추가 마취로 해결하며, 도담치과는 퀵슬리퍼로 마취 실패를 줄입니다.|endodontics
-anesthesia-side-effects|마취 부작용|Anesthesia Side Effects|마취·통증관리|일시적 두근거림·손 떨림(에피네프린), 주사 부위 멍, 드물게 알레르기가 있을 수 있습니다. 심장 질환·약물 알레르기는 미리 알려주세요.|restorative
-anesthesia-children|어린이 마취|Pediatric Anesthesia|마취·통증관리|체중에 맞춰 용량을 조절하고 표면 마취·컴퓨터 제어 주입으로 아이가 주사를 거의 느끼지 못하게 진행합니다.|pediatric
-lip-biting|마취 후 입술 씹기|Lip Biting after Anesthesia|마취·통증관리|마취가 풀리기 전 감각이 없어 입술·볼을 씹어 상처가 나는 일이 어린이에게 흔합니다. 마취가 풀릴 때까지 식사를 미루세요.|pediatric
-sedation-note|수면(진정) 진료 안내|Sedation Dentistry|마취·통증관리|약물로 의식을 낮춘 상태에서 치료하는 방법입니다. 도담치과는 수면 진료를 시행하지 않으며, 무통 마취 장비와 충분한 설명으로 공포를 줄이는 방식을 택하고 있습니다.|preventive
-cross-infection|교차 감염|Cross Infection|감염관리·소독|환자·의료진 사이에 병원균이 옮는 것입니다. 기구 멸균·일회용품·손 위생·표면 소독으로 차단합니다.|preventive
-sterilization-indicator|멸균 확인 지표|Sterilization Indicator|감염관리·소독|멸균이 제대로 됐는지 색 변화로 보여주는 테이프·카드입니다. 도담치과는 매 회 지표를 확인하고 기록합니다.|preventive
-biological-indicator|생물학적 지표(BI) 검사|Biological Indicator|감염관리·소독|포자를 넣은 검사체로 멸균기의 성능을 주기적으로 검증하는 방법입니다. 멸균기 관리의 최상위 기준입니다.|preventive
-instrument-cassette|기구 카세트|Instrument Cassette|감염관리·소독|환자별로 사용하는 기구 세트를 한 카세트에 담아 세척·멸균·보관하는 방식입니다. 도담치과는 카세트 단위로 멸균 포장합니다.|preventive
-ultrasonic-cleaner|초음파 세척기|Ultrasonic Cleaner|감염관리·소독|멸균 전 기구에 붙은 오염물을 초음파로 제거하는 장비입니다. 세척이 잘 돼야 멸균이 완전합니다.|preventive
-sterile-water|멸균수|Sterile Water|감염관리·소독|수술 부위 세정에 사용하는 무균 처리된 물입니다. 임플란트·발치 시 사용합니다.|implant,oral-surgery
-ppe|개인 보호 장비|Personal Protective Equipment|감염관리·소독|장갑·마스크·보호 안경·가운 등 의료진과 환자를 함께 보호하는 장비입니다.|preventive
-sharps-disposal|주사침 폐기|Sharps Disposal|감염관리·소독|주사침·날 등을 전용 용기에 즉시 폐기해 찔림 사고를 막는 절차입니다.|preventive
-whitening-frequency|미백 주기|Whitening Frequency|미백|전문가 미백은 6개월~1년, 자가 미백은 필요 시 터치업합니다. 너무 잦은 미백은 시림을 유발할 수 있습니다.|whitening
-whitening-vs-veneer|미백 vs 라미네이트|Whitening vs Veneer|미백|색만 개선하려면 미백, 형태·틈·심한 변색까지 개선하려면 라미네이트를 고려합니다. 삭제가 없는 미백을 먼저 권합니다.|whitening,prosthodontics
-whitening-toothpaste|미백 치약|Whitening Toothpaste|미백|표면 착색을 제거하는 연마제·화학 성분이 든 치약입니다. 치아 본래 색보다 하얗게는 만들지 못합니다.|whitening
-whitening-strip|미백 스트립(부착형)|Whitening Strips|미백|저농도 약제가 묻은 얇은 필름을 붙이는 셀프 미백입니다. 잇몸 자극과 고르지 않은 결과가 있을 수 있어 치과 상담을 권합니다.|whitening
-whitening-age|미백 가능 나이|Whitening Age|미백|영구치가 완성되는 만 16~18세 이후 권장합니다. 그 전에는 치수가 커서 시림이 심할 수 있습니다.|whitening
-whitening-gum-protection|미백 시 잇몸 보호|Gingival Protection in Whitening|미백|고농도 약제가 잇몸에 닿지 않도록 보호 레진(댐)을 바른 뒤 미백을 진행합니다. 잇몸 화상을 예방하는 필수 단계입니다.|whitening
-tmj-self-care|턱관절 자가 관리|TMJ Self-care|턱관절|딱딱한 음식 피하기, 입 크게 벌리지 않기, 온찜질, 턱 힘 빼기 훈련이 기본입니다. 증상이 2주 이상 지속되면 내원하세요.|tmj
-tmj-exercise|턱관절 운동 요법|TMJ Exercise|턱관절|근육 이완과 관절 가동 범위를 회복하는 운동입니다. 치과에서 방법을 배운 뒤 매일 반복합니다.|tmj
-tmj-medication|턱관절 약물 치료|TMJ Medication|턱관절|급성기 통증엔 소염진통제·근육이완제를 짧게 사용합니다. 장기 복용보다 원인 교정이 중요합니다.|tmj
-tmj-injection|턱관절 주사 치료|TMJ Injection|턱관절|관절 내 주사·근육 주사로 통증을 줄이는 방법입니다. 보존적 치료에 반응이 없을 때 고려합니다.|tmj
-tmj-ct|턱관절 CT 검사|TMJ Imaging|턱관절|관절 뼈의 변형·염증 변화를 3D로 확인하는 검사입니다. 도담치과 CT로 턱관절 상태를 함께 볼 수 있습니다.|tmj
-occlusal-trauma|교합성 외상|Occlusal Trauma|턱관절|과도한 씹는 힘이 특정 치아에 집중되어 치주 조직·치아가 손상되는 것입니다. 이갈이·높은 보철이 원인입니다.|tmj,periodontal
-splint-care|스플린트 관리|Splint Care|턱관절|사용 후 찬물로 세척하고 통풍되는 케이스에 보관합니다. 뜨거운 물은 변형을 일으키며 6개월마다 점검합니다.|tmj
-morning-jaw-stiffness|아침 턱 뻐근함|Morning Jaw Stiffness|증상|자고 일어나면 턱이 뻐근하고 이가 아픈 증상입니다. 수면 중 이갈이·이악물기의 대표 신호입니다.|tmj
-tooth-brushing-time|칫솔질 시간과 횟수|Brushing Duration|예방·관리|하루 2~3회, 한 번에 2분 이상이 기본입니다. 자기 전 칫솔질이 가장 중요합니다.|preventive
-toothbrush-replacement|칫솔 교체 주기|Toothbrush Replacement|예방·관리|3개월마다 또는 칫솔모가 벌어지면 교체합니다. 감기 후에도 교체를 권합니다.|preventive
-soft-toothbrush|부드러운 칫솔|Soft-bristled Toothbrush|예방·관리|잇몸과 치경부를 보호하기 위해 부드러운 모를 권합니다. 세정력은 힘이 아니라 방법에서 나옵니다.|preventive,periodontal
-fluoride-toothpaste|불소 치약|Fluoride Toothpaste|예방·관리|성인은 1000~1500ppm 불소 함량을 권합니다. 양치 후 물로 과하게 헹구지 않으면 예방 효과가 높아집니다.|preventive
-after-meal-brushing|식후 칫솔질 시점|Brushing after Meals|예방·관리|산성 음식 직후엔 30분 정도 물로 헹구고 기다렸다 닦는 것이 법랑질 보호에 좋습니다.|preventive
-sugar-frequency|당 섭취 빈도|Sugar Frequency|예방·관리|충치는 당의 양보다 '얼마나 자주' 먹는지에 좌우됩니다. 간식은 시간을 정해 몰아서 먹는 것이 좋습니다.|preventive,pediatric
-acidic-drinks|탄산·산성 음료|Acidic Beverages|예방·관리|탄산·이온음료·과일주스는 법랑질을 녹입니다. 빨대 사용, 물로 헹구기, 빈도 줄이기가 도움이 됩니다.|preventive
-chewing-gum|껌과 구강 건강|Chewing Gum|예방·관리|무설탕 껌은 침 분비를 늘려 식후 산을 중화하는 데 도움이 됩니다. 턱관절 증상이 있으면 피하세요.|preventive
-smoking-oral|흡연과 구강 건강|Smoking and Oral Health|예방·관리|흡연은 치주염·구강암·착색·구취·임플란트 실패의 주요 위험 요인입니다. 금연은 가장 효과적인 구강 건강 투자입니다.|periodontal,preventive
-alcohol-oral|음주와 구강 건강|Alcohol and Oral Health|예방·관리|음주는 구강건조와 점막 자극을 유발하고 구강암 위험을 높입니다. 음주 후 양치는 꼭 하세요.|preventive
-stress-oral|스트레스와 구강 건강|Stress and Oral Health|예방·관리|스트레스는 이갈이·구내염·잇몸 염증 악화·구강건조와 연결됩니다.|tmj,periodontal
-oral-piercing|구강 피어싱|Oral Piercing|예방·관리|혀·입술 피어싱은 치아 파절·잇몸 퇴축·감염 위험이 있습니다.|preventive
-nail-biting|손톱 물어뜯기|Nail Biting|예방·관리|앞니 끝이 닳고 깨지며 턱관절에 부담을 줍니다.|tmj,restorative
-ice-chewing|얼음 씹기|Ice Chewing|예방·관리|치아 크랙과 보철물 파손의 흔한 원인입니다.|restorative
-teeth-as-tools|치아로 병 따기·포장 뜯기|Using Teeth as Tools|예방·관리|앞니 파절과 보철 손상의 주요 원인입니다. 도구를 사용하세요.|restorative
-dental-visit-fear-adult|성인 치과 공포|Adult Dental Fear|마취·통증관리|어릴 때의 경험이 원인인 경우가 많습니다. 처음 방문에서 치료 없이 상담만 받는 것도 가능합니다.|preventive
-gag-reflex|구역 반사|Gag Reflex|마취·통증관리|입안 뒤쪽 자극에 헛구역질이 나는 반응입니다. 본뜨기·X-ray 시 불편할 수 있어 구강 스캐너나 자세 조정으로 돕습니다.|prosthodontics
-dental-fee-explanation|치료비 설명|Fee Explanation|보험·제도|치료 전 급여·비급여 항목과 예상 비용을 문서로 설명합니다. 도담치과는 홈페이지에 비급여 수가를 공개합니다.|preventive
-non-covered-disclosure|비급여 진료비 고지|Non-covered Fee Disclosure|보험·제도|의료법에 따라 비급여 항목과 가격을 병원 내와 홈페이지에 게시하는 의무입니다.|preventive
-insurance-card|건강보험 자격 확인|Insurance Eligibility|보험·제도|신분증으로 본인 확인과 보험 자격을 확인합니다. 2024년부터 병의원 신분증 확인이 의무화되었습니다.|preventive
-medical-certificate|진단서·소견서|Medical Certificate|보험·제도|보험 청구·학교·직장 제출용 서류를 발급받을 수 있습니다. 진료 시 미리 말씀해 주세요.|preventive
-dental-insurance-private|치아보험(실손·치아)|Private Dental Insurance|보험·제도|민간 치아보험은 상품별 보장 항목·면책 기간이 다릅니다. 필요한 서류(진단서·영수증·상세내역)를 발급해 드립니다.|prosthodontics,implant
-year-end-tax|연말정산 의료비|Medical Expense Tax Deduction|보험·제도|치과 치료비는 연말정산 의료비 공제 대상입니다. 국세청 간소화 자료로 자동 반영됩니다.|preventive
-dental-tourism-note|타 지역 치료 후 관리|Continuity of Care|보험·제도|다른 곳에서 받은 치료도 도담치과에서 검진·유지관리를 이어서 받을 수 있습니다. 기존 기록을 가져오시면 도움이 됩니다.|preventive
-suwon-dental-checkup|수원시 구강 검진 안내|Suwon Oral Checkup|보험·제도|국가 건강검진 대상자는 수원 지역 검진기관에서 구강검진을 무료로 받을 수 있습니다. 검진 후 치료 상담은 도담치과에서 이어서 가능합니다.|preventive
-hwaseo-dental|화서동 치과 선택 기준|Choosing a Dentist in Hwaseo|보험·제도|설명이 충분한지, 감염관리 체계가 공개되어 있는지, 과잉 진료 없이 보존을 우선하는지가 기준입니다. 도담치과는 이 세 가지를 홈페이지에 그대로 공개합니다.|preventive
-dodam-philosophy|도담치과 진료 철학|Dodam Philosophy|보험·제도|'겉은 소박해도 안은 다르다' — 화려한 인테리어 대신 멸균 시스템과 정밀 장비, 치아를 살리는 기술에 투자합니다. 필요한 치료만, 살릴 수 있으면 살립니다.|vpt-crown,periodontal,implant
-dodam-equipment|도담치과 장비 안내|Dodam Equipment|영상·진단장비|저선량 3D CT, 큐레이캠, 골내 마취(퀵슬리퍼·데놉스), 컴퓨터 제어 마취(아이젭트), B클래스·플라즈마 멸균기, 온수 스케일링, 초음파 엔도 장비를 갖추고 있습니다.|preventive
+tooth-numbering|치아 번호(FDI)|FDI Tooth Numbering|기본 해부·용어|치아를 두 자리 숫자로 표기하는 국제 방식입니다. 첫 자리는 구역(1~4 영구치, 5~8 유치), 둘째 자리는 앞니부터의 순서입니다. 예: 36번은 왼쪽 아래 첫째 큰어금니입니다.|preventive
+dentition|치열|Dentition|기본 해부·용어|치아가 배열된 전체 상태를 말합니다. 유치열·혼합치열·영구치열로 시기를 구분합니다.|pediatric
+buccal|협면(볼쪽)|Buccal|기본 해부·용어|치아에서 볼 쪽을 향한 면입니다. 치과 기록에서 위치를 표시할 때 사용합니다.|preventive
+lingual|설면(혀쪽)|Lingual|기본 해부·용어|치아에서 혀 쪽을 향한 면입니다. 아래 앞니 안쪽은 치석이 잘 생기는 부위입니다.|preventive
+occlusal-surface|교합면|Occlusal Surface|기본 해부·용어|어금니의 씹는 면입니다. 실란트와 충치 치료가 가장 많이 이루어지는 면입니다.|restorative
+mesial-distal|근심·원심|Mesial and Distal|기본 해부·용어|근심은 얼굴 중앙에 가까운 쪽, 원심은 먼 쪽을 뜻하는 치아 방향 용어입니다.|restorative
+tongue|혀|Tongue|기본 해부·용어|맛을 느끼고 음식을 넘기며 발음을 돕는 근육 기관입니다. 혀 표면의 설태는 입냄새의 주요 원인입니다.|preventive
+palate|구개(입천장)|Palate|기본 해부·용어|입안 위쪽 천장입니다. 앞쪽은 뼈가 있는 경구개, 뒤쪽은 근육으로 된 연구개입니다.|prosthodontics
+uvula|목젖|Uvula|기본 해부·용어|연구개 끝에 매달린 작은 돌기입니다. 상악 본뜨기 때 구역감의 원인이 되기도 합니다.|prosthodontics
+salivary-gland|침샘|Salivary Gland|기본 해부·용어|침을 분비하는 기관으로 귀밑샘·턱밑샘·혀밑샘이 있습니다. 침샘에 돌이 생기면 식사 때 붓고 아플 수 있습니다.|oral-surgery
+frenum|소대|Frenum|기본 해부·용어|입술·혀를 잇몸에 연결하는 얇은 띠입니다. 짧으면 발음·잇몸 퇴축에 영향을 줄 수 있습니다.|oral-surgery
+lip|입술|Lip|기본 해부·용어|입의 바깥 경계로 표정과 발음에 관여합니다. 마취 후 감각이 없을 때 물지 않도록 주의합니다.|preventive
+mucosa|구강 점막|Oral Mucosa|기본 해부·용어|입안을 덮는 부드러운 조직입니다. 2주 이상 낫지 않는 상처는 검사가 필요합니다.|oral-surgery
+temporomandibular-disc|관절 원판(디스크)|Articular Disc|턱관절|턱관절 사이에서 충격을 흡수하는 연골 조직입니다. 위치가 어긋나면 소리와 통증이 생깁니다.|tmj
+lateral-pterygoid|외측 익돌근|Lateral Pterygoid|턱관절|입을 벌리고 턱을 앞으로 내미는 근육입니다. 턱관절 장애 시 통증의 원인이 되기도 합니다.|tmj
+temporalis|측두근|Temporalis Muscle|턱관절|관자놀이에 위치한 씹는 근육입니다. 이악물기가 있으면 두통처럼 느껴지는 통증이 생깁니다.|tmj
+maximum-opening|최대 개구량|Maximum Mouth Opening|턱관절|입을 최대로 벌렸을 때 앞니 사이 거리입니다. 정상은 40mm 이상이며 35mm 미만이면 개구 제한으로 봅니다.|tmj
+deviation|개구 시 편위|Jaw Deviation|턱관절|입을 벌릴 때 턱이 한쪽으로 치우치는 현상입니다. 디스크 변위나 근육 불균형 신호입니다.|tmj
+occlusal-interference|교합 간섭|Occlusal Interference|턱관절|턱을 움직일 때 특정 치아가 먼저 부딛혀 자연스러운 움직임을 방해하는 것입니다. 교합 조정으로 개선합니다.|tmj,prosthodontics
+centric-occlusion|중심 교합|Centric Occlusion|기본 해부·용어|위아래 치아가 최대로 맞물린 위치입니다. 보철 제작의 기준이 됩니다.|prosthodontics
+vertical-dimension|수직 고경|Vertical Dimension|보철(크라운·틀니)|입을 다물었을 때 위아래 턱 사이 높이입니다. 심한 마모나 틀니 제작 시 회복해야 할 기준입니다.|prosthodontics
+edentulous|무치악|Edentulous|보철(크라운·틀니)|치아가 전혀 없는 상태입니다. 완전틀니 또는 임플란트로 회복합니다.|prosthodontics,implant
+partially-edentulous|부분 무치악|Partially Edentulous|보철(크라운·틀니)|일부 치아만 남은 상태입니다. 브릿지·부분틀니·임플란트 중 선택합니다.|prosthodontics,implant
+try-in|시적(트라이인)|Try-in|보철(크라운·틀니)|완성 전 보철물을 입안에 넣어 맞음새·색·교합을 확인하는 단계입니다.|prosthodontics
+bite-registration|교합 채득|Bite Registration|보철(크라운·틀니)|위아래 치아의 맞물림을 기록하는 과정입니다. 정확해야 보철물이 높지 않습니다.|prosthodontics
+lab-technician|치과기공사|Dental Technician|보철(크라운·틀니)|치과의사의 지시에 따라 크라운·틀니 등 보철물을 제작하는 전문가입니다.|prosthodontics
+digital-dentistry|디지털 치과|Digital Dentistry|보철(크라운·틀니)|구강 스캐너·CAD/CAM·3D 프린터를 이용해 진단부터 보철 제작까지 디지털로 진행하는 방식입니다.|prosthodontics,implant
+3d-printing-dental|치과 3D 프린팅|Dental 3D Printing|영상·진단장비|수술 가이드·임시 보철·모형을 3D 프린터로 제작하는 기술입니다. 정밀하고 제작이 빠릅니다.|implant,prosthodontics
+implant-guide|임플란트 수술 가이드|Surgical Guide|임플란트|CT로 설계한 위치·깊이·각도대로 식립하도록 안내하는 맞춤형 장치입니다.|implant
+torque|식립 토크|Insertion Torque|임플란트|픽스처를 심을 때 걸리는 회전력입니다. 초기 고정력을 나타내며 즉시 부하 가능 여부를 판단하는 지표입니다.|implant
+implant-diameter|임플란트 직경·길이|Implant Dimensions|임플란트|뼈의 폭과 높이에 맞춰 선택하는 픽스처 크기입니다. CT로 측정해 결정합니다.|implant
+short-implant|짧은 임플란트|Short Implant|임플란트|뼈 높이가 부족할 때 뼈이식을 줄이기 위해 사용하는 길이가 짧은 픽스처입니다.|implant
+narrow-implant|좁은 임플란트|Narrow Implant|임플란트|앞니나 뼈 폭이 좁은 부위에 사용하는 직경이 작은 픽스처입니다.|implant
+screw-retained|스크류 유지형|Screw-retained Crown|임플란트|크라운을 나사로 고정하는 방식입니다. 필요 시 분리·수리가 쉬운 장점이 있습니다.|implant
+cement-retained|시멘트 유지형|Cement-retained Crown|임플란트|크라운을 접착제로 붙이는 방식입니다. 심미적이지만 잔여 시멘트가 염증을 일으킬 수 있어 세밀한 제거가 필요합니다.|implant
+emergence-profile|출현 윤곽|Emergence Profile|임플란트|임플란트 크라운이 잇몸에서 나오는 형태입니다. 자연치처럼 보이고 청결 관리가 쉽도록 설계합니다.|implant
+implant-xray-check|임플란트 정기 X-ray|Implant Radiographic Follow-up|임플란트|1년마다 X-ray로 뼈 높이 변화를 확인합니다. 초기 뼈 소실을 발견하면 관리로 진행을 막을 수 있습니다.|implant
+gingival-graft|잇몸 이식|Gingival Graft|치주(잇몸)|내려간 잇몸을 덮기 위해 입천장 등에서 조직을 떼어 이식하는 수술입니다. 시림과 심미를 개선합니다.|periodontal
+connective-tissue-graft|결합조직 이식|Connective Tissue Graft|치주(잇몸)|입천장 안쪽 결합조직을 잇몸 퇴축 부위에 이식하는 대표적 잇몸 이식법입니다.|periodontal
+keratinized-gingiva|각화 치은|Keratinized Gingiva|치주(잇몸)|치아·임플란트 주변의 단단한 잇몸입니다. 충분해야 칫솔질에 견디고 염증에 저항합니다.|periodontal,implant
+furcation|치근 분지부|Furcation|치주(잇몸)|어금니 뿌리가 갈라지는 부위입니다. 치주염으로 뼈가 녹아 노출되면 관리가 어렵고 예후가 나빠집니다.|periodontal
+periodontal-chart|치주 검사 차트|Periodontal Chart|치주(잇몸)|치주낭 깊이·출혈·동요도를 치아별로 기록한 표입니다. 변화를 추적하는 기준 자료입니다.|periodontal
+gum-massage|잇몸 마사지|Gum Stimulation|예방·관리|칫솔이나 손가락으로 잇몸을 부드럽게 자극해 혈류를 돕는 방법입니다. 치석 제거를 대신할 수는 없습니다.|periodontal,preventive
+oral-probiotics|구강 유익균|Oral Probiotics|예방·관리|입안 세균 균형을 돕는 보조 제품입니다. 기본 위생 관리를 대체하지 않습니다.|preventive
+chlorhexidine|클로르헥시딘|Chlorhexidine|재료|강력한 항균 구강 세정액입니다. 수술 후·치주 치료 중 단기간 사용하며 장기 사용 시 착색이 생길 수 있습니다.|periodontal,oral-surgery
+saline-rinse|생리식염수 가글|Saline Rinse|예방·관리|발치·수술 후 상처를 자극 없이 헹구는 방법입니다. 첫날은 헹구기를 피하고 이후 가볍게 사용합니다.|oral-surgery
+cold-pack|냉찜질|Cold Compress|예방·관리|수술 후 48시간 이내 부종을 줄이기 위해 볼 바깥에 대는 찜질입니다. 20분 대고 20분 쉬는 방식을 권합니다.|oral-surgery,implant
+warm-pack|온찜질|Warm Compress|예방·관리|수술 48시간 이후 남은 멍·부종 회복과 턱 근육 이완에 도움이 되는 찜질입니다.|tmj,oral-surgery
+soft-diet|연식(부드러운 식사)|Soft Diet|예방·관리|수술·발치 후 상처 자극을 줄이기 위한 죽·두부·요거트 등 부드러운 식사입니다.|oral-surgery,implant
+straw-avoid|빨대 사용 금지|Avoiding Straws|예방·관리|발치 후 빨대의 음압이 피 딱지를 떨어뜨려 드라이 소켓을 유발할 수 있어 2~3일간 피합니다.|wisdom-tooth,oral-surgery
+smoking-healing|흡연과 상처 치유|Smoking and Healing|예방·관리|흡연은 혈류를 줄여 발치·임플란트·잇몸 수술 회복을 늦춥니다. 수술 전후 최소 2주 금연을 권합니다.|oral-surgery,implant
+alcohol-dental|음주와 치과 치료|Alcohol and Dental Treatment|예방·관리|수술 후 음주는 출혈·부종을 늘리고 약물 상호작용이 있을 수 있어 최소 2~3일 피합니다.|oral-surgery
+dental-tourism-caution|치료 중단의 위험|Risks of Interrupted Treatment|보험·제도|신경치료·임플란트를 중간에 멈추면 재감염·실패 위험이 큽니다. 계획된 방문을 마치는 것이 중요합니다.|endodontics,implant
+child-xray-safety|어린이 X-ray 안전|Pediatric Radiograph Safety|영상·진단장비|디지털 촬영은 선량이 매우 낮고 방어복을 착용합니다. 필요한 경우에만 최소로 촬영합니다.|pediatric
+pregnancy-xray|임신 중 X-ray|Radiographs in Pregnancy|영상·진단장비|치과 X-ray는 복부에서 멀고 선량이 낮아 방어복 착용 시 안전하다고 알려져 있지만, 필수적인 경우에만 촬영합니다.|preventive
+geriatric-denture-care|틀니 관리법|Denture Care|보철(크라운·틀니)|매일 전용 세정제로 닦고 밤에는 빼서 물에 보관합니다. 뜨거운 물과 일반 치약은 변형·손상을 일으킵니다.|prosthodontics
+denture-adhesive|틀니 접착제|Denture Adhesive|보철(크라운·틀니)|틀니 안정성을 잠시 높이는 제품입니다. 자주 필요하다면 리라이닝이나 재제작 시기입니다.|prosthodontics
+denture-stomatitis|틀니 구내염|Denture Stomatitis|증상|틀니 아래 잇몸이 붉게 붓는 염증입니다. 틀니 위생 불량·24시간 착용이 원인입니다.|prosthodontics
+oral-health-quality-of-life|구강 건강과 삶의 질|Oral Health and Quality of Life|예방·관리|잘 씹고 말하고 웃을 수 있는 것은 영양·사회생활·자신감과 직결됩니다. 도담치과의 진료 목표입니다.|preventive
 `
