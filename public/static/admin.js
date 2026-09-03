@@ -27,7 +27,17 @@
     var uploadUrl = editor.getAttribute('data-upload') || '/admin/api/upload';
     var prefix = editor.getAttribute('data-prefix') || 'uploads';
 
-    function sync() { hidden.value = clean(editor.innerHTML); }
+    function sync() {
+      // 첫 블록 앞의 맨 텍스트를 <p>로 감싸서 항상 블록 구조 유지
+      var first = editor.firstChild;
+      if (first && first.nodeType === 3 && first.textContent.trim()) {
+        var p = document.createElement('p');
+        editor.insertBefore(p, first); p.appendChild(first);
+        var r = document.createRange(); r.selectNodeContents(p); r.collapse(false);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      }
+      hidden.value = clean(editor.innerHTML);
+    }
     function clean(h) {
       // 불필요한 style/class 제거, 빈 태그 정리
       return h
@@ -227,8 +237,11 @@
     slugIn.addEventListener('input', function () { auto = !slugIn.value; });
     titleIn.addEventListener('input', function () {
       if (!auto) return;
-      slugIn.placeholder = titleIn.value.trim().toLowerCase()
-        .replace(/[^\p{L}\p{N}\s-]/gu, '').replace(/\s+/g, '-').replace(/-+/g, '-').slice(0, 80) || '비우면 자동 생성';
+      var t = titleIn.value.trim();
+      // 서버 정책과 동일: 영문/숫자 제목만 제목 기반 슬러그, 한글 제목은 날짜 기반 자동 생성
+      slugIn.placeholder = /^[\x00-\x7F]+$/.test(t) && t
+        ? t.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').slice(0, 80)
+        : (t ? '비우면 자동 생성 (예: ' + (slugIn.getAttribute('data-kind') || 'column') + '-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-xxxx)' : '비우면 자동 생성');
     });
   }
 
