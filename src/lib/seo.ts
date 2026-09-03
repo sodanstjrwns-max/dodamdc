@@ -9,7 +9,7 @@ export type PageMeta = {
   description: string
   path: string
   image?: string
-  type?: 'website' | 'article'
+  type?: 'website' | 'article' | 'profile'
   noindex?: boolean
   jsonld?: object[]
   crumbs?: Crumb[]
