@@ -3,8 +3,8 @@ import type { Clinic } from '../data/clinic'
 export type Bindings = {
   DB: D1Database
   R2: R2Bucket
-  ADMIN_PASSWORD?: string
-  SESSION_SECRET?: string
+  ADMIN_PASSWORD: string
+  SESSION_SECRET: string
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string
   RESEND_API_KEY?: string
@@ -22,9 +22,9 @@ export type SessionUser = {
 export type Variables = {
   clinic: Clinic
   user: SessionUser | null
-  isAdmin: boolean
+  admin: boolean
   siteUrl: string
-  isBot: boolean
+  nonce: string
 }
 
 export type Env = { Bindings: Bindings; Variables: Variables }

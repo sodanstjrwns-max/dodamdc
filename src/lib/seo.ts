@@ -1,38 +1,55 @@
 import type { Clinic } from '../data/clinic'
 import type { Doctor } from '../data/doctors'
-import type { Treatment } from '../data/treatments-types'
+import type { Treatment, FAQ } from '../data/treatments-types'
 
-export type Meta = {
-  title: string
+export type Crumb = { name: string; href: string }
+
+export type PageMeta = {
+  title: string // 페이지 고유 제목 (병원명 자동 추가)
   description: string
   path: string
-  ogImage?: string
+  image?: string
   type?: 'website' | 'article'
   noindex?: boolean
   jsonld?: object[]
-  breadcrumbs?: { name: string; path: string }[]
-  speakable?: string[]
+  crumbs?: Crumb[]
+  bodyClass?: string
+  publishedAt?: string
+  modifiedAt?: string
 }
 
-export const trunc = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1).trim() + '…' : s)
-export const stripHtml = (s: string) => s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+export const truncate = (s: string, n = 155) => (s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s)
 
-export const DEFAULT_OG = '/static/img/suwon-dodam-dental-reception-desk.webp'
+export function fullTitle(title: string, clinic: Clinic) {
+  return title.includes(clinic.shortName) ? title : `${title} | ${clinic.shortName}`
+}
+
+export function absUrl(siteUrl: string, path: string) {
+  if (/^https?:\/\//.test(path)) return path
+  return siteUrl.replace(/\/$/, '') + path
+}
+
+// ── JSON-LD 빌더 ────────────────────────────────────────
+const dayMap: Record<string, string> = { 월: 'Monday', 화: 'Tuesday', 수: 'Wednesday', 목: 'Thursday', 금: 'Friday', 토: 'Saturday', 일: 'Sunday' }
+
+export function openingHours(clinic: Clinic) {
+  return clinic.hours
+    .filter((h) => h.open && h.close)
+    .map((h) => ({ '@type': 'OpeningHoursSpecification', dayOfWeek: dayMap[h.day], opens: h.open, closes: h.close }))
+}
 
 export function dentistLd(clinic: Clinic, siteUrl: string) {
-  const dayMap: Record<string, string> = { 월: 'Monday', 화: 'Tuesday', 수: 'Wednesday', 목: 'Thursday', 금: 'Friday', 토: 'Saturday', 일: 'Sunday' }
   return {
     '@context': 'https://schema.org',
     '@type': ['Dentist', 'LocalBusiness', 'MedicalBusiness'],
-    '@id': `${siteUrl}/#clinic`,
+    '@id': absUrl(siteUrl, '/#clinic'),
     name: clinic.name,
-    alternateName: [clinic.shortName, clinic.nameEn],
+    alternateName: clinic.nameEn,
     url: siteUrl,
-    logo: `${siteUrl}/static/img/logo-mark.png`,
-    image: `${siteUrl}${DEFAULT_OG}`,
+    logo: absUrl(siteUrl, '/static/img/logo-mark.png'),
+    image: absUrl(siteUrl, '/static/img/suwon-dodam-dental-reception-desk.webp'),
     telephone: clinic.phoneTel,
     email: clinic.email,
-    description: clinic.mission,
     priceRange: '₩₩',
     currenciesAccepted: 'KRW',
     paymentAccepted: '현금, 신용카드, 계좌이체',
@@ -46,14 +63,13 @@ export function dentistLd(clinic: Clinic, siteUrl: string) {
     },
     geo: { '@type': 'GeoCoordinates', latitude: clinic.geo.lat, longitude: clinic.geo.lng },
     hasMap: clinic.channels.naverPlace,
+    openingHoursSpecification: openingHours(clinic),
+    sameAs: [clinic.channels.naverPlace, clinic.channels.naverBlog, clinic.channels.instagram, clinic.channels.kakao].filter(Boolean),
     areaServed: ['수원시 팔달구', '수원시 장안구', '수원시 권선구', '화서동', '화서역'],
-    openingHoursSpecification: clinic.hours
-      .filter((h) => h.open)
-      .map((h) => ({ '@type': 'OpeningHoursSpecification', dayOfWeek: dayMap[h.day], opens: h.open, closes: h.close })),
-    sameAs: Object.values(clinic.channels),
     medicalSpecialty: ['Dentistry'],
     isAcceptingNewPatients: true,
     foundingDate: clinic.founded,
+    slogan: clinic.slogan,
   }
 }
 
@@ -61,76 +77,92 @@ export function physicianLd(d: Doctor, clinic: Clinic, siteUrl: string) {
   return {
     '@context': 'https://schema.org',
     '@type': ['Physician', 'Person'],
-    '@id': `${siteUrl}/doctors/${d.slug}#person`,
+    '@id': absUrl(siteUrl, `/doctors/${d.slug}#person`),
     name: d.name,
-    alternateName: d.nameEn,
+    honorificSuffix: d.title,
     jobTitle: d.title,
-    image: `${siteUrl}${d.photo}`,
-    url: `${siteUrl}/doctors/${d.slug}`,
-    worksFor: { '@id': `${siteUrl}/#clinic` },
-    medicalSpecialty: d.specialty,
+    image: absUrl(siteUrl, d.photo),
+    url: absUrl(siteUrl, `/doctors/${d.slug}`),
+    worksFor: { '@id': absUrl(siteUrl, '/#clinic') },
+    medicalSpecialty: 'Dentistry',
     alumniOf: d.education.map((e) => ({ '@type': 'EducationalOrganization', name: e })),
-    hasCredential: d.license.map((l) => ({ '@type': 'EducationalOccupationalCredential', name: l })),
     memberOf: d.societies.map((s) => ({ '@type': 'Organization', name: s })),
     knowsAbout: d.treatments,
     description: d.quote,
   }
 }
 
-export function procedureLd(t: Treatment, siteUrl: string) {
+export function procedureLd(t: Treatment, clinic: Clinic, siteUrl: string) {
   return {
     '@context': 'https://schema.org',
     '@type': 'MedicalProcedure',
+    '@id': absUrl(siteUrl, `/treatments/${t.slug}#procedure`),
     name: t.name,
     alternateName: t.nameEn,
-    url: `${siteUrl}/treatments/${t.slug}`,
+    url: absUrl(siteUrl, `/treatments/${t.slug}`),
     description: t.short,
     procedureType: 'https://schema.org/NoninvasiveProcedure',
+    bodyLocation: '구강',
     howPerformed: t.steps?.map((s) => s.title).join(' → '),
     followup: t.sideEffects.join(' '),
-    bodyLocation: '구강',
-    provider: { '@id': `${siteUrl}/#clinic` },
+    provider: { '@id': absUrl(siteUrl, '/#clinic') },
   }
 }
 
-export const faqLd = (faqs: { q: string; a: string }[]) => ({
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: stripHtml(f.a) } })),
-})
+export function faqLd(faqs: FAQ[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+  }
+}
 
-export const breadcrumbLd = (items: { name: string; path: string }[], siteUrl: string) => ({
-  '@context': 'https://schema.org',
-  '@type': 'BreadcrumbList',
-  itemListElement: items.map((it, i) => ({ '@type': 'ListItem', position: i + 1, name: it.name, item: `${siteUrl}${it.path}` })),
-})
+export function breadcrumbLd(crumbs: Crumb[], siteUrl: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: absUrl(siteUrl, c.href) })),
+  }
+}
 
-export const articleLd = (a: { title: string; description: string; path: string; image?: string; published: string; modified?: string; author: string; authorPath: string }, clinic: Clinic, siteUrl: string) => ({
-  '@context': 'https://schema.org',
-  '@type': 'MedicalWebPage',
-  mainEntityOfPage: `${siteUrl}${a.path}`,
-  headline: a.title,
-  description: a.description,
-  image: a.image ? [a.image.startsWith('http') ? a.image : `${siteUrl}${a.image}`] : undefined,
-  datePublished: a.published,
-  dateModified: a.modified || a.published,
-  author: { '@type': 'Person', name: a.author, url: `${siteUrl}${a.authorPath}` },
-  publisher: { '@type': 'Organization', name: clinic.name, logo: { '@type': 'ImageObject', url: `${siteUrl}/static/img/logo-mark.png` } },
-  medicalAudience: { '@type': 'Patient' },
-  reviewedBy: { '@type': 'Person', name: a.author },
-})
+export function articleLd(a: { title: string; description: string; path: string; image?: string; author: string; authorPath: string; publishedAt: string; modifiedAt?: string }, clinic: Clinic, siteUrl: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'MedicalWebPage',
+    mainEntity: {
+      '@type': 'Article',
+      headline: a.title,
+      description: a.description,
+      image: a.image ? absUrl(siteUrl, a.image) : undefined,
+      author: { '@type': 'Person', name: a.author, url: absUrl(siteUrl, a.authorPath) },
+      publisher: { '@type': 'Organization', name: clinic.name, logo: { '@type': 'ImageObject', url: absUrl(siteUrl, '/static/img/logo-mark.png') } },
+      datePublished: a.publishedAt,
+      dateModified: a.modifiedAt || a.publishedAt,
+      mainEntityOfPage: absUrl(siteUrl, a.path),
+    },
+    speakable: { '@type': 'SpeakableSpecification', cssSelector: ['.lead', 'h1', '.summary-box'] },
+  }
+}
 
-export const speakableLd = (path: string, selectors: string[], siteUrl: string) => ({
-  '@context': 'https://schema.org',
-  '@type': 'WebPage',
-  url: `${siteUrl}${path}`,
-  speakable: { '@type': 'SpeakableSpecification', cssSelector: selectors },
-})
+export function webpageSpeakableLd(path: string, siteUrl: string, name: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    '@id': absUrl(siteUrl, path),
+    name,
+    speakable: { '@type': 'SpeakableSpecification', cssSelector: ['h1', '.lead', '.summary-box'] },
+    isPartOf: { '@type': 'WebSite', url: siteUrl },
+  }
+}
 
-export const webSiteLd = (clinic: Clinic, siteUrl: string) => ({
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: clinic.name,
-  url: siteUrl,
-  potentialAction: { '@type': 'SearchAction', target: `${siteUrl}/encyclopedia?q={search_term_string}`, 'query-input': 'required name=search_term_string' },
-})
+export function definedTermLd(term: { term: string; en: string; def: string; slug: string }, siteUrl: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'DefinedTerm',
+    name: term.term,
+    alternateName: term.en,
+    description: term.def,
+    url: absUrl(siteUrl, `/encyclopedia/${term.slug}`),
+    inDefinedTermSet: { '@type': 'DefinedTermSet', name: '서울도담치과 치과 백과사전', url: absUrl(siteUrl, '/encyclopedia') },
+  }
+}
