@@ -1,0 +1,30 @@
+import type { Clinic } from '../data/clinic'
+
+export type Bindings = {
+  DB: D1Database
+  R2: R2Bucket
+  ADMIN_PASSWORD?: string
+  SESSION_SECRET?: string
+  GOOGLE_CLIENT_ID?: string
+  GOOGLE_CLIENT_SECRET?: string
+  RESEND_API_KEY?: string
+  NOTIFICATION_EMAIL?: string
+  SITE_URL?: string
+}
+
+export type SessionUser = {
+  id: number
+  email: string
+  name: string
+  role: 'member' | 'admin'
+}
+
+export type Variables = {
+  clinic: Clinic
+  user: SessionUser | null
+  isAdmin: boolean
+  siteUrl: string
+  isBot: boolean
+}
+
+export type Env = { Bindings: Bindings; Variables: Variables }
