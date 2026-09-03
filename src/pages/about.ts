@@ -19,7 +19,7 @@ ${pageHero({ eyebrow: '의료진', title: html`한 명의 원장이<br>처음부
       <div class="doctor-band-text">
         <p class="eyebrow">${d.title}</p>
         <h2 class="h2">${d.name} <small class="specialty">${d.nameEn}</small></h2>
-        <blockquote class="quote">“${d.quote}”</blockquote>
+        <blockquote class="quote">${d.quote}</blockquote>
         <ul class="cred-list">${[...d.license, ...d.education].map((l) => html`<li>${l}</li>`)}</ul>
         <a href="/doctors/${d.slug}" class="btn btn-primary">자세한 소개</a>
       </div>
@@ -45,10 +45,10 @@ export async function doctorDetail(c: Context<Env>, d: Doctor) {
   <div class="container doctor-hero-grid">
     <div class="doctor-hero-text">
       <nav class="crumbs" aria-label="현재 위치"><ol><li><a href="/">홈</a></li><li><a href="/doctors">의료진</a></li><li aria-current="page">${d.name} ${d.title}</li></ol></nav>
-      <p class="eyebrow light reveal in">${d.title} · ${d.specialty}</p>
+      <p class="eyebrow reveal in">${d.title} · ${d.specialty}</p>
       <h1 class="h1 reveal in">${d.name} <span class="specialty">${d.nameEn}</span></h1>
-      <blockquote class="quote light reveal in">“${d.quote}”</blockquote>
-      <div class="hero-actions reveal in"><a href="/reservation" class="btn btn-accent">진료 예약</a><a href="#philosophy" class="btn btn-ghost-light">진료 철학</a></div>
+      <blockquote class="quote reveal in">${d.quote}</blockquote>
+      <div class="hero-actions reveal in"><a href="/reservation" class="btn btn-primary">진료 예약</a><a href="#philosophy" class="btn btn-outline">진료 철학</a></div>
     </div>
     <div class="doctor-hero-img reveal-scale in"><img src="${d.photoCutout}" alt="${d.photoAlt}" width="720" height="900" fetchpriority="high" decoding="async"></div>
   </div>

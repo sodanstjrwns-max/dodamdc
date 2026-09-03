@@ -53,12 +53,12 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="manifest" href="/site.webmanifest">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="/static/style.css?v=4">
+<link rel="stylesheet" href="/static/style.css?v=5">
 <link rel="alternate" type="application/rss+xml" title="${clinic.shortName} 원장 칼럼" href="/column/rss.xml">
 ${lds.map((l) => raw(`<script type="application/ld+json">${JSON.stringify(l).replace(/</g, '\\u003c')}</script>`))}
 ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?id=${escAttr(clinic.ga4)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${escAttr(clinic.ga4)}',{anonymize_ip:true});</script>`) : ''}
 </head>
-<body class="${meta.bodyClass || ''}">
+<body class="${meta.bodyClass || ''}" id="top">
 <a href="#main" class="skip-link">본문으로 건너뛰기</a>
 <div class="progress-bar" id="scroll-progress" aria-hidden="true"></div>
 
@@ -98,7 +98,7 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
                   <li><a href="/faq">자주 묻는 질문</a></li>
                   <li><a href="/encyclopedia">치과 백과사전</a></li>
                 </ul>
-                <a href="/reservation" class="btn btn-accent btn-sm mega-cta">진료 예약하기</a>
+                <a href="/reservation" class="btn btn-primary btn-sm mega-cta">진료 예약하기</a>
               </div>
             </div>
           </div>
@@ -160,11 +160,12 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
   <div class="footer-cta reveal">
     <div class="container footer-cta-inner">
       <div>
-        <p class="eyebrow">${clinic.region}</p>
-        <h2 class="footer-cta-title">이해될 때까지 설명하고,<br>필요한 만큼만 치료합니다.</h2>
+        <p class="eyebrow">${clinic.region} · 화요일 야간진료 20:30</p>
+        <h2 class="footer-cta-title">어떤 치료가 필요한지부터,<br>함께 확인해 드립니다.</h2>
       </div>
       <div class="footer-cta-actions">
         <a href="/reservation" class="btn btn-light">진료 예약</a>
+        <a href="tel:${clinic.phoneTel}" class="btn btn-ghost-light">${clinic.phone}</a>
         <a href="${clinic.channels.kakao}" class="btn btn-ghost-light" target="_blank" rel="noopener">카카오톡 상담</a>
       </div>
     </div>
@@ -220,6 +221,7 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
   <a href="tel:${clinic.phoneTel}" class="fab fab-call" aria-label="전화하기"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></a>
   <a href="${clinic.channels.kakao}" class="fab fab-kakao" target="_blank" rel="noopener" aria-label="카카오톡 상담"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.2 4.6 6.6L5.5 21l4.3-2.8c.7.1 1.4.2 2.2.2 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg></a>
   <a href="/reservation" class="fab fab-book">예약</a>
+  <a href="#top" class="fab fab-top" aria-label="맨 위로" id="to-top"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></a>
 </div>
 
 <script src="/static/app.js?v=4" defer></script>

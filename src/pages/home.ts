@@ -37,18 +37,29 @@ export async function homePage(c: Context<Env>) {
 
   const body = html`
 <section class="hero" id="hero-section">
-  <div class="hero-media"><img src="/static/img/suwon-dodam-dental-operatory.webp" alt="서울도담치과 진료실" width="1600" height="1000" fetchpriority="high" decoding="async"></div>
-  <div class="hero-grid" aria-hidden="true"></div>
+  <span class="hero-blob b1" aria-hidden="true"></span>
+  <span class="hero-blob b2" aria-hidden="true"></span>
+  <span class="hero-blob b3" aria-hidden="true"></span>
   <div class="container hero-inner">
-    <p class="eyebrow light reveal in">수원 화서동 · 통합치의학과 전문의 진료</p>
-    <h1 class="hero-title">
-      <span class="line"><span>이해될 때까지 설명하고,</span></span>
-      <span class="line"><span>필요한 만큼만 <em>치료합니다.</em></span></span>
-    </h1>
-    <p class="hero-lead reveal in">치아는 재생되지 않습니다. 살릴 수 있는 방법이 하나라도 남아 있으면 그것부터 시작하는 치과, 서울도담치과입니다.</p>
-    <div class="hero-actions reveal in">
-      <a href="/reservation" class="btn btn-accent btn-lg">진료 예약하기</a>
-      <a href="/treatments" class="btn btn-ghost-light btn-lg">진료 안내 보기</a>
+    <div class="hero-copy">
+      <p class="eyebrow reveal in">수원 화서동 · 통합치의학과 전문의가 직접 진료</p>
+      <h1 class="hero-title">
+        <span class="line"><span>이해될 때까지 설명하고,</span></span>
+        <span class="line"><span>필요한 만큼만</span></span>
+        <span class="line"><span><em>치료합니다.</em></span></span>
+      </h1>
+      <p class="hero-lead">치아는 재생되지 않습니다. 살릴 수 있는 방법이 하나라도 남아 있으면 그것부터 시작하는 동네 치과, 서울도담치과입니다.</p>
+      <div class="hero-actions">
+        <a href="/reservation" class="btn btn-primary btn-lg">진료 예약하기</a>
+        <a href="tel:${clinic.phoneTel}" class="btn btn-outline btn-lg">${clinic.phone}</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <figure class="hero-photo">
+        <img src="${dr.photoCutout}" alt="${dr.photoAlt}" width="816" height="1224" fetchpriority="high" decoding="async">
+        <figcaption class="hero-photo-cap"><strong>${dr.name} ${dr.title}</strong><span>${dr.specialty}</span></figcaption>
+      </figure>
+      <div class="hero-badge" aria-hidden="true"><img src="/static/img/logo-mark.png" alt="" width="56" height="56"></div>
     </div>
   </div>
   <div class="hero-meta">
@@ -59,7 +70,6 @@ export async function homePage(c: Context<Env>) {
       <div class="hero-meta-item"><strong>1호선 화서역</strong><span>도보 약 10분 · 신우상가 2층</span></div>
     </div>
   </div>
-  <a href="#pillars" class="hero-scroll" aria-label="아래로 스크롤"><span></span></a>
 </section>
 
 ${notice ? html`<a href="/notice/${notice.id}" class="notice-bar"><span class="tag">공지</span><span class="notice-bar-title">${notice.title}</span><span class="notice-bar-date">${fmtDate(notice.created_at)}</span></a>` : ''}
@@ -67,8 +77,9 @@ ${notice ? html`<a href="/notice/${notice.id}" class="notice-bar"><span class="t
 <section class="section" id="pillars">
   <div class="container">
     <div class="section-head reveal">
-      <p class="eyebrow">병원 미션</p>
+      <p class="eyebrow">서울도담치과의 약속</p>
       <h2 class="h2">${clinic.mission}</h2>
+      <p class="lead">2002년부터 이 자리를 지켜온 동네 치과입니다. 화려한 인테리어 대신, 진료실 안에서 지키는 네 가지 원칙으로 말씀드립니다.</p>
     </div>
     <div class="pillars stagger">
       ${pillars.map((p) => html`<article class="pillar"><span class="pillar-num">${p.n}</span><h3>${p.t}</h3><p>${p.d}</p></article>`)}
@@ -77,7 +88,7 @@ ${notice ? html`<a href="/notice/${notice.id}" class="notice-bar"><span class="t
   </div>
 </section>
 
-<section class="section section-bg" id="core-treatments">
+<section class="section section-white" id="core-treatments">
   <div class="container">
     <div class="section-head reveal">
       <p class="eyebrow">도담이 가장 잘하는 진료</p>
@@ -114,7 +125,7 @@ ${notice ? html`<a href="/notice/${notice.id}" class="notice-bar"><span class="t
     </div>
     <div class="doctor-band-text reveal-right">
       <p class="eyebrow">의료진</p>
-      <blockquote class="quote">“${dr.quote}”</blockquote>
+      <blockquote class="quote">${dr.quote}</blockquote>
       <p>${dr.story[2].body}</p>
       <ul class="cred-list">
         ${dr.license.map((l) => html`<li>${l}</li>`)}
@@ -152,9 +163,9 @@ ${notice ? html`<a href="/notice/${notice.id}" class="notice-bar"><span class="t
   </div>
 </section>
 
-<section class="section section-warm" id="equipment-teaser">
+<section class="section section-white" id="equipment-teaser">
   <div class="container split">
-    <div class="split-img reveal-left"><img src="/static/img/sterilized-handpiece-cassettes.webp" alt="기구별 밀봉 포장된 멸균 핸드피스 카세트" width="960" height="720" loading="lazy" decoding="async"></div>
+    <div class="split-img reveal-left"><img src="/static/img/suwon-dodam-dental-treatment-room.webp" alt="서울도담치과 진료실 — 창가 자연광이 들어오는 개별 진료 공간" width="960" height="720" loading="lazy" decoding="async"></div>
     <div class="reveal-right">
       <p class="eyebrow">장비 · 감염관리</p>
       <h2 class="h2">겉은 소박해도,<br>안은 다릅니다</h2>
@@ -193,7 +204,7 @@ ${posts.length ? html`<section class="section" id="latest-columns">
   </div>
 </section>` : ''}
 
-<section class="section section-bg" id="visit-info">
+<section class="section" id="visit-info">
   <div class="container info-grid stagger">
     <div class="info-card">
       <h3>진료시간</h3>

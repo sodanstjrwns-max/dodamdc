@@ -48,8 +48,8 @@ export const clinicDefaults = {
   },
   reviews: { count: 782, asOf: '2026년 8월', source: '네이버 방문자 리뷰' },
   email: 'verygood2875@gmail.com',
-  // 브랜드 컬러 — Q25: 블루 메인(기존 인지) + 그린 포인트(자연치아·생명)
-  brand: { primary: '#006AB5', primaryDark: '#0B4A7A', accent: '#2FA37A', ink: '#1D2B36' },
+  // 브랜드 컬러 — Q26 로고 실측: 블루 #0069B3 + 차콜 #575757. Q25 그린은 파스텔 민트 카드 톤으로만 사용(브랜드 컬러 아님)
+  brand: { primary: '#0069B3', primaryDark: '#00548F', accent: '#0069B3', ink: '#23303A', charcoal: '#575757', bg: '#F7F4EF', peach: '#F7E4D6', mint: '#E1EEE8' },
 }
 
 export type Clinic = typeof clinicDefaults
