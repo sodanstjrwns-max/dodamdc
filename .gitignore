@@ -9,3 +9,8 @@ logs/
 *.tar.gz
 *.bak
 .DS_Store
+.artifacts/
+.env.*
+.dev.vars.*
+playwright-report/
+test-results/

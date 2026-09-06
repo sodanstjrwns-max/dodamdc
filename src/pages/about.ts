@@ -15,7 +15,7 @@ ${pageHero({ eyebrow: '의료진', title: html`한 명의 원장이<br>처음부
 <section class="section">
   <div class="container">
     ${doctors.map((d) => html`<article class="doctor-band reveal">
-      <div class="doctor-band-img"><img src="${d.photoCutout}" alt="${d.photoAlt}" width="720" height="900" loading="lazy" decoding="async"><p class="doctor-band-caption">${d.name} ${d.title} · ${d.specialty}</p></div>
+      <div class="doctor-band-img"><img src="/static/img/dr-han-hwirim-standing.webp" alt="${d.photoAlt}" width="720" height="900" loading="lazy" decoding="async"><p class="doctor-band-caption">${d.name} ${d.title} · ${d.specialty}</p></div>
       <div class="doctor-band-text">
         <p class="eyebrow">${d.title}</p>
         <h2 class="h2">${d.name} <small class="specialty">${d.nameEn}</small></h2>
@@ -50,7 +50,7 @@ export async function doctorDetail(c: Context<Env>, d: Doctor) {
       <blockquote class="quote reveal in">${d.quote}</blockquote>
       <div class="hero-actions reveal in"><a href="/reservation" class="btn btn-primary">진료 예약</a><a href="#philosophy" class="btn btn-outline">진료 철학</a></div>
     </div>
-    <div class="doctor-hero-img reveal-scale in"><img src="${d.photoCutout}" alt="${d.photoAlt}" width="720" height="900" fetchpriority="high" decoding="async"></div>
+    <div class="doctor-hero-img reveal-scale in"><img src="/static/img/dr-han-hwirim-standing.webp" alt="${d.photoAlt}" width="720" height="900" fetchpriority="high" decoding="async"></div>
   </div>
 </section>
 
@@ -116,13 +116,18 @@ export function missionPage(c: Context<Env>) {
   const values = [
     { icon: '01', t: '설명', d: '지금 무엇을 왜 하는지 이해되실 때까지 설명합니다. 눈을 가린 채 무슨 일이 벌어지는지 모르는 진료는 하지 않습니다.' },
     { icon: '02', t: '보존', d: '치아는 재생되지 않습니다. 살릴 수 있는 방법이 하나라도 남아 있으면 그것부터 합니다. 신경치료는 발치 바로 전 단계라고 생각합니다.' },
-    { icon: '03', t: '무통', d: '통증에 예민한 원장이 자신이 받기 싫은 순간을 하나씩 찾아 없앴습니다. 마취크림, 마취액 워머, 무통마취기, 미온수 스케일링.' },
+    { icon: '03', t: '배려', d: '통증에 예민한 원장이 작은 불편도 세심하게 살핍니다. 마취크림, 마취액 워머, 전동 마취기, 미온수 스케일링을 상황에 맞게 사용합니다.' },
     { icon: '04', t: '정직', d: '필요하지 않은 치료는 권하지 않습니다. 비급여 항목은 진료 전 고지된 금액대로, 이벤트나 할인 없이 동일하게 안내합니다.' },
-    { icon: '05', t: '기준', d: '겉은 소박한 상가 2층이지만 감염관리와 장비는 대학병원 기준을 따릅니다. 기구는 환자마다 새로 개봉합니다.' },
+    { icon: '05', t: '기준', d: '세척부터 포장, 멸균, 보관까지. Class B 고압멸균기와 기구별 밀봉 포장으로 감염관리의 기본을 지킵니다. 기구는 환자마다 새로 개봉합니다.' },
     { icon: '06', t: '지속', d: '치료가 끝나면 관계가 시작됩니다. 성인 6개월, 소아 3개월 주기의 큐레이 검진으로 문제를 조기에 찾습니다.' },
   ]
   const body = html`
-${pageHero({ eyebrow: '병원 미션', title: html`필요한 진료를<br>제때, 이해하고 받도록`, lead: clinic.mission, crumbs: [{ name: '홈', href: '/' }, { name: '병원 미션', href: '/mission' }], image: '/static/img/suwon-dodam-dental-consult-room.webp', imageAlt: '서울도담치과 상담실' })}
+<section class="mission-poster" aria-labelledby="mission-title"><div class="container">
+  <nav class="crumbs" aria-label="현재 위치"><ol><li><a href="/">홈</a></li><li aria-current="page">도담의 철학</li></ol></nav>
+  <p class="edition-label">THE DODAM PHILOSOPHY</p>
+  <div class="mission-poster-grid"><h1 id="mission-title">한 번 손대기 전에,<br><em>한 번 더</em><br>생각합니다.</h1><div class="mission-poster-aside"><p>치료의 크기보다 중요한 건<br>당신에게 꼭 필요한 치료인지.<br>그 질문을 잊지 않는 치과가 되겠습니다.</p><img src="/static/img/suwon-dodam-dental-reception-desk.webp" alt="서울도담치과 접수 공간" width="1619" height="971" fetchpriority="high"></div></div>
+  <p class="mission-poster-bottom">Less intervention. More consideration.</p>
+</div></section>
 <section class="section">
   <div class="container container-narrow">
     <p class="mission-statement reveal">“<em>${clinic.slogan}</em>” 이 문장은 광고 문구가 아니라 저희가 매일 진료실에서 스스로에게 확인하는 기준입니다. 설명이 부족했다면 다시 설명하고, 치료가 과했다면 다음엔 덜 합니다.</p>
@@ -192,7 +197,7 @@ export function floorGuidePage(c: Context<Env>) {
   const clinic = c.get('clinic') as any
   const cats = [...new Set(equipment.map((e) => e.cat))]
   const body = html`
-${pageHero({ eyebrow: '장비 · 감염관리 · 둘러보기', title: html`겉은 소박해도,<br>안은 다릅니다`, lead: '상가 2층의 작은 치과입니다. 대신 진단·무통·신경치료·감염관리 장비는 대학병원 기준으로 갖췄고, 환자마다 기구를 새로 개봉합니다. 사진으로 먼저 확인하세요.', crumbs: [{ name: '홈', href: '/' }, { name: '장비·감염관리', href: '/floor-guide' }], image: '/static/img/person-vacuum-autoclave-48l.webp', imageAlt: 'Class B 진공 고압멸균기' })}
+${pageHero({ eyebrow: '장비 · 감염관리 · 둘러보기', title: html`눈에 보이지 않는 곳에도,<br>진료의 마음을 담습니다.`, lead: '정확한 진단을 위한 장비부터 환자마다 새로 개봉하는 기구까지. 서울도담치과가 지키는 감염관리 과정과 실제 진료 공간을 확인해 보세요.', crumbs: [{ name: '홈', href: '/' }, { name: '장비·감염관리', href: '/floor-guide' }], image: '/static/img/person-vacuum-autoclave-48l.webp', imageAlt: 'Class B 진공 고압멸균기' })}
 <section class="section" id="sterilization">
   <div class="container">
     <div class="section-head reveal"><p class="eyebrow">감염관리 원칙</p><h2 class="h2">눈에 보이지 않는 곳에<br>기준을 둡니다</h2></div>
@@ -206,7 +211,7 @@ ${pageHero({ eyebrow: '장비 · 감염관리 · 둘러보기', title: html`겉�
 </section>
 ${cats.map((cat) => html`<section class="section ${cat === '무통' || cat === '감염관리' ? 'section-bg' : ''}" id="equip-${cat}">
   <div class="container">
-    <div class="section-head reveal"><p class="eyebrow">${cat}</p><h2 class="h2">${{ 진단: '보이는 만큼 정확해집니다', 무통: '아픈 지점을 하나씩 없앱니다', 신경치료: '신경치료를 제대로 하기 위한 장비', 보존: '자연치아를 남기는 재료', 진료: '진료 장비', 감염관리: '대학병원 기준의 감염관리' }[cat] || cat}</h2></div>
+    <div class="section-head reveal"><p class="eyebrow">${cat}</p><h2 class="h2">${{ 진단: '보이는 만큼 정확해집니다', 무통: '아픈 지점을 하나씩 없앱니다', 신경치료: '신경치료를 제대로 하기 위한 장비', 보존: '자연치아를 남기는 재료', 진료: '진료 장비', 감염관리: '기본을 지키는 감염관리' }[cat] || cat}</h2></div>
     <div class="equip-grid stagger">${equipment.filter((e) => e.cat === cat).map((e) => html`<article class="equip"><div class="equip-img"><img src="/static/img/${e.img}.webp" alt="${e.name}" width="640" height="480" loading="lazy" decoding="async"></div><div class="equip-body"><span class="tag gray">${e.cat}</span><h3>${e.name}</h3><p>${e.d}</p></div></article>`)}</div>
   </div>
 </section>`)}

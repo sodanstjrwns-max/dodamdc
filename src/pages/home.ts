@@ -2,243 +2,119 @@ import { html } from 'hono/html'
 import type { Context } from 'hono'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
-import { dentistLd, webpageSpeakableLd } from '../lib/seo'
+import { dentistLd, webpageSpeakableLd, faqLd } from '../lib/seo'
 import { coreTreatments, otherTreatments } from '../data/treatments'
 import { doctors } from '../data/doctors'
-import { reviewLine } from '../lib/ui'
+import { faqList } from '../lib/ui'
 import { fmtDate } from '../lib/util'
 
 type Post = { slug: string; title: string; excerpt: string; thumbnail: string | null; published_at: string }
 type Notice = { id: number; title: string; created_at: string }
+const arrow = html`<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 12h15M13 5l7 7-7 7"/></svg>`
 
 export async function homePage(c: Context<Env>) {
   const clinic = c.get('clinic') as any
   const siteUrl = c.get('siteUrl')
   const dr = doctors[0]
-  let posts: Post[] = []
-  let notice: Notice | null = null
+  let posts: Post[] = [], notice: Notice | null = null
   try {
-    const r = await c.env.DB.prepare('SELECT slug, title, excerpt, thumbnail, published_at FROM columns WHERE published=1 ORDER BY published_at DESC LIMIT 3').all<Post>()
-    posts = r.results || []
+    posts = (await c.env.DB.prepare('SELECT slug, title, excerpt, thumbnail, published_at FROM columns WHERE published=1 ORDER BY published_at DESC LIMIT 3').all<Post>()).results || []
     notice = await c.env.DB.prepare('SELECT id, title, created_at FROM notices WHERE published=1 ORDER BY pinned DESC, created_at DESC LIMIT 1').first<Notice>()
-  } catch { /* 마이그레이션 전 */ }
-
-  const coreImgs = ['/static/img/one-fil-putty-mta.webp', '/static/img/warm-water-scaling-system.webp', '/static/img/vatech-green16-low-dose-ct.webp']
-  const coreLabels = ['One-Fil Putty MTA · 큐레이 · 러버댐', '미온수 스케일링 · 30대 치주관리', 'Vatech Green16 저선량 CT · 가이드 수술']
-
-  const pillars = [
-    { n: '01', t: '이해될 때까지 설명합니다', d: '지금 무엇을 왜 하는지 모르면 치료는 두렵습니다. 방사선·큐레이 사진을 함께 보며, 이해되실 때까지 설명한 뒤에 시작합니다.' },
-    { n: '02', t: '필요한 만큼만 치료합니다', d: '치아는 재생되지 않습니다. 살릴 방법이 하나라도 남아 있으면 그것부터 합니다. 처음부터 발치를 말씀드리는 경우는 거의 없습니다.' },
-    { n: '03', t: '아픈 지점을 하나씩 없앱니다', d: '마취크림, 마취액 워머, 무통마취기, 미온수 스케일링. 통증에 예민한 원장이 자신이 받기 싫은 순간을 하나씩 찾아 제거해 왔습니다.' },
-    { n: '04', t: '겉은 소박해도 안은 다릅니다', d: '상가 2층의 작은 치과지만 저선량 CT, Class B 고압멸균기, 플라즈마 소독기, 기구별 밀봉 포장까지 대학병원 기준으로 갖췄습니다.' },
+  } catch { /* Preview also works before database migrations. */ }
+  const care = [
+    { en: 'PRESERVE', title: html`살릴 수 있다면,<br>한 번 더 살펴봅니다.`, text: '신경치료를 결정하기 전에, 치아 속 살아 있는 신경을 보존할 수 있는지 먼저 확인합니다.', image: 'one-fil-putty-mta', caption: '자연치아 보존을 위한 One-Fil Putty MTA', chips: ['MTA 생활치수치료', '러버댐 격리', '큐레이 진단'] },
+    { en: 'PROTECT', title: html`치아를 지탱하는 힘,<br>잇몸부터 지킵니다.`, text: '치아를 오래 쓰려면 그 아래 잇몸이 건강해야 합니다. 잇몸 상태에 맞는 치료와 꾸준한 관리를 함께 계획합니다.', image: 'warm-water-scaling-system', caption: '시린 느낌을 줄이기 위한 미온수 스케일링 시스템', chips: ['잇몸치료', '미온수 스케일링', '정기검진'] },
+    { en: 'RESTORE', title: html`꼭 필요한 자리에는,<br>신중한 임플란트.`, text: '보존이 어려운 치아라면, 뼈와 신경의 위치부터 확인합니다. 구강 상태에 맞는 치료 방법을 충분히 설명드립니다.', image: 'vatech-green16-low-dose-ct', caption: '입체적인 진단을 위한 Vatech Green16 저선량 CT', chips: ['3차원 CT 진단', '치료 계획', '사후관리'] },
   ]
-
-  const marquee = ['MTA 생활치수치료', '러버댐 신경치료', '큐레이 충치 진단', '미온수 스케일링', '무통 마취 시스템', '저선량 CT', 'Class B 멸균', '화요일 야간진료', '통합치의학과 전문의', '사랑니는 필요할 때만']
-
+  const faqs = [
+    { q: '어떤 치료가 필요한지 몰라도 예약할 수 있나요?', a: '네. 불편한 부분이나 궁금한 점을 알려주세요. 검진 후 현재 상태와 가능한 치료 방법을 설명드립니다. 온라인 예약은 병원에서 확인하고 연락드린 후 확정됩니다.' },
+    { q: '신경치료 대신 치아 신경을 살릴 수도 있나요?', a: '치수의 상태에 따라 MTA 생활치수치료를 고려할 수 있습니다. 모든 치아에 가능한 것은 아니며, 검사와 진단을 통해 보존 가능성을 먼저 확인합니다.' },
+    { q: '치과 치료가 무서워요. 미리 말씀드려도 될까요?', a: '물론입니다. 불안한 부분을 먼저 말씀해 주세요. 치료 과정을 충분히 설명하고 마취크림, 마취액 워머, 전동 마취기 등을 상황에 맞게 사용합니다. 통증의 정도는 개인마다 다를 수 있습니다.' },
+    { q: '퇴근 후에도 진료받을 수 있나요?', a: '화요일은 오후 2시부터 오후 8시 30분까지 진료합니다. 공휴일이나 임시 휴진 여부는 공지사항 또는 전화로 확인해 주세요.' },
+  ]
   const body = html`
-<section class="hero" id="hero-section">
-  <span class="hero-blob b1" aria-hidden="true"></span>
-  <span class="hero-blob b2" aria-hidden="true"></span>
-  <span class="hero-blob b3" aria-hidden="true"></span>
-  <div class="container hero-inner">
-    <div class="hero-copy">
-      <p class="eyebrow reveal in">수원 화서동 · 통합치의학과 전문의가 직접 진료</p>
-      <h1 class="hero-title">
-        <span class="line"><span>이해될 때까지 설명하고,</span></span>
-        <span class="line"><span>필요한 만큼만</span></span>
-        <span class="line"><span><em>치료합니다.</em></span></span>
-      </h1>
-      <p class="hero-lead">치아는 재생되지 않습니다. 살릴 수 있는 방법이 하나라도 남아 있으면 그것부터 시작하는 동네 치과, 서울도담치과입니다.</p>
-      <div class="hero-actions">
-        <a href="/reservation" class="btn btn-primary btn-lg">진료 예약하기</a>
-        <a href="tel:${clinic.phoneTel}" class="btn btn-outline btn-lg">${clinic.phone}</a>
-      </div>
+<section class="editorial-hero" id="hero-section" aria-labelledby="hero-title">
+  <div class="container hero-editorial-grid">
+    <div class="hero-editorial-copy">
+      <p class="edition-label"><span class="status-dot"></span> SEOUL DODAM DENTAL CLINIC</p>
+      <h1 id="hero-title">오래도록,<br><em>내 치아로</em><br>살아가도록<span class="title-period">.</span></h1>
+      <p class="hero-description">이해될 때까지 설명하고,<br>필요한 만큼만 치료합니다.</p>
+      <div class="hero-links"><a href="/mission" class="editorial-link">도담의 진료 철학 <span>${arrow}</span></a><a href="/reservation" class="hero-reserve">첫 방문 예약</a></div>
+      <p class="hero-location">수원 화서동 <span>·</span> 통합치의학과 전문의 직접 진료</p>
     </div>
-    <div class="hero-visual">
-      <figure class="hero-photo">
-        <img src="${dr.photoCutout}" alt="${dr.photoAlt}" width="816" height="1224" fetchpriority="high" decoding="async">
-        <figcaption class="hero-photo-cap"><strong>${dr.name} ${dr.title}</strong><span>${dr.specialty}</span></figcaption>
-      </figure>
-      <div class="hero-badge" aria-hidden="true"><img src="/static/img/logo-mark.png" alt="" width="56" height="56"></div>
-    </div>
+    <figure class="hero-editorial-photo">
+      <img src="${dr.photo}" alt="차분한 미소로 맞이하는 서울도담치과 한휘림 대표원장" width="2000" height="1333" fetchpriority="high" decoding="async">
+      <div class="photo-corner" aria-hidden="true">A little more care.<br>A lifetime of smiles.</div>
+      <figcaption><div><span>당신의 치아를 함께 고민하는 사람</span><strong>한휘림 <small>대표원장</small></strong></div><a href="/doctors/${dr.slug}" aria-label="한휘림 원장 소개 보기">${arrow}</a></figcaption>
+      <span class="photo-index" aria-hidden="true">01 — THE DENTIST</span>
+    </figure>
   </div>
-  <div class="hero-meta">
-    <div class="container hero-meta-inner">
-      <div class="hero-meta-item"><strong>화요일 야간진료</strong><span>14:00 – 20:30</span></div>
-      <div class="hero-meta-item"><strong>수요일 점심시간 없이</strong><span>09:00 – 18:00</span></div>
-      <div class="hero-meta-item"><strong>${clinic.reviews.count.toLocaleString('ko-KR')}개</strong><span>${clinic.reviews.source} (${clinic.reviews.asOf} 기준)</span></div>
-      <div class="hero-meta-item"><strong>1호선 화서역</strong><span>도보 약 10분 · 신우상가 2층</span></div>
-    </div>
-  </div>
+  <div class="container hero-bottom"><a href="#dodam-philosophy" class="scroll-cue"><span>SCROLL TO DISCOVER</span><svg width="12" height="28" viewBox="0 0 12 28" fill="none" stroke="currentColor" aria-hidden="true"><path d="M6 0v25M1 20l5 6 5-6"/></svg></a><p>자연치아의 가치를 아는 치과, <strong>서울도담치과</strong></p><span class="hero-coordinate" aria-hidden="true">SUWON · HWASEO</span></div>
 </section>
 
-${notice ? html`<a href="/notice/${notice.id}" class="notice-bar"><span class="tag">공지</span><span class="notice-bar-title">${notice.title}</span><span class="notice-bar-date">${fmtDate(notice.created_at)}</span></a>` : ''}
+<nav class="quick-visit" aria-label="빠른 내원 안내"><div class="container quick-visit-grid">
+  <a href="/hours"><span class="quick-number">01</span><div><small>퇴근 후에도 여유 있게</small><strong>화요일 야간진료 <b>20:30</b></strong></div>${arrow}</a>
+  <a href="/directions"><span class="quick-number">02</span><div><small>수원 화서동 신우상가 2층</small><strong>오시는 길 · 주차 안내</strong></div>${arrow}</a>
+  <a href="tel:${clinic.phoneTel}"><span class="quick-number">03</span><div><small>궁금한 점은 편하게 물어보세요</small><strong>${clinic.phone}</strong></div>${arrow}</a>
+</div></nav>
 
-<section class="section" id="pillars">
+<section class="philosophy-editorial" id="dodam-philosophy" aria-labelledby="philosophy-title">
   <div class="container">
-    <div class="section-head reveal">
-      <p class="eyebrow">서울도담치과의 약속</p>
-      <h2 class="h2">${clinic.mission}</h2>
-      <p class="lead">2002년부터 이 자리를 지켜온 동네 치과입니다. 화려한 인테리어 대신, 진료실 안에서 지키는 네 가지 원칙으로 말씀드립니다.</p>
+    <div class="section-kicker"><span>01 / OUR PHILOSOPHY</span><span>도담이 진료하는 방식</span></div>
+    <div class="philosophy-intro"><h2 id="philosophy-title" class="reveal">더하는 치료보다,<br><span>남기는 진료를</span><br>먼저 생각합니다.</h2><div class="philosophy-aside reveal"><p>한 번 손대기 전에, 한 번 더 생각하는 것.<br>치아는 재생되지 않기에<br>도담의 진료는 그 신중함에서 시작됩니다.</p><a href="/mission" class="editorial-link light">우리가 지키는 기준 <span>${arrow}</span></a></div></div>
+    <div class="principle-lines stagger">
+      <article><span class="principle-index">01</span><h3>충분히 설명하고</h3><p>사진을 함께 보며 지금 어떤 상태인지,<br>왜 치료가 필요한지 설명합니다.</p></article>
+      <article><span class="principle-index">02</span><h3>가능성을 살피고</h3><p>치아와 신경을 보존할 수 있는 방법을<br>먼저 검토합니다.</p></article>
+      <article><span class="principle-index">03</span><h3>필요한 만큼만</h3><p>진단을 바탕으로 필요한 치료와<br>지켜볼 수 있는 부분을 구분합니다.</p></article>
     </div>
-    <div class="pillars stagger">
-      ${pillars.map((p) => html`<article class="pillar"><span class="pillar-num">${p.n}</span><h3>${p.t}</h3><p>${p.d}</p></article>`)}
-    </div>
-    <p class="section-more reveal"><a href="/mission" class="link-arrow">병원 미션 자세히 보기</a></p>
+    <div class="philosophy-wordmark" aria-hidden="true">Less, but <i>better.</i></div>
   </div>
 </section>
 
-<section class="section section-white" id="core-treatments">
+<section class="section care-editorial" id="core-treatments" aria-labelledby="care-title">
   <div class="container">
-    <div class="section-head reveal">
-      <p class="eyebrow">도담이 가장 잘하는 진료</p>
-      <h2 class="h2">발치까지 가지 않기 위한<br>세 가지 순서</h2>
-      <p class="lead">신경을 살리고, 잇몸을 지키고, 그래도 어려울 때 임플란트. 순서를 지키는 것이 치아 수명을 늘립니다.</p>
+    <div class="section-kicker"><span>02 / OUR TREATMENTS</span><span>자연치아에서 시작하는 진료</span></div>
+    <div class="section-heading-row reveal"><h2 id="care-title" class="display-heading">지키고, 살리고.<br>그다음을 생각합니다.</h2><p>치료의 이름보다 중요한 건 순서입니다.<br>내 치아를 오래 쓰기 위한 선택을 함께합니다.</p></div>
+    <div class="care-tabs" aria-label="핵심 진료 선택">
+      ${coreTreatments.map((t, i) => html`<button type="button" id="care-tab-${i}" class="care-tab ${i === 0 ? 'active' : ''}" data-care-index="${i}" aria-controls="care-panel-${i}"><span>0${i + 1}</span>${t.name}<span class="care-tab-arrow">↗</span></button>`)}
     </div>
-    <div class="core-seq">
-      <div class="core-sticky">
-        <div class="core-sticky-img">
-          ${coreImgs.map((s, i) => html`<img src="${s}" alt="${coreTreatments[i].name}" width="800" height="600" class="${i === 0 ? 'active' : ''}" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async">`)}
-        </div>
-        <p class="core-sticky-label">${coreLabels[0]}</p>
-      </div>
-      <div class="core-steps">
-        ${coreTreatments.map(
-          (t, i) => html`<a class="core-step ${i === 0 ? 'active' : ''}" data-index="${i}" data-label="${coreLabels[i]}" href="/treatments/${t.slug}">
-            <span class="num">0${i + 1}</span>
-            <h3>${t.name}</h3>
-            <p class="core-step-title">${t.heroTitle}</p>
-            <p>${t.short}</p>
-            <span class="link-arrow">자세히 보기</span>
-          </a>`,
-        )}
-      </div>
-    </div>
+    ${coreTreatments.map((t, i) => html`<article class="care-panel" id="care-panel-${i}" aria-labelledby="care-tab-${i}">
+      <div class="care-panel-copy"><p class="care-english">${care[i].en}</p><h3>${care[i].title}</h3><p class="care-description">${care[i].text}</p><ul class="care-chips">${care[i].chips.map(x => html`<li>${x}</li>`)}</ul><a href="/treatments/${t.slug}" class="editorial-link">${t.name} 알아보기 <span>${arrow}</span></a><p class="care-disclaimer">개인의 구강 상태에 따라 적합한 치료 방법과 결과는 달라질 수 있습니다.</p></div>
+      <figure class="care-panel-photo"><img src="/static/img/${care[i].image}.webp" alt="${care[i].caption}" width="800" height="600" loading="lazy" decoding="async"><figcaption><span>IN OUR CLINIC</span>${care[i].caption}</figcaption><span class="care-photo-number" aria-hidden="true">0${i + 1}</span></figure>
+    </article>`)}
+    <div class="treatment-directory"><p>일상의 작은 불편까지,<br><strong>도담에서 함께.</strong></p><div>${otherTreatments.map(t => html`<a href="/treatments/${t.slug}">${t.name}<span aria-hidden="true">↗</span></a>`)}</div></div>
   </div>
 </section>
 
-<section class="section" id="doctor-band">
-  <div class="container doctor-band">
-    <div class="doctor-band-img reveal-left">
-      <img src="${dr.photoCutout}" alt="${dr.photoAlt}" width="720" height="900" loading="lazy" decoding="async">
-      <p class="doctor-band-caption">${dr.name} ${dr.title} · ${dr.specialty}</p>
-    </div>
-    <div class="doctor-band-text reveal-right">
-      <p class="eyebrow">의료진</p>
-      <blockquote class="quote">${dr.quote}</blockquote>
-      <p>${dr.story[2].body}</p>
-      <ul class="cred-list">
-        ${dr.license.map((l) => html`<li>${l}</li>`)}
-        ${dr.education.slice(1).map((l) => html`<li>${l}</li>`)}
-        <li>${dr.societies[0]}</li>
-      </ul>
-      <a href="/doctors/${dr.slug}" class="btn btn-primary">한휘림 원장 소개</a>
-    </div>
+<section class="doctor-editorial" id="doctor-story" aria-labelledby="doctor-title">
+  <div class="container doctor-editorial-grid">
+    <figure class="doctor-editorial-photo reveal"><img src="/static/img/dr-han-hwirim-standing.webp" alt="흰 가운을 입은 한휘림 대표원장" width="1600" height="2400" loading="lazy" decoding="async"><figcaption><span>HAN HWI-RIM</span>통합치의학과 전문의</figcaption></figure>
+    <div class="doctor-editorial-copy reveal"><p class="edition-label">03 / MEET YOUR DENTIST</p><p class="doctor-pretitle">통증에 예민한 치과의사라서</p><h2 id="doctor-title">치료의 두려움도,<br>먼저 이해합니다.</h2><p class="doctor-story-copy">“제가 받기 싫은 치료는<br>환자분께도 하지 않습니다.”</p><p class="doctor-story-description">치료가 무서운 마음을 알기에, 작은 불편도 그냥 넘기지 않습니다. 충분한 설명과 세심한 배려로 진료의 처음부터 끝까지 함께하겠습니다.</p><div class="doctor-signoff"><strong>${dr.name}</strong><span>${dr.title} / ${dr.specialty}</span></div><ul class="doctor-credentials">${dr.license.map(x=>html`<li>${x}</li>`)}<li>단국대학교 치과대학 졸업</li></ul><a href="/doctors/${dr.slug}" class="editorial-link">한휘림 원장의 이야기 <span>${arrow}</span></a></div>
   </div>
 </section>
 
-<section class="stats" id="stats">
+<section class="section space-editorial" id="clinic-space" aria-labelledby="space-title">
   <div class="container">
-    <div class="grid-4 stagger">
-      <div class="stat"><div class="stat-num"><span class="count" data-to="${clinic.reviews.count}">0</span><small>개</small></div><p class="stat-label">${clinic.reviews.source}</p><p class="stat-note">${clinic.reviews.asOf} 기준</p></div>
-      <div class="stat"><div class="stat-num"><span class="count" data-to="20" data-dec="0">0</span><small>:30</small></div><p class="stat-label">화요일 야간진료</p><p class="stat-note">직장인·학생 방문 가능</p></div>
-      <div class="stat"><div class="stat-num"><span class="count" data-to="6">0</span><small>개월</small></div><p class="stat-label">정기 큐레이 검진 주기</p><p class="stat-note">소아는 3개월</p></div>
-      <div class="stat"><div class="stat-num"><span class="count" data-to="134">0</span><small>°C</small></div><p class="stat-label">Class B 고압멸균</p><p class="stat-note">기구별 밀봉 포장</p></div>
-    </div>
+    <div class="section-kicker"><span>04 / THE SPACE & CARE</span><span>보이지 않는 곳까지 세심하게</span></div>
+    <div class="section-heading-row reveal"><h2 id="space-title" class="display-heading">편안한 공간,<br>흔들림 없는 기본.</h2><div><p>들어서는 순간의 편안함부터<br>진료 직전 새로 개봉하는 기구까지.<br>작은 부분에도 진료의 마음을 담습니다.</p><a href="/floor-guide" class="text-link">공간과 감염관리 살펴보기 ${arrow}</a></div></div>
+    <div class="space-composition"><figure class="space-main reveal"><img src="/static/img/suwon-dodam-dental-reception-desk.webp" alt="서울도담치과 접수 데스크와 대기 공간" width="1619" height="971" loading="lazy" decoding="async"><figcaption><span>01 / RECEPTION</span>편안하게 맞이하는 공간</figcaption></figure><figure class="space-secondary reveal"><img src="/static/img/suwon-dodam-dental-treatment-room.webp" alt="서울도담치과의 자연광이 들어오는 진료실" width="713" height="541" loading="lazy" decoding="async"><figcaption><span>02 / TREATMENT ROOM</span>당신의 진료에 집중하는 공간</figcaption></figure></div>
+    <div class="care-standards stagger"><a href="/floor-guide#equip-진단"><span>01</span><h3>진단부터 차근차근</h3><p>저선량 CT · 큐레이 진단</p>${arrow}</a><a href="/floor-guide#equip-무통"><span>02</span><h3>작은 통증도 세심하게</h3><p>마취액 워머 · 전동 마취기</p>${arrow}</a><a href="/floor-guide#sterilization"><span>03</span><h3>보이지 않는 기본까지</h3><p>Class B 멸균 · 기구별 밀봉</p>${arrow}</a></div>
   </div>
 </section>
 
-<div class="marquee" aria-hidden="true"><div class="marquee-track">${[...marquee, ...marquee].map((m) => html`<span class="marquee-item">${m}</span>`)}</div></div>
+<section class="section home-questions" id="home-faq"><div class="container questions-grid"><div class="reveal"><p class="edition-label">05 / BEFORE YOUR VISIT</p><h2 class="display-heading">처음 오시는 날,<br>마음이 놓이도록.</h2><p class="questions-intro">진료실 문을 열기 전에 궁금했던 이야기.</p><a href="/faq" class="editorial-link">자주 묻는 질문 전체 보기 <span>${arrow}</span></a></div><div class="reveal">${faqList(faqs)}</div></div></section>
 
-<section class="section" id="all-treatments">
-  <div class="container">
-    <div class="section-head reveal">
-      <p class="eyebrow">진료 과목</p>
-      <h2 class="h2">한 곳에서, 순서대로</h2>
-      <p class="lead">교정·수면진료·보톡스는 시행하지 않습니다. 대신 하는 진료는 끝까지 책임지고 봅니다.</p>
-    </div>
-    <div class="tx-grid stagger">
-      ${otherTreatments.map((t) => html`<a href="/treatments/${t.slug}" class="tx-item"><span class="tag ${t.category === '자연치아 보존' ? 'green' : 'gray'}">${t.category}</span><h3>${t.name}</h3><p>${t.short}</p><span class="link-arrow">자세히</span></a>`)}
-    </div>
-  </div>
-</section>
+<section class="section journal-editorial" id="latest-columns"><div class="container"><div class="section-kicker"><span>${posts.length ? 'DODAM JOURNAL' : 'DODAM GUIDE'}</span><span>알수록 편안해지는 치과 이야기</span></div><div class="section-heading-row reveal"><h2 class="display-heading">${posts.length ? html`진료실에서<br>못다 한 이야기.` : html`알아두면 좋은,<br>내 치아 이야기.`}</h2><a href="${posts.length ? '/column' : '/treatments'}" class="editorial-link">${posts.length ? '칼럼 전체 보기' : '진료 안내 전체 보기'} <span>${arrow}</span></a></div><div class="journal-list stagger">${(posts.length ? posts.map(p => ({ href: `/column/${p.slug}`, meta: `DENTAL JOURNAL · ${fmtDate(p.published_at)}`, title: p.title, excerpt: p.excerpt })) : coreTreatments.map(t => ({ href: `/treatments/${t.slug}`, meta: `TREATMENT GUIDE · ${t.name}`, title: t.heroTitle, excerpt: t.short }))).map((p,i)=>html`<a href="${p.href}" class="journal-row"><span class="journal-index">0${i+1}</span><div><p class="journal-date">${p.meta}</p><h3>${p.title}</h3><p>${p.excerpt || '자연치아를 오래 지키기 위한 이야기를 전합니다.'}</p></div><span class="journal-arrow">${arrow}</span></a>`)}</div></div></section>
 
-<section class="section section-white" id="equipment-teaser">
-  <div class="container split">
-    <div class="split-img reveal-left"><img src="/static/img/suwon-dodam-dental-treatment-room.webp" alt="서울도담치과 진료실 — 창가 자연광이 들어오는 개별 진료 공간" width="960" height="720" loading="lazy" decoding="async"></div>
-    <div class="reveal-right">
-      <p class="eyebrow">장비 · 감염관리</p>
-      <h2 class="h2">겉은 소박해도,<br>안은 다릅니다</h2>
-      <p class="lead">Vatech Green16 저선량 CT, Morita 근관장 측정기, 초음파 근관세정, Class B 진공 고압멸균기, 플라즈마 소독기. 환자마다 기구를 새로 개봉합니다.</p>
-      <a href="/floor-guide" class="btn btn-outline">장비·감염관리 둘러보기</a>
-    </div>
-  </div>
-</section>
-
-<section class="review-band" id="reviews">
-  <div class="container">
-    <div class="section-head center reveal">
-      <p class="eyebrow">환자분들의 이야기</p>
-      <h2 class="h2">${reviewLine(clinic)}</h2>
-      <p class="lead">후기는 광고가 아니라 저희가 다음 환자분께 지켜야 할 약속입니다. 원장이 직접 읽고 기억하는 몇 가지를 남깁니다.</p>
-    </div>
-    <div class="review-cards stagger">
-      <blockquote class="review-card"><p>“치료 전 사진을 보여주며 설명해주셔서 처음으로 왜 이 치료가 필요한지 이해했다는 말씀을 들었습니다. 저희가 가장 듣고 싶은 말입니다.”</p><cite>— 한휘림 원장이 기억하는 후기</cite></blockquote>
-      <blockquote class="review-card"><p>“다른 곳에서 신경치료를 권했는데 여기서는 살려보자고 했다는 이야기. 모든 치아에 가능한 건 아니지만, 가능하면 저희는 그 길을 먼저 봅니다.”</p><cite>— 한휘림 원장이 기억하는 후기</cite></blockquote>
-      <blockquote class="review-card"><p>“마취가 아프지 않았다는 말씀은 통증에 예민한 저에게 가장 큰 보람입니다. 워머와 무통마취기, 그리고 기다림의 결과입니다.”</p><cite>— 한휘림 원장이 기억하는 후기</cite></blockquote>
-    </div>
-    <p class="center reveal"><a href="${clinic.channels.naverPlace}" target="_blank" rel="noopener" class="link-arrow">네이버 플레이스에서 리뷰 보기</a></p>
-  </div>
-</section>
-
-${posts.length ? html`<section class="section" id="latest-columns">
-  <div class="container">
-    <div class="section-head reveal">
-      <p class="eyebrow">원장 칼럼</p>
-      <h2 class="h2">진료실에서 못 다한 이야기</h2>
-    </div>
-    <div class="post-grid stagger">
-      ${posts.map((p) => html`<a href="/column/${p.slug}" class="post-card">${p.thumbnail ? html`<div class="post-thumb"><img src="/files/${p.thumbnail}" alt="" width="640" height="400" loading="lazy"></div>` : ''}<div class="post-body"><p class="post-meta">${fmtDate(p.published_at)}</p><h3>${p.title}</h3><p>${p.excerpt || ''}</p></div></a>`)}
-    </div>
-    <p class="section-more reveal"><a href="/column" class="link-arrow">칼럼 전체 보기</a></p>
-  </div>
-</section>` : ''}
-
-<section class="section" id="visit-info">
-  <div class="container info-grid stagger">
-    <div class="info-card">
-      <h3>진료시간</h3>
-      <table class="hours-table"><tbody>
-        ${clinic.hours.map((h: any) => html`<tr data-day="${h.day}"><th>${h.day}</th><td>${h.open ? `${h.open} – ${h.close}` : html`<span class="closed">휴진</span>`}</td><td class="note">${h.note || (h.lunch ? `점심 ${h.lunch}` : '')}</td></tr>`)}
-      </tbody></table>
-      <p class="hint">${clinic.hoursNote}</p>
-    </div>
-    <div class="info-card">
-      <h3>오시는 길</h3>
-      <p>${clinic.address}</p>
-      <ul class="info-list">
-        <li><strong>지하철</strong> ${clinic.directions.subway}</li>
-        <li><strong>버스</strong> ${clinic.directions.bus}</li>
-        <li><strong>주차</strong> ${clinic.directions.parking}</li>
-      </ul>
-      <a href="/directions" class="link-arrow">지도와 상세 안내</a>
-    </div>
-    <div class="info-card info-card-cta">
-      <h3>예약·문의</h3>
-      <p class="info-phone"><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></p>
-      <p>전화가 어려우시면 카카오톡 채널이나 온라인 예약을 이용해 주세요. 확인 후 연락드립니다.</p>
-      <div class="hero-actions"><a href="/reservation" class="btn btn-primary">온라인 예약</a><a href="${clinic.channels.kakao}" class="btn btn-outline" target="_blank" rel="noopener">카카오톡</a></div>
-    </div>
-  </div>
-</section>`
-
-  return c.html(
-    Layout(c, {
-      title: `${clinic.shortName} | 수원 화서동 통합치의학과 전문의 치과`,
-      description: `수원시 팔달구 화서동 서울도담치과의원. 통합치의학과 전문의 한휘림 대표원장. MTA 생활치수치료·잇몸치료·임플란트. 화요일 야간진료 20:30. ${clinic.phone}`,
-      path: '/',
-      jsonld: [dentistLd(clinic, siteUrl), webpageSpeakableLd('/', siteUrl, clinic.name)],
-      bodyClass: 'home',
-    }, body),
-  )
+<section class="section visit-editorial" id="visit-info" aria-labelledby="visit-title"><div class="container">
+  <div class="section-kicker"><span>YOUR FIRST VISIT</span><span>만나 뵙겠습니다</span></div>
+  <div class="visit-grid"><div class="visit-address reveal"><h2 id="visit-title" class="display-heading">가까이에서,<br>오래 함께.</h2><p>${clinic.address}</p><a href="tel:${clinic.phoneTel}" class="visit-phone">${clinic.phone}</a><div class="hero-links"><a href="/directions" class="editorial-link">오시는 길 · 주차 안내 <span>${arrow}</span></a></div><div class="visit-note"><span>온라인 예약 안내</span><p>예약 신청 후 병원에서 확인 연락을 드립니다.<br>내원 일정은 연락 후 확정됩니다.</p></div></div><div class="visit-hours reveal"><h3>진료시간 <span>OPENING HOURS</span></h3><table class="hours-table"><caption class="sr-only">서울도담치과 요일별 진료시간</caption><tbody>${clinic.hours.map((h:any)=>html`<tr data-day="${h.day}"><th scope="row">${h.day}요일</th><td>${h.open ? `${h.open} — ${h.close}` : html`<span class="closed">휴진</span>`}</td><td class="note">${h.note || (h.lunch ? `점심 ${h.lunch}` : '')}</td></tr>`)}</tbody></table><p class="hint">${clinic.hoursNote}</p><a href="/reservation" class="btn btn-primary btn-block visit-reserve">첫 방문 예약하기 ${arrow}</a></div></div>
+  ${notice ? html`<a href="/notice/${notice.id}" class="editorial-notice"><span>NOTICE</span><strong>${notice.title}</strong><time>${fmtDate(notice.created_at)}</time>${arrow}</a>` : ''}
+</div></section>`
+  return c.html(Layout(c, {
+    title: `${clinic.shortName} | 오래도록, 내 치아로 살아가도록`,
+    description: `수원 화서동 서울도담치과. 통합치의학과 전문의 한휘림 대표원장이 충분히 설명하고 필요한 만큼 치료합니다. MTA 생활치수치료·잇몸치료·임플란트. 화요일 야간진료 20:30. ${clinic.phone}`,
+    path: '/', bodyClass: 'home-page', image: dr.photo,
+    jsonld: [dentistLd(clinic, siteUrl), webpageSpeakableLd('/', siteUrl, clinic.name), faqLd(faqs)],
+  }, body))
 }

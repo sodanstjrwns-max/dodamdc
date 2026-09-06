@@ -13,8 +13,8 @@
     var y = w.scrollY || d.documentElement.scrollTop;
     if (header) {
       header.classList.toggle('scrolled', y > 24);
-      if (y > 320 && y > lastY + 6 && !d.body.classList.contains('menu-open')) header.classList.add('hide');
-      else if (y < lastY - 6 || y < 320) header.classList.remove('hide');
+      // Keep navigation available while reading; avoid moving targets.
+      header.classList.remove('hide');
     }
     if (progress) {
       var h = d.documentElement.scrollHeight - w.innerHeight;
@@ -29,23 +29,76 @@
   /* ── 모바일 메뉴 ─────────────────────────────────────── */
   var toggle = $('#menu-toggle'), mnav = $('#mobile-nav');
   if (toggle && mnav) {
-    toggle.addEventListener('click', function () {
-      var open = toggle.getAttribute('aria-expanded') === 'true';
-      toggle.setAttribute('aria-expanded', String(!open));
-      toggle.setAttribute('aria-label', open ? '메뉴 열기' : '메뉴 닫기');
-      mnav.hidden = open;
-      d.body.classList.toggle('menu-open', !open);
-      if (!open) header.classList.remove('hide');
-    });
+    var outsideMenu = $$('#main, .site-footer, .floating-cta, .mobile-action-bar');
+    function setMenu(open, restoreFocus) {
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', open ? '메뉴 닫기' : '메뉴 열기');
+      mnav.hidden = !open;
+      d.body.classList.toggle('menu-open', open);
+      outsideMenu.forEach(function(el) { el.inert = open; });
+      if (!open && restoreFocus) toggle.focus();
+    }
+    toggle.addEventListener('click', function () { setMenu(toggle.getAttribute('aria-expanded') !== 'true', false); });
+    mnav.addEventListener('click', function(e) { if (e.target.closest('a')) setMenu(false, false); });
     d.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') toggle.click();
+      if (toggle.getAttribute('aria-expanded') !== 'true') return;
+      if (e.key === 'Escape') { e.preventDefault(); setMenu(false, true); }
+      if (e.key === 'Tab') {
+        var focusable = [toggle].concat($$('a, summary, button', mnav).filter(function(el) { return el.getClientRects().length; }));
+        var first = focusable[0], last = focusable[focusable.length - 1];
+        if (e.shiftKey && (d.activeElement === first || !mnav.contains(d.activeElement))) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && d.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
     });
+    w.addEventListener('resize', function() { if (w.innerWidth > 1000 && !mnav.hidden) setMenu(false, false); });
   }
-  /* 데스크탑 GNB: 키보드 포커스로 메가메뉴 열기 */
-  $$('.gnb > li').forEach(function (li) {
-    li.addEventListener('focusin', function () { li.classList.add('focus'); });
-    li.addEventListener('focusout', function () { setTimeout(function () { if (!li.contains(d.activeElement)) li.classList.remove('focus'); }, 10); });
+  /* Desktop navigation exposes its expanded state to assistive technology. */
+  $$('.gnb-list > li').forEach(function (li) {
+    var trigger = $('a', li);
+    if (!trigger) return;
+    var href = trigger.getAttribute('href');
+    if (href === location.pathname) trigger.setAttribute('aria-current', 'page');
+    if (!li.matches('.has-mega, .has-drop')) return;
+    function expanded(value) { trigger.setAttribute('aria-expanded', String(value)); }
+    li.addEventListener('mouseenter', function() { li.classList.remove('menu-dismissed'); expanded(true); });
+    li.addEventListener('mouseleave', function() { if (!li.contains(d.activeElement)) expanded(false); });
+    li.addEventListener('focusin', function() { li.classList.remove('menu-dismissed'); expanded(true); });
+    li.addEventListener('focusout', function() { setTimeout(function() { if (!li.contains(d.activeElement)) expanded(false); }, 0); });
+    li.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { trigger.focus(); li.classList.add('menu-dismissed'); expanded(false); }
+    });
   });
+
+  /* Treatment tabs: all content remains readable when JavaScript is disabled. */
+  var careTabs = $$('.care-tab'), carePanels = $$('.care-panel');
+  if (careTabs.length && carePanels.length === careTabs.length) {
+    $('.care-tabs').setAttribute('role', 'tablist');
+    function selectCare(index, focus) {
+      careTabs.forEach(function(tab, i) {
+        tab.setAttribute('role', 'tab');
+        tab.setAttribute('aria-selected', String(i === index));
+        tab.setAttribute('tabindex', i === index ? '0' : '-1');
+        tab.classList.toggle('active', i === index);
+        carePanels[i].setAttribute('role', 'tabpanel');
+        carePanels[i].setAttribute('tabindex', '0');
+        carePanels[i].hidden = i !== index;
+      });
+      if (focus) careTabs[index].focus();
+    }
+    careTabs.forEach(function(tab, i) {
+      tab.addEventListener('click', function() { selectCare(i, false); });
+      tab.addEventListener('keydown', function(e) {
+        var next = i;
+        if (e.key === 'ArrowRight') next = (i + 1) % careTabs.length;
+        else if (e.key === 'ArrowLeft') next = (i + careTabs.length - 1) % careTabs.length;
+        else if (e.key === 'Home') next = 0;
+        else if (e.key === 'End') next = careTabs.length - 1;
+        else return;
+        e.preventDefault(); selectCare(next, true);
+      });
+    });
+    selectCare(0, false);
+  }
 
   /* ── 스크롤 리빌 / 스태거 / 카운트업 ─────────────────── */
   var revealEls = $$('.reveal, .reveal-left, .reveal-right, .reveal-scale, .stagger');
@@ -239,10 +292,12 @@
   });
 
   /* ── 헤더 높이만큼 앵커 오프셋 ───────────────────────── */
-  if (location.hash) setTimeout(function () { var t = $(location.hash); if (t) t.scrollIntoView({ block: 'start' }); }, 50);
+  if (location.hash) setTimeout(function () {
+    try { var t = d.getElementById(decodeURIComponent(location.hash.slice(1))); if (t) t.scrollIntoView({ block: 'start' }); } catch (_) { /* Ignore malformed URL fragments. */ }
+  }, 50);
 
   /* ── 진료시간 오늘 표시 ──────────────────────────────── */
-  var today = ['일', '월', '화', '수', '목', '금', '토'][new Date().getDay()];
+  var today = ['일', '월', '화', '수', '목', '금', '토'][new Date(Date.now() + 9 * 3600e3).getUTCDay()];
   $$('.hours-table tr[data-day]').forEach(function (tr) { tr.classList.toggle('today', tr.getAttribute('data-day') === today); });
 
   /* ── 공유 버튼 ───────────────────────────────────────── */
@@ -253,4 +308,5 @@
       else navigator.clipboard.writeText(location.href).then(function () { b.textContent = '링크 복사됨'; });
     });
   });
+  d.documentElement.classList.add('js');
 })();

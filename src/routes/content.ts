@@ -62,8 +62,8 @@ content.get('/cases/gallery', async (c) => {
   const body = html`${pageHero({ eyebrow: '치료 전후', title: html`사진으로 보는<br>치료 과정`, lead: '치료 전 사진은 누구나, 치료 후 사진은 회원만 볼 수 있습니다(의료법). 모든 사례는 환자분 동의를 받아 개인정보를 제외하고 게시합니다.', crumbs: [{ name: '홈', href: '/' }, { name: '치료 전후', href: '/cases/gallery' }] })}
 <section class="section"><div class="container">
   <nav class="faq-filter reveal in" aria-label="진료별 보기"><a href="/cases/gallery" class="${!tx ? 'active' : ''}">전체</a>${treatments.map((t) => html`<a href="/cases/gallery?treatment=${t.slug}" class="${tx === t.slug ? 'active' : ''}">${t.name}</a>`)}</nav>
-  ${!c.get('user') ? html`<div class="locked-box reveal in"><p><strong>치료 후 사진은 회원에게만 공개됩니다.</strong> 회원가입 후 로그인하면 전후 비교 슬라이더를 볼 수 있습니다.</p><div class="hero-actions"><a href="/auth/login?next=${encodeURIComponent(c.req.path + (tx ? '?treatment=' + tx : ''))}" class="btn btn-primary btn-sm">로그인</a><a href="/auth/register?next=${encodeURIComponent(c.req.path)}" class="btn btn-outline btn-sm">회원가입</a></div></div>` : ''}
-  ${rows.length ? html`<div class="case-grid">${rows.map(caseCard)}</div>${paginate(base, page, total, PER)}` : html`<p class="faq-empty" style="display:block">등록된 사례가 아직 없습니다. 진료 안내 페이지에서 치료 과정을 먼저 확인해 보세요.</p>`}
+  ${rows.length && !c.get('user') ? html`<div class="locked-box reveal in"><p><strong>치료 후 사진은 회원에게만 공개됩니다.</strong> 회원가입 후 로그인하면 전후 비교 슬라이더를 볼 수 있습니다.</p><div class="hero-actions"><a href="/auth/login?next=${encodeURIComponent(c.req.path + (tx ? '?treatment=' + tx : ''))}" class="btn btn-primary btn-sm">로그인</a><a href="/auth/register?next=${encodeURIComponent(c.req.path)}" class="btn btn-outline btn-sm">회원가입</a></div></div>` : ''}
+  ${rows.length ? html`<div class="case-grid">${rows.map(caseCard)}</div>${paginate(base, page, total, PER)}` : html`<section class="empty-content"><p class="edition-label">CARE, WITH YOUR CONSENT</p><h2>공개된 치료 사례를 준비하고 있습니다.</h2><p>환자분의 동의를 받은 사례만 게시합니다.<br>궁금한 치료의 과정과 주의사항은 진료 안내에서 먼저 확인하실 수 있습니다.</p><a href="/treatments" class="editorial-link">진료 안내 살펴보기 <span aria-hidden="true">↗</span></a></section>`}
 </div></section>
 ${ctaStrip(clinic)}`
   return c.html(Layout(c, { title: tx ? `${getTreatment(tx)?.name || ''} 치료 전후` : '치료 전후 사진', description: '서울도담치과 치료 전후 사진. 생활치수치료·잇몸치료·임플란트·충치치료 사례. 치료 후 사진은 의료법에 따라 회원에게만 공개됩니다.', path: '/cases/gallery', noindex: page > 1, crumbs: [{ name: '홈', href: '/' }, { name: '치료 전후', href: '/cases/gallery' }] }, body))
@@ -120,7 +120,7 @@ content.get('/column', async (c) => {
   <nav class="faq-filter reveal in" aria-label="진료별 보기"><a href="/column" class="${!tx ? 'active' : ''}">전체</a>${treatments.map((t) => html`<a href="/column?treatment=${t.slug}" class="${tx === t.slug ? 'active' : ''}">${t.name}</a>`)}</nav>
   ${first ? html`<a href="/column/${first.slug}" class="post-featured reveal">${first.thumbnail ? html`<div class="post-thumb"><img src="/files/${first.thumbnail}" alt="" width="960" height="600" decoding="async"></div>` : ''}<div class="post-body"><p class="post-meta">${fmtDate(first.published_at)} · ${getDoctor(first.author_slug)?.name || ''} 원장</p><h2 class="h2">${first.title}</h2><p class="lead">${first.excerpt || ''}</p><span class="link-arrow">읽기</span></div></a>` : ''}
   ${rest.length ? html`<div class="post-grid">${rest.map(card)}</div>` : ''}
-  ${!rows.length ? html`<p class="faq-empty" style="display:block">아직 게시된 칼럼이 없습니다.</p>` : ''}
+  ${!rows.length ? html`<section class="empty-content"><p class="edition-label">DODAM JOURNAL</p><h2>차근차근, 진료 이야기를 채워갑니다.</h2><p>이 분류에 아직 게시된 칼럼이 없습니다.<br>먼저 진료 안내에서 치아 건강에 필요한 정보를 살펴보세요.</p><a href="/treatments" class="editorial-link">진료 이야기 읽기 <span aria-hidden="true">↗</span></a></section>` : ''}
   ${paginate(`/column${tx ? `?treatment=${tx}` : ''}`, page, total, PER)}
 </div></section>`
   return c.html(Layout(c, { title: '원장 칼럼', description: '서울도담치과 한휘림 원장이 진료실에서 못 다한 이야기를 씁니다. 생활치수치료, 신경치료, 잇몸관리, 임플란트, 사랑니에 대한 솔직한 설명.', path: '/column', noindex: page > 1 || !!tx, crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }] }, body))
@@ -170,7 +170,7 @@ content.get('/notice', async (c) => {
   const rows = (await c.env.DB.prepare('SELECT id,title,pinned,image,created_at FROM notices WHERE published=1 ORDER BY pinned DESC, created_at DESC LIMIT ? OFFSET ?').bind(20, (page - 1) * 20).all<any>()).results || []
   const body = html`${pageHero({ eyebrow: '공지사항', title: '병원 소식', lead: '휴진 안내, 진료시간 변경 등 병원 소식을 알려드립니다.', crumbs: [{ name: '홈', href: '/' }, { name: '공지사항', href: '/notice' }] })}
 <section class="section"><div class="container container-narrow">
-  ${rows.length ? html`<ul class="notice-list reveal in">${rows.map((n: any) => html`<li class="notice-row ${n.pinned ? 'pinned' : ''}">${n.pinned ? html`<span class="tag">공지</span>` : ''}<a href="/notice/${n.id}">${n.title}</a><span class="date">${fmtDate(n.created_at)}</span></li>`)}</ul>${paginate('/notice', page, total, 20)}` : html`<p class="faq-empty" style="display:block">등록된 공지가 없습니다.</p>`}
+  ${rows.length ? html`<ul class="notice-list reveal in">${rows.map((n: any) => html`<li class="notice-row ${n.pinned ? 'pinned' : ''}">${n.pinned ? html`<span class="tag">공지</span>` : ''}<a href="/notice/${n.id}">${n.title}</a><span class="date">${fmtDate(n.created_at)}</span></li>`)}</ul>${paginate('/notice', page, total, 20)}` : html`<section class="empty-content"><p class="edition-label">CLINIC NEWS</p><h2>현재 등록된 공지가 없습니다.</h2><p>진료시간과 내원 안내는 아래에서 확인해 주세요.<br>방문 전 궁금한 점은 전화로 문의하실 수 있습니다.</p><a href="/hours" class="editorial-link">진료시간 확인하기 <span aria-hidden="true">↗</span></a></section>`}
 </div></section>`
   return c.html(Layout(c, { title: '공지사항', description: '서울도담치과 공지사항. 휴진 안내, 진료시간 변경, 병원 소식.', path: '/notice', noindex: page > 1, crumbs: [{ name: '홈', href: '/' }, { name: '공지사항', href: '/notice' }] }, body))
 })
@@ -193,12 +193,13 @@ function reservationForm(c: any, o: { error?: string; v?: Record<string, any>; o
   const clinic = c.get('clinic') as any, user = c.get('user')
   const v = o.v || {}
   const tx = v.treatment || c.req.query('treatment') || ''
-  const body = html`${pageHero({ eyebrow: '진료 예약', title: html`편한 시간을 남겨주시면<br>확인 후 연락드립니다`, lead: '온라인 예약은 접수 단계입니다. 병원에서 확인 전화를 드린 뒤 확정됩니다. 급한 통증은 전화가 가장 빠릅니다.', crumbs: [{ name: '홈', href: '/' }, { name: '진료 예약', href: '/reservation' }] })}
-<section class="section-sm"><div class="container grid-2 reservation-grid">
+  const body = html`${pageHero({ eyebrow: '진료 예약', title: html`첫 만남의 시작은,<br>편안한 대화부터.`, lead: '어떤 치료가 필요한지 아직 모르셔도 괜찮습니다. 불편한 점과 편한 시간을 남겨주시면 확인 후 연락드리겠습니다.', crumbs: [{ name: '홈', href: '/' }, { name: '진료 예약', href: '/reservation' }], actions: html`<div class="reservation-progress" aria-label="예약 진행 순서"><span><b>01</b> 예약 신청</span><span><b>02</b> 병원 확인 연락</span><span><b>03</b> 일정 확정 · 내원</span></div>` })}
+<section class="section-sm"><div class="container grid-2 reservation-grid res-grid">
   <div>
-    ${o.ok ? html`<div class="alert-ok" role="status"><strong>예약 신청이 접수되었습니다.</strong> 진료 시간 내에 확인 연락을 드립니다. 감사합니다.</div><div class="hero-actions"><a href="/" class="btn btn-primary">홈으로</a>${user ? html`<a href="/auth/mypage" class="btn btn-outline">내 예약 보기</a>` : ''}</div>` : html`
+    ${o.ok ? html`<div class="form-card reservation-success center" role="status"><span class="success-mark" aria-hidden="true">✓</span><p class="edition-label">THANK YOU FOR REACHING OUT</p><h2>예약 신청이 접수되었습니다.</h2><p class="lead" style="margin-top:18px">진료시간 내에 확인 연락을 드리겠습니다.<br>병원과 통화하신 후 예약이 최종 확정됩니다.</p><div class="hero-actions" style="justify-content:center"><a href="/" class="btn btn-primary">홈으로 돌아가기</a>${user ? html`<a href="/auth/mypage" class="btn btn-outline">내 예약 보기</a>` : ''}</div></div>` : html`
     ${alertBox(o.error)}
-    <form method="post" action="/reservation" class="form card card-body" data-once>
+    <form method="post" action="/reservation" id="reservation-form" class="form form-card" data-once>
+      <div class="reservation-intro"><h2>예약 정보를 남겨주세요</h2><p>* 표시는 필수 항목입니다. 신청만으로 예약이 확정되지는 않습니다.</p></div>
       <div class="form-row">
         <div class="field"><label for="name">이름 <span class="req">*</span></label><input id="name" name="name" required maxlength="40" value="${v.name || user?.name || ''}" autocomplete="name"></div>
         <div class="field"><label for="phone">연락처 <span class="req">*</span></label><input id="phone" name="phone" type="tel" required inputmode="numeric" placeholder="010-0000-0000" value="${v.phone || ''}" autocomplete="tel"></div>
@@ -211,11 +212,11 @@ function reservationForm(c: any, o: { error?: string; v?: Record<string, any>; o
       </div>
       <div class="field"><label for="message">증상·문의 내용</label><textarea id="message" name="message" rows="4" maxlength="1000" placeholder="예: 오른쪽 아래 어금니가 찬물에 시립니다. 다른 치과에서 신경치료를 권했는데 상담받고 싶습니다.">${v.message || ''}</textarea></div>
       <label class="check"><input type="checkbox" name="agree" value="1" required> <span>예약 확인 연락을 위한 <a href="/privacy" target="_blank">개인정보 수집·이용</a>에 동의합니다 (보유 1년)</span></label>
-      <button type="submit" class="btn btn-primary btn-lg btn-block" data-loading="접수 중…">예약 신청</button>
+      <button type="submit" class="btn btn-primary btn-lg btn-block" data-loading="접수 중…">예약 신청하기 <span aria-hidden="true">↗</span></button>
     </form>`}
   </div>
-  <aside>
-    <div class="info-card info-card-cta"><h3>전화 예약</h3><p class="info-phone"><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></p><p>진료 시간 내 전화가 가장 빠릅니다. 통증이 심하시면 전화로 먼저 말씀해 주세요.</p><a href="${clinic.channels.kakao}" target="_blank" rel="noopener" class="btn btn-light btn-sm">카카오톡 채널 상담</a></div>
+  <aside class="res-side" aria-label="예약 및 첫 방문 안내">
+    <div class="info-card info-card-cta"><h3>빠른 문의는 전화로</h3><p class="info-phone"><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></p><p>진료 시간 내 전화가 가장 빠릅니다. 통증이 심하시면 전화로 먼저 말씀해 주세요.</p><a href="${clinic.channels.kakao}" target="_blank" rel="noopener" class="btn btn-light btn-sm">카카오톡 채널 상담</a></div>
     <div class="info-card" style="margin-top:16px"><h3>진료시간</h3><table class="hours-table"><tbody>${clinic.hours.map((h: any) => html`<tr data-day="${h.day}"><th>${h.day}</th><td>${h.open ? `${h.open} – ${h.close}` : html`<span class="closed">휴진</span>`}</td><td class="note">${h.note || (h.lunch ? `점심 ${h.lunch}` : '')}</td></tr>`)}</tbody></table><p class="hint">${clinic.hoursNote}</p></div>
     <div class="info-card" style="margin-top:16px"><h3>첫 방문 준비</h3><ul class="info-list"><li>신분증 (건강보험 확인)</li><li>복용 중인 약 이름</li><li>다른 병원 방사선 사진 (있다면)</li></ul></div>
   </aside>

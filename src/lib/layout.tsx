@@ -53,12 +53,12 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="manifest" href="/site.webmanifest">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="/static/style.css?v=5">
+<link rel="stylesheet" href="/static/style.css?v=6">
 <link rel="alternate" type="application/rss+xml" title="${clinic.shortName} 원장 칼럼" href="/column/rss.xml">
 ${lds.map((l) => raw(`<script type="application/ld+json">${JSON.stringify(l).replace(/</g, '\\u003c')}</script>`))}
 ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?id=${escAttr(clinic.ga4)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${escAttr(clinic.ga4)}',{anonymize_ip:true});</script>`) : ''}
 </head>
-<body class="${meta.bodyClass || ''}" id="top">
+<body class="site-page ${meta.bodyClass || ''} ${meta.path === '/reservation' ? 'reservation-page' : ''}" id="top">
 <a href="#main" class="skip-link">본문으로 건너뛰기</a>
 <div class="progress-bar" id="scroll-progress" aria-hidden="true"></div>
 
@@ -69,14 +69,14 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
     </a>
     <nav class="gnb" id="gnb" aria-label="주 메뉴">
       <ul class="gnb-list">
-        <li><a href="/mission">병원미션</a></li>
-        <li><a href="/doctors">의료진</a></li>
+        <li><a href="/mission">도담의 철학</a></li>
+        <li><a href="/doctors">의료진 소개</a></li>
         <li class="has-mega">
-          <a href="/treatments" aria-haspopup="true" aria-expanded="false">진료안내</a>
+          <a href="/treatments" aria-haspopup="true" aria-expanded="false">진료 안내</a>
           <div class="mega" role="region" aria-label="진료 과목 메뉴">
             <div class="mega-inner">
               <div class="mega-col mega-core">
-                <p class="mega-title">도담이 가장 잘하는 진료</p>
+                <p class="mega-title">자연치아에서 시작하는 핵심 진료</p>
                 ${coreTreatments.map(
                   (t) => html`<a href="/treatments/${t.slug}" class="mega-card">
                     <span class="mega-card-name">${t.name}</span>
@@ -104,7 +104,7 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
           </div>
         </li>
         <li class="has-drop">
-          <a href="/column" aria-haspopup="true" aria-expanded="false">콘텐츠</a>
+          <a href="/column" aria-haspopup="true" aria-expanded="false">도담 이야기</a>
           <ul class="drop">
             <li><a href="/cases/gallery">치료 전후</a></li>
             <li><a href="/column">원장 칼럼</a></li>
@@ -112,7 +112,7 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
           </ul>
         </li>
         <li class="has-drop">
-          <a href="/directions" aria-haspopup="true" aria-expanded="false">안내</a>
+          <a href="/directions" aria-haspopup="true" aria-expanded="false">내원 안내</a>
           <ul class="drop">
             <li><a href="/directions">오시는 길</a></li>
             <li><a href="/hours">진료시간</a></li>
@@ -128,22 +128,22 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
       ${user
         ? html`<a href="/auth/mypage" class="header-user">${user.name}님</a>`
         : html`<a href="/auth/login" class="header-login">로그인</a>`}
-      <a href="/reservation" class="btn btn-primary btn-sm header-cta">예약</a>
+      <a href="/reservation" class="btn btn-primary btn-sm header-cta">진료 예약 <span aria-hidden="true">↗</span></a>
       <button class="menu-toggle" id="menu-toggle" aria-label="메뉴 열기" aria-expanded="false" aria-controls="mobile-nav"><span></span><span></span><span></span></button>
     </div>
   </div>
   <nav class="mobile-nav" id="mobile-nav" aria-label="모바일 메뉴" hidden>
     <ul>
-      <li><a href="/mission">병원미션</a></li>
-      <li><a href="/doctors">의료진</a></li>
+      <li><a href="/mission">도담의 철학</a></li>
+      <li><a href="/doctors">의료진 소개</a></li>
       <li><details><summary>진료안내</summary><ul>
         ${[...coreTreatments, ...otherTreatments].map((t) => html`<li><a href="/treatments/${t.slug}">${t.name}</a></li>`)}
         <li><a href="/floor-guide">장비·감염관리</a></li>
       </ul></details></li>
-      <li><details><summary>콘텐츠</summary><ul>
+      <li><details><summary>도담 이야기</summary><ul>
         <li><a href="/cases/gallery">치료 전후</a></li><li><a href="/column">원장 칼럼</a></li><li><a href="/encyclopedia">치과 백과사전</a></li>
       </ul></details></li>
-      <li><details><summary>안내</summary><ul>
+      <li><details><summary>내원 안내</summary><ul>
         <li><a href="/directions">오시는 길</a></li><li><a href="/hours">진료시간</a></li><li><a href="/pricing">비급여 수가</a></li><li><a href="/faq">FAQ</a></li><li><a href="/notice">공지사항</a></li>
       </ul></details></li>
       <li class="mobile-nav-actions">
@@ -153,6 +153,7 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
     <p class="mobile-nav-hours">${hoursToday}</p>
   </nav>
 </header>
+<noscript><nav class="nojs-navigation" aria-label="기본 페이지 메뉴"><a href="/mission">도담의 철학</a><a href="/doctors">의료진</a><a href="/treatments">진료 안내</a><a href="/directions">오시는 길</a><a href="/reservation">예약</a></nav></noscript>
 
 <main id="main">${body}</main>
 
@@ -161,10 +162,10 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
     <div class="container footer-cta-inner">
       <div>
         <p class="eyebrow">${clinic.region} · 화요일 야간진료 20:30</p>
-        <h2 class="footer-cta-title">어떤 치료가 필요한지부터,<br>함께 확인해 드립니다.</h2>
+        <h2 class="footer-cta-title">당신의 치아 이야기,<br>도담에서 시작하세요.</h2>
       </div>
       <div class="footer-cta-actions">
-        <a href="/reservation" class="btn btn-light">진료 예약</a>
+        <a href="/reservation" class="btn btn-light">첫 방문 예약하기 <span aria-hidden="true">↗</span></a>
         <a href="tel:${clinic.phoneTel}" class="btn btn-ghost-light">${clinic.phone}</a>
         <a href="${clinic.channels.kakao}" class="btn btn-ghost-light" target="_blank" rel="noopener">카카오톡 상담</a>
       </div>
@@ -188,8 +189,8 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
     <div class="footer-col">
       <h3>병원</h3>
       <ul>
-        <li><a href="/mission">병원미션</a></li>
-        <li><a href="/doctors">의료진</a></li>
+        <li><a href="/mission">도담의 철학</a></li>
+        <li><a href="/doctors">의료진 소개</a></li>
         <li><a href="/floor-guide">장비·감염관리</a></li>
         <li><a href="/cases/gallery">치료 전후</a></li>
         <li><a href="/column">원장 칼럼</a></li>
@@ -215,7 +216,14 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
     </nav>
     <p class="footer-copy">© ${new Date().getFullYear()} ${clinic.name}. All rights reserved.</p>
   </div>
+  <p class="footer-wordmark" aria-hidden="true">SEOUL DODAM</p>
 </footer>
+
+<nav class="mobile-action-bar" aria-label="빠른 상담 및 예약">
+  <a href="tel:${clinic.phoneTel}">전화 문의</a>
+  <a href="${clinic.channels.kakao}" target="_blank" rel="noopener">카카오 상담</a>
+  <a href="/reservation">진료 예약 <span aria-hidden="true">↗</span></a>
+</nav>
 
 <div class="floating-cta" id="floating-cta">
   <a href="tel:${clinic.phoneTel}" class="fab fab-call" aria-label="전화하기"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></a>
@@ -224,7 +232,7 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
   <a href="#top" class="fab fab-top" aria-label="맨 위로" id="to-top"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></a>
 </div>
 
-<script src="/static/app.js?v=4" defer></script>
+<script src="/static/app.js?v=6" defer></script>
 </body>
 </html>`
 }

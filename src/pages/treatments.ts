@@ -16,24 +16,25 @@ export function treatmentsIndex(c: Context<Env>) {
   const body = html`
 ${pageHero({
   eyebrow: '진료 안내',
-  title: html`발치까지 가지 않기 위한<br>순서를 지키는 진료`,
-  lead: '신경을 살리고, 잇몸을 지키고, 그래도 어려울 때 임플란트. 교정·수면진료·보톡스는 시행하지 않는 대신, 하는 진료는 끝까지 책임지고 봅니다.',
+  title: html`내 치아를 위한 선택,<br>순서부터 다르게.`,
+  lead: '보존할 수 있는 가능성을 먼저 살피고, 잇몸 건강을 지키며, 필요한 경우 임플란트까지. 지금의 구강 상태에 맞는 치료를 함께 찾아갑니다.',
   crumbs: [{ name: '홈', href: '/' }, { name: '진료 안내', href: '/treatments' }],
 })}
 <section class="section">
   <div class="container">
-    <div class="section-head reveal"><p class="eyebrow">핵심 진료</p><h2 class="h2">도담이 가장 잘하는 세 가지</h2></div>
-    <div class="grid-3 stagger">
-      ${coreTreatments.map((t) => html`<a href="/treatments/${t.slug}" class="card card-tx">
-        ${t.heroImage ? html`<div class="card-img"><img src="${t.heroImage}" alt="${t.name}" width="640" height="420" loading="lazy" decoding="async"></div>` : ''}
-        <div class="card-body"><span class="tag green">${t.category}</span><h3>${t.name}</h3><p>${t.heroTitle}</p><span class="link-arrow">자세히 보기</span></div>
+    <div class="section-kicker"><span>THREE WAYS TO CARE</span><span>도담의 핵심 진료</span></div>
+    <div class="treatment-chapters">
+      ${coreTreatments.map((t, i) => html`<a href="/treatments/${t.slug}" class="treatment-chapter reveal">
+        <span class="chapter-number">0${i + 1}</span>
+        <div class="chapter-copy"><p class="edition-label">${['PRESERVE', 'PROTECT', 'RESTORE'][i]} / ${t.category}</p><h2>${t.name}</h2><p>${t.heroTitle}</p><span class="link-arrow">진료 이야기 읽기</span></div>
+        ${t.heroImage ? html`<figure><img src="${t.heroImage}" alt="${t.name} 진료에 사용하는 실제 장비와 재료" width="640" height="420" loading="lazy" decoding="async"></figure>` : ''}
       </a>`)}
     </div>
   </div>
 </section>
 <section class="section section-bg">
   <div class="container">
-    <div class="section-head reveal"><p class="eyebrow">진료 과목</p><h2 class="h2">그 외 진료</h2></div>
+    <div class="section-head reveal"><p class="eyebrow">진료 과목</p><h2 class="h2">작은 불편도 놓치지 않도록.</h2></div>
     <div class="tx-grid stagger">
       ${otherTreatments.map((t) => html`<a href="/treatments/${t.slug}" class="tx-item"><span class="tag ${t.category === '자연치아 보존' ? 'green' : 'gray'}">${t.category}</span><h3>${t.name}</h3><p>${t.short}</p><span class="link-arrow">자세히</span></a>`)}
     </div>
@@ -77,6 +78,7 @@ ${pageHero({
   crumbs: [{ name: '홈', href: '/' }, { name: '진료 안내', href: '/treatments' }, { name: t.name, href: `/treatments/${t.slug}` }],
   actions: html`<a href="/reservation?treatment=${t.slug}" class="btn btn-primary">이 진료 예약하기</a><a href="#faq" class="btn btn-outline">자주 묻는 질문</a>`,
 })}
+<nav class="reading-nav" aria-label="진료 안내 빠른 목차"><div class="container"><span>${t.name}</span><a href="#summary">핵심 요약</a>${t.steps ? html`<a href="#steps">치료 과정</a>` : ''}<a href="#side-effects">주의사항</a><a href="#faq">자주 묻는 질문</a><a class="reading-reserve" href="/reservation?treatment=${t.slug}">예약하기 ↗</a></div></nav>
 <div class="container tx-layout">
   <article class="tx-body">
     <section class="summary-box reveal" id="summary" aria-labelledby="summary-h">
