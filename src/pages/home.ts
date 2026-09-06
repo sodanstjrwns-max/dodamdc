@@ -33,24 +33,29 @@ export async function homePage(c: Context<Env>) {
     { q: '퇴근 후에도 진료받을 수 있나요?', a: '화요일은 오후 2시부터 오후 8시 30분까지 진료합니다. 공휴일이나 임시 휴진 여부는 공지사항 또는 전화로 확인해 주세요.' },
   ]
   const body = html`
-<section class="editorial-hero" id="hero-section" aria-labelledby="hero-title">
-  <div class="container hero-editorial-grid">
-    <div class="hero-editorial-copy">
-      <p class="edition-label"><span class="status-dot"></span> SEOUL DODAM DENTAL CLINIC</p>
-      <h1 id="hero-title">오래도록,<br><em>내 치아로</em><br>살아가도록<span class="title-period">.</span></h1>
-      <p class="hero-description">이해될 때까지 설명하고,<br>필요한 만큼만 치료합니다.</p>
-      <div class="hero-links"><a href="/mission" class="editorial-link">도담의 진료 철학 <span>${arrow}</span></a><a href="/reservation" class="hero-reserve">첫 방문 예약</a></div>
-      <p class="hero-location">수원 화서동 <span>·</span> 통합치의학과 전문의 직접 진료</p>
+<section class="kinetic-hero" id="hero-section" aria-labelledby="hero-title">
+  <div class="hero-grid-lines" aria-hidden="true"></div>
+  <div class="kinetic-hero-top"><span><i class="live-dot"></i> 자연치아를 지키는 서울도담치과</span><span>SUWON, HWASEO <i>© DODAM</i></span></div>
+  <div class="kinetic-hero-layout">
+    <div class="kinetic-hero-copy">
+      <p class="kinetic-eyebrow"><span>KEEP YOUR OWN.</span> MAKE IT LAST.</p>
+      <h1 id="hero-title"><span class="headline-line"><span>내 치아를 위한</span></span><span class="headline-line"><span>조금 다른</span></span><span class="headline-line"><span>생각, <em>도담</em><i class="headline-dot" aria-hidden="true"></i></span></span></h1>
+      <div class="hero-copy-bottom"><p>빼는 것보다 지키는 것.<br>치료보다 먼저, 당신의 치아를 생각합니다.</p><a href="/mission" class="pill-link" data-magnetic><span>도담의 다른 생각</span><span class="pill-link-icon">${arrow}</span></a></div>
     </div>
-    <figure class="hero-editorial-photo">
-      <img src="${dr.photo}" alt="차분한 미소로 맞이하는 서울도담치과 한휘림 대표원장" width="2000" height="1333" fetchpriority="high" decoding="async">
-      <div class="photo-corner" aria-hidden="true">A little more care.<br>A lifetime of smiles.</div>
-      <figcaption><div><span>당신의 치아를 함께 고민하는 사람</span><strong>한휘림 <small>대표원장</small></strong></div><a href="/doctors/${dr.slug}" aria-label="한휘림 원장 소개 보기">${arrow}</a></figcaption>
-      <span class="photo-index" aria-hidden="true">01 — THE DENTIST</span>
-    </figure>
+    <div class="tooth-experience" id="tooth-experience">
+      <div class="tooth-orbit-label" aria-hidden="true"><span>NATURAL TOOTH</span><span>LONGER LIFE</span></div>
+      <div class="tooth-render" id="tooth-render" role="img" aria-label="자연치아를 감싸는 보호 고리를 표현한 도담 입체 브랜드 그래픽">
+        <svg class="tooth-fallback" viewBox="0 0 600 600" aria-hidden="true"><defs><linearGradient id="enamel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".45" stop-color="#f9ffff"/><stop offset="1" stop-color="#aacbdd"/></linearGradient><filter id="enamel-shadow"><feDropShadow dx="6" dy="22" stdDeviation="18" flood-color="#005d98" flood-opacity=".2"/></filter></defs><ellipse cx="310" cy="480" rx="145" ry="28" fill="#bed1d8" opacity=".35"/><g filter="url(#enamel-shadow)"><path d="M300 150C235 94 156 130 166 217C169 260 195 283 204 351C213 431 235 460 252 412L281 315Q300 286 319 315L348 412C365 460 387 431 396 351C405 283 431 260 434 217C444 130 365 94 300 150Z" fill="url(#enamel)" stroke="#fff" stroke-width="3"/></g><ellipse cx="300" cy="293" rx="229" ry="90" transform="rotate(-24 300 293)" fill="none" stroke="#c9f57b" stroke-width="15"/><ellipse cx="300" cy="293" rx="227" ry="87" transform="rotate(38 300 293)" fill="none" stroke="#087acb" stroke-width="7"/></svg>
+      </div>
+      <div class="floating-note note-preserve"><span class="note-symbol" aria-hidden="true">+</span><span>PRESERVE<br><strong>본래의 가치를 지키다</strong></span></div>
+      <div class="floating-note note-care"><i aria-hidden="true"></i><span>CARE, NOT JUST CURE.</span></div>
+      <div class="model-controls" hidden><button type="button" id="model-rotate-left" aria-label="입체 치아 모형 왼쪽으로 회전">←</button><p>드래그해서 돌려보세요<span>브랜드 그래픽 · 실제 해부 모형이 아닙니다</span></p><button type="button" id="model-rotate-right" aria-label="입체 치아 모형 오른쪽으로 회전">→</button></div>
+      <span class="tooth-ground-label" aria-hidden="true">THE DODAM WAY</span>
+    </div>
   </div>
-  <div class="container hero-bottom"><a href="#dodam-philosophy" class="scroll-cue"><span>SCROLL TO DISCOVER</span><svg width="12" height="28" viewBox="0 0 12 28" fill="none" stroke="currentColor" aria-hidden="true"><path d="M6 0v25M1 20l5 6 5-6"/></svg></a><p>자연치아의 가치를 아는 치과, <strong>서울도담치과</strong></p><span class="hero-coordinate" aria-hidden="true">SUWON · HWASEO</span></div>
+  <div class="kinetic-hero-bottom"><a href="#dodam-philosophy" class="kinetic-scroll"><span class="scroll-disc">↓</span><span>SCROLL INTO DODAM</span></a><a href="/doctors/${dr.slug}" class="hero-doctor-chip"><img src="${dr.photo}" alt="" width="52" height="52"><span><small>통합치의학과 전문의</small>${dr.name} 대표원장 직접 진료</span>${arrow}</a><button type="button" class="motion-toggle" id="motion-toggle" aria-pressed="false" aria-label="애니메이션 일시정지" hidden><span class="motion-icon" aria-hidden="true">Ⅱ</span><span class="motion-toggle-label">모션 켜짐</span></button></div>
 </section>
+<div class="brand-ticker" aria-hidden="true"><div class="brand-ticker-track">${Array.from({length:4},()=>html`<span>KEEP YOUR OWN</span><i>+</i><span>자연치아를 지키는 다른 생각</span><i>+</i>`)}</div></div>
 
 <nav class="quick-visit" aria-label="빠른 내원 안내"><div class="container quick-visit-grid">
   <a href="/hours"><span class="quick-number">01</span><div><small>퇴근 후에도 여유 있게</small><strong>화요일 야간진료 <b>20:30</b></strong></div>${arrow}</a>
@@ -58,16 +63,13 @@ export async function homePage(c: Context<Env>) {
   <a href="tel:${clinic.phoneTel}"><span class="quick-number">03</span><div><small>궁금한 점은 편하게 물어보세요</small><strong>${clinic.phone}</strong></div>${arrow}</a>
 </div></nav>
 
-<section class="philosophy-editorial" id="dodam-philosophy" aria-labelledby="philosophy-title">
-  <div class="container">
-    <div class="section-kicker"><span>01 / OUR PHILOSOPHY</span><span>도담이 진료하는 방식</span></div>
-    <div class="philosophy-intro"><h2 id="philosophy-title" class="reveal">더하는 치료보다,<br><span>남기는 진료를</span><br>먼저 생각합니다.</h2><div class="philosophy-aside reveal"><p>한 번 손대기 전에, 한 번 더 생각하는 것.<br>치아는 재생되지 않기에<br>도담의 진료는 그 신중함에서 시작됩니다.</p><a href="/mission" class="editorial-link light">우리가 지키는 기준 <span>${arrow}</span></a></div></div>
-    <div class="principle-lines stagger">
-      <article><span class="principle-index">01</span><h3>충분히 설명하고</h3><p>사진을 함께 보며 지금 어떤 상태인지,<br>왜 치료가 필요한지 설명합니다.</p></article>
-      <article><span class="principle-index">02</span><h3>가능성을 살피고</h3><p>치아와 신경을 보존할 수 있는 방법을<br>먼저 검토합니다.</p></article>
-      <article><span class="principle-index">03</span><h3>필요한 만큼만</h3><p>진단을 바탕으로 필요한 치료와<br>지켜볼 수 있는 부분을 구분합니다.</p></article>
+<section class="philosophy-kinetic" id="dodam-philosophy" aria-labelledby="philosophy-title">
+  <div class="philosophy-sticky">
+    <div class="container">
+      <div class="kinetic-section-label"><span>01 — THE DODAM MINDSET</span><span>자연치아를 대하는 우리의 태도</span></div>
+      <div class="manifesto-layout"><div><h2 id="philosophy-title" class="scroll-manifesto"><span data-ink>치료는 신중하게.</span><br><span data-ink>내 치아는</span><br><span class="manifesto-highlight" data-ink>더 오래도록.</span></h2><p class="manifesto-explanation">치아는 재생되지 않으니까.<br>한 번 손대기 전에, 한 번 더 생각합니다.</p><a href="/mission" class="pill-link light" data-magnetic><span>도담이 지키는 원칙</span><span class="pill-link-icon">${arrow}</span></a></div><div class="mindset-object" aria-hidden="true"><svg viewBox="0 0 400 400"><g class="mindset-ring"><ellipse cx="200" cy="200" rx="166" ry="87" transform="rotate(-37 200 200)"/><ellipse cx="200" cy="200" rx="166" ry="87" transform="rotate(37 200 200)"/></g><text x="200" y="213" text-anchor="middle">도담</text><circle cx="65" cy="101" r="14"/></svg><p>WE CARE ABOUT<br><b>WHAT YOU KEEP.</b></p></div></div>
+      <ol class="manifesto-principles"><li><span>01</span><h3>설명부터 충분히</h3><p>알고 받는 진료의 편안함</p></li><li><span>02</span><h3>보존부터 신중히</h3><p>자연치아의 가능성을 먼저</p></li><li><span>03</span><h3>필요한 만큼만</h3><p>당신에게 맞는 치료 계획</p></li></ol>
     </div>
-    <div class="philosophy-wordmark" aria-hidden="true">Less, but <i>better.</i></div>
   </div>
 </section>
 
@@ -97,7 +99,11 @@ export async function homePage(c: Context<Env>) {
   <div class="container">
     <div class="section-kicker"><span>04 / THE SPACE & CARE</span><span>보이지 않는 곳까지 세심하게</span></div>
     <div class="section-heading-row reveal"><h2 id="space-title" class="display-heading">편안한 공간,<br>흔들림 없는 기본.</h2><div><p>들어서는 순간의 편안함부터<br>진료 직전 새로 개봉하는 기구까지.<br>작은 부분에도 진료의 마음을 담습니다.</p><a href="/floor-guide" class="text-link">공간과 감염관리 살펴보기 ${arrow}</a></div></div>
-    <div class="space-composition"><figure class="space-main reveal"><img src="/static/img/suwon-dodam-dental-reception-desk.webp" alt="서울도담치과 접수 데스크와 대기 공간" width="1619" height="971" loading="lazy" decoding="async"><figcaption><span>01 / RECEPTION</span>편안하게 맞이하는 공간</figcaption></figure><figure class="space-secondary reveal"><img src="/static/img/suwon-dodam-dental-treatment-room.webp" alt="서울도담치과의 자연광이 들어오는 진료실" width="713" height="541" loading="lazy" decoding="async"><figcaption><span>02 / TREATMENT ROOM</span>당신의 진료에 집중하는 공간</figcaption></figure></div>
+    <div class="space-experience" id="space-experience"><div class="space-viewport" id="space-viewport" tabindex="0" aria-label="병원 공간 사진. 좌우 버튼 또는 가로 스크롤로 둘러보세요"><div class="space-track">
+      <figure class="space-slide"><img src="/static/img/suwon-dodam-dental-reception-desk.webp" alt="서울도담치과 접수 데스크와 대기 공간" width="1619" height="971" loading="lazy" decoding="async"><figcaption><span>01 / WELCOME</span><strong>처음의 긴장이,<br>편안함으로.</strong><p>당신을 맞이하는 접수 공간</p></figcaption></figure>
+      <figure class="space-slide"><img src="/static/img/suwon-dodam-dental-treatment-room.webp" alt="서울도담치과의 자연광이 들어오는 진료실" width="713" height="541" loading="lazy" decoding="async"><figcaption><span>02 / FOCUS</span><strong>오늘의 진료에,<br>오롯이 집중.</strong><p>자연광이 들어오는 진료 공간</p></figcaption></figure>
+      <figure class="space-slide"><img src="/static/img/sterilized-handpiece-cassettes.webp" alt="서울도담치과에서 개별 포장한 진료 기구" width="800" height="600" loading="lazy" decoding="async"><figcaption><span>03 / THE BASICS</span><strong>보이지 않는 곳도,<br>보이는 것처럼.</strong><p>환자별 기구 포장과 감염관리</p></figcaption></figure>
+    </div></div><div class="space-controls"><span><b id="space-current">01</b> / 03</span><div class="space-progress" aria-hidden="true"><i></i></div><div><button type="button" id="space-prev" aria-label="이전 공간 사진">←</button><button type="button" id="space-next" aria-label="다음 공간 사진">→</button></div></div></div>
     <div class="care-standards stagger"><a href="/floor-guide#equip-진단"><span>01</span><h3>진단부터 차근차근</h3><p>저선량 CT · 큐레이 진단</p>${arrow}</a><a href="/floor-guide#equip-무통"><span>02</span><h3>작은 통증도 세심하게</h3><p>마취액 워머 · 전동 마취기</p>${arrow}</a><a href="/floor-guide#sterilization"><span>03</span><h3>보이지 않는 기본까지</h3><p>Class B 멸균 · 기구별 밀봉</p>${arrow}</a></div>
   </div>
 </section>
@@ -112,9 +118,9 @@ export async function homePage(c: Context<Env>) {
   ${notice ? html`<a href="/notice/${notice.id}" class="editorial-notice"><span>NOTICE</span><strong>${notice.title}</strong><time>${fmtDate(notice.created_at)}</time>${arrow}</a>` : ''}
 </div></section>`
   return c.html(Layout(c, {
-    title: `${clinic.shortName} | 오래도록, 내 치아로 살아가도록`,
+    title: `${clinic.shortName} | 내 치아를 위한 조금 다른 생각, 도담`,
     description: `수원 화서동 서울도담치과. 통합치의학과 전문의 한휘림 대표원장이 충분히 설명하고 필요한 만큼 치료합니다. MTA 생활치수치료·잇몸치료·임플란트. 화요일 야간진료 20:30. ${clinic.phone}`,
-    path: '/', bodyClass: 'home-page', image: dr.photo,
+    path: '/', bodyClass: 'home-page kinetic-home', image: dr.photo,
     jsonld: [dentistLd(clinic, siteUrl), webpageSpeakableLd('/', siteUrl, clinic.name), faqLd(faqs)],
   }, body))
 }

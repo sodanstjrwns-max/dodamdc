@@ -3,7 +3,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run build:experience && vite build",
+    "build:experience": "rm -rf public/static/experience && esbuild src/client/experience.ts --bundle --splitting --format=esm --target=es2020 --minify --outdir=public/static/experience --entry-names=main --chunk-names=[name]-[hash] --legal-comments=linked",
     "test:design": "node scripts/design-smoke.mjs",
     "typecheck": "tsc --noEmit",
     "preview": "wrangler pages dev",
@@ -24,7 +25,11 @@
     "@hono/vite-build": "^1.11.1",
     "@hono/vite-dev-server": "^0.26.1",
     "@playwright/test": "^1.63.0",
+    "@types/three": "^0.185.4",
+    "esbuild": "^0.28.2",
+    "gsap": "^3.15.0",
     "sharp": "^0.35.4",
+    "three": "^0.185.1",
     "typescript": "^5.9.3",
     "vite": "^8.1.4",
     "wrangler": "^4.110.0"

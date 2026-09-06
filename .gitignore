@@ -10,6 +10,7 @@ logs/
 *.bak
 .DS_Store
 .artifacts/
+public/static/experience/
 .env.*
 .dev.vars.*
 playwright-report/

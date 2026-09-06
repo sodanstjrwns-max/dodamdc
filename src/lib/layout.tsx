@@ -51,14 +51,14 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="icon" href="/favicon.png" type="image/png"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-<link rel="stylesheet" href="/static/style.css?v=6">
+<link rel="preload" href="/static/fonts/WantedSansVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/style.css?v=7">
+<link rel="stylesheet" href="/static/kinetic.css?v=7">
 <link rel="alternate" type="application/rss+xml" title="${clinic.shortName} 원장 칼럼" href="/column/rss.xml">
 ${lds.map((l) => raw(`<script type="application/ld+json">${JSON.stringify(l).replace(/</g, '\\u003c')}</script>`))}
 ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?id=${escAttr(clinic.ga4)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${escAttr(clinic.ga4)}',{anonymize_ip:true});</script>`) : ''}
 </head>
-<body class="site-page ${meta.bodyClass || ''} ${meta.path === '/reservation' ? 'reservation-page' : ''}" id="top">
+<body class="site-page experience-theme ${meta.bodyClass || ''} ${meta.path === '/reservation' ? 'reservation-page' : ''}" id="top">
 <a href="#main" class="skip-link">본문으로 건너뛰기</a>
 <div class="progress-bar" id="scroll-progress" aria-hidden="true"></div>
 
@@ -216,7 +216,7 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
     </nav>
     <p class="footer-copy">© ${new Date().getFullYear()} ${clinic.name}. All rights reserved.</p>
   </div>
-  <p class="footer-wordmark" aria-hidden="true">SEOUL DODAM</p>
+  <p class="footer-wordmark" aria-hidden="true">DODAM.</p>
 </footer>
 
 <nav class="mobile-action-bar" aria-label="빠른 상담 및 예약">
@@ -232,7 +232,8 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
   <a href="#top" class="fab fab-top" aria-label="맨 위로" id="to-top"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></a>
 </div>
 
-<script src="/static/app.js?v=6" defer></script>
+<script src="/static/app.js?v=7" defer></script>
+<script type="module" src="/static/experience/main.js?v=7"></script>
 </body>
 </html>`
 }
