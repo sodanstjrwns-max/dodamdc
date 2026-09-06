@@ -148,7 +148,7 @@ content.get('/column/:slug', async (c) => {
     ${t ? html`<a href="/treatments/${t.slug}" class="tag green">${t.name}</a>` : ''}
     <h1 class="h1">${p.title}</h1>
     ${p.excerpt ? html`<p class="lead">${p.excerpt}</p>` : ''}
-    <div class="article-author"><img src="${d.photo}" alt="${d.photoAlt}" width="48" height="48"><div><strong><a href="/doctors/${d.slug}">${d.name} ${d.title}</a></strong><br><small>${d.specialty} · <time datetime="${p.published_at}">${fmtDate(p.published_at)}</time>${p.updated_at && p.updated_at.slice(0, 10) !== p.published_at.slice(0, 10) ? ` (수정 ${fmtDate(p.updated_at)})` : ''}</small></div><button type="button" class="btn btn-outline btn-sm" data-share>공유</button></div>
+    <div class="article-author"><img src="${d.photoAvatar}" alt="${d.photoAlt}" width="48" height="48"><div><strong><a href="/doctors/${d.slug}">${d.name} ${d.title}</a></strong><br><small>${d.specialty} · <time datetime="${p.published_at}">${fmtDate(p.published_at)}</time>${p.updated_at && p.updated_at.slice(0, 10) !== p.published_at.slice(0, 10) ? ` (수정 ${fmtDate(p.updated_at)})` : ''}</small></div><button type="button" class="btn btn-outline btn-sm" data-share>공유</button></div>
   </header>
   ${p.thumbnail ? html`<figure class="article-hero-img"><img src="/files/${p.thumbnail}" alt="" width="1200" height="700" fetchpriority="high" decoding="async"></figure>` : ''}
   <div class="article-body prose">${raw(autoLink(String(safeHtml(p.content_html)), { exclude: t ? [t.slug] : [], max: 10 }))}</div>

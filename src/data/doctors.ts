@@ -6,6 +6,7 @@ export type Doctor = {
   title: string
   specialty: string
   photo: string
+  photoAvatar: string
   photoAlt: string
   photoCutout: string
   quote: string
@@ -26,7 +27,8 @@ export const doctors: Doctor[] = [
     nameEn: 'Han Hwi-rim',
     title: '대표원장',
     specialty: '통합치의학과 전문의',
-    photo: '/static/img/dr-han-hwirim-portrait.webp',
+    photo: '/static/img/dr-han-hwirim-portrait-v2.webp',
+    photoAvatar: '/static/img/dr-han-hwirim-avatar-v2.webp',
     photoAlt: '서울도담치과 한휘림 대표원장 프로필 사진',
     photoCutout: '/static/img/dr-han-hwirim-cutout.webp',
     quote: '치아는 재생되지 않습니다. 살릴 수 있는 방법이 하나라도 남아 있으면 그것부터 합니다.',

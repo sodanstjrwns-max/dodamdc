@@ -47,7 +47,7 @@ export function dentistLd(clinic: Clinic, siteUrl: string) {
     alternateName: clinic.nameEn,
     url: siteUrl,
     logo: absUrl(siteUrl, '/static/img/logo-mark.png'),
-    image: absUrl(siteUrl, '/static/img/suwon-dodam-dental-reception-desk.webp'),
+    image: absUrl(siteUrl, '/static/img/suwon-dodam-dental-reception-desk-v2.webp'),
     telephone: clinic.phoneTel,
     email: clinic.email,
     priceRange: '₩₩',

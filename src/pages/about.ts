@@ -15,7 +15,7 @@ ${pageHero({ eyebrow: '의료진', title: html`한 명의 원장이<br>처음부
 <section class="section">
   <div class="container">
     ${doctors.map((d) => html`<article class="doctor-band reveal">
-      <div class="doctor-band-img"><img src="/static/img/dr-han-hwirim-standing.webp" alt="${d.photoAlt}" width="720" height="900" loading="lazy" decoding="async"><p class="doctor-band-caption">${d.name} ${d.title} · ${d.specialty}</p></div>
+      <div class="doctor-band-img"><img src="/static/img/dr-han-hwirim-standing-v2.webp" alt="${d.photoAlt}" width="720" height="900" loading="lazy" decoding="async"><p class="doctor-band-caption">${d.name} ${d.title} · ${d.specialty}</p></div>
       <div class="doctor-band-text">
         <p class="eyebrow">${d.title}</p>
         <h2 class="h2">${d.name} <small class="specialty">${d.nameEn}</small></h2>
@@ -50,7 +50,7 @@ export async function doctorDetail(c: Context<Env>, d: Doctor) {
       <blockquote class="quote reveal in">${d.quote}</blockquote>
       <div class="hero-actions reveal in"><a href="/reservation" class="btn btn-primary">진료 예약</a><a href="#philosophy" class="btn btn-outline">진료 철학</a></div>
     </div>
-    <div class="doctor-hero-img reveal-scale in"><img src="/static/img/dr-han-hwirim-standing.webp" alt="${d.photoAlt}" width="720" height="900" fetchpriority="high" decoding="async"></div>
+    <div class="doctor-hero-img reveal-scale in"><img src="/static/img/dr-han-hwirim-standing-v2.webp" alt="${d.photoAlt}" width="720" height="900" fetchpriority="high" decoding="async"></div>
   </div>
 </section>
 
@@ -63,7 +63,7 @@ export async function doctorDetail(c: Context<Env>, d: Doctor) {
 
 <section class="section section-bg" id="story">
   <div class="container split">
-    <div class="split-img reveal-left"><img src="/static/img/dr-han-hwirim-standing.webp" alt="진료실에 서 있는 한휘림 원장" width="960" height="720" loading="lazy" decoding="async"></div>
+    <div class="split-img reveal-left"><img src="/static/img/dr-han-hwirim-standing-v2.webp" alt="진료실에 서 있는 한휘림 원장" width="960" height="720" loading="lazy" decoding="async"></div>
     <div class="story reveal-right">
       <p class="eyebrow">원장 이야기</p>
       ${d.story.map((s) => html`<div class="story-item"><h3>${s.heading}</h3><p>${s.body}</p></div>`)}
@@ -125,7 +125,7 @@ export function missionPage(c: Context<Env>) {
 <section class="mission-poster" aria-labelledby="mission-title"><div class="container">
   <nav class="crumbs" aria-label="현재 위치"><ol><li><a href="/">홈</a></li><li aria-current="page">도담의 철학</li></ol></nav>
   <p class="edition-label">THE DODAM PHILOSOPHY</p>
-  <div class="mission-poster-grid"><h1 id="mission-title">한 번 손대기 전에,<br><em>한 번 더</em><br>생각합니다.</h1><div class="mission-poster-aside"><p>치료의 크기보다 중요한 건<br>당신에게 꼭 필요한 치료인지.<br>그 질문을 잊지 않는 치과가 되겠습니다.</p><img src="/static/img/suwon-dodam-dental-reception-desk.webp" alt="서울도담치과 접수 공간" width="1619" height="971" fetchpriority="high"></div></div>
+  <div class="mission-poster-grid"><h1 id="mission-title">한 번 손대기 전에,<br><em>한 번 더</em><br>생각합니다.</h1><div class="mission-poster-aside"><p>치료의 크기보다 중요한 건<br>당신에게 꼭 필요한 치료인지.<br>그 질문을 잊지 않는 치과가 되겠습니다.</p><img src="/static/img/suwon-dodam-dental-reception-desk-v2.webp" alt="서울도담치과 접수 공간" width="1619" height="971" fetchpriority="high"></div></div>
   <p class="mission-poster-bottom">Less intervention. More consideration.</p>
 </div></section>
 <section class="section">
@@ -155,39 +155,39 @@ export function missionPage(c: Context<Env>) {
   </div>
 </section>
 ${ctaStrip(clinic)}`
-  return c.html(Layout(c, { title: '병원 미션 — 이해될 때까지 설명하고, 필요한 만큼만 치료합니다', description: `서울도담치과의 미션. ${clinic.mission} 설명·보존·무통·정직·기준·지속, 여섯 가지 약속.`, path: '/mission', image: '/static/img/suwon-dodam-dental-consult-room.webp', crumbs: [{ name: '홈', href: '/' }, { name: '병원 미션', href: '/mission' }] }, body))
+  return c.html(Layout(c, { title: '병원 미션 — 이해될 때까지 설명하고, 필요한 만큼만 치료합니다', description: `서울도담치과의 미션. ${clinic.mission} 설명·보존·무통·정직·기준·지속, 여섯 가지 약속.`, path: '/mission', image: '/static/img/suwon-dodam-dental-consult-room-v2.webp', crumbs: [{ name: '홈', href: '/' }, { name: '병원 미션', href: '/mission' }] }, body))
 }
 
 // ── 장비·감염관리 (floor-guide) ─────────────────────────
 export const equipment = [
-  { img: 'vatech-green16-low-dose-ct', name: 'Vatech Green16 저선량 CT', cat: '진단', d: '임플란트·사랑니 수술 전 신경관과 뼈 두께를 3차원으로 확인합니다. 저선량 설계로 촬영 시 노출을 줄인 장비입니다.' },
-  { img: 'qraycam-pro-fluorescence-caries-detector', name: 'Q-ray 형광 충치 진단기', cat: '진단', d: '형광 촬영으로 진행 중인 충치와 세균 활성을 확인해, 지켜봐도 되는 충치와 지금 치료할 충치를 구분합니다. 정기검진 때 이전 사진과 비교합니다.' },
+  { img: 'vatech-green16-low-dose-ct-v2', name: 'Vatech Green16 저선량 CT', cat: '진단', d: '임플란트·사랑니 수술 전 신경관과 뼈 두께를 3차원으로 확인합니다. 저선량 설계로 촬영 시 노출을 줄인 장비입니다.' },
+  { img: 'qraycam-pro-fluorescence-caries-detector-v2', name: 'Q-ray 형광 충치 진단기', cat: '진단', d: '형광 촬영으로 진행 중인 충치와 세균 활성을 확인해, 지켜봐도 되는 충치와 지금 치료할 충치를 구분합니다. 정기검진 때 이전 사진과 비교합니다.' },
   { img: 'vatech-intraoral-sensor', name: '디지털 구내 센서', cat: '진단', d: '치아 사이 충치, 신경치료 진행 상황을 세부 촬영합니다. 촬영 즉시 모니터로 함께 봅니다.' },
-  { img: 'portable-xray', name: '포터블 X-ray', cat: '진단', d: '진료 도중 자리 이동 없이 촬영해 신경치료 길이 확인 등 단계별 점검이 빠릅니다.' },
+  { img: 'portable-xray-v2', name: '포터블 X-ray', cat: '진단', d: '진료 도중 자리 이동 없이 촬영해 신경치료 길이 확인 등 단계별 점검이 빠릅니다.' },
   { img: 'quicksleeper-intraosseous-anesthesia', name: 'QuickSleeper 골내마취기', cat: '무통', d: '치아 바로 옆 뼈로 마취액을 소량 주입해 해당 치아만 마취합니다. 입술·혀가 오래 얼얼한 느낌이 적습니다.' },
-  { img: 'denops-i-portable-intraosseous-anesthesia', name: 'Denops-i 무통마취기', cat: '무통', d: '컴퓨터가 마취액 주입 속도를 일정하게 조절해 압력에 의한 통증을 줄입니다.' },
-  { img: 'iject-painless-anesthesia-gun', name: 'i-JECT 전동 마취기', cat: '무통', d: '펜 타입 전동 주입으로 손 힘에 따른 압력 변화 없이 천천히 마취합니다.' },
-  { img: 'anesthetic-warmer-iject-on', name: '마취액 워머', cat: '무통', d: '차가운 마취액이 들어갈 때의 통증을 줄이기 위해 체온에 가깝게 데워서 사용합니다.' },
+  { img: 'denops-i-portable-intraosseous-anesthesia-v2', name: 'Denops-i 무통마취기', cat: '무통', d: '컴퓨터가 마취액 주입 속도를 일정하게 조절해 압력에 의한 통증을 줄입니다.' },
+  { img: 'iject-painless-anesthesia-gun-v2', name: 'i-JECT 전동 마취기', cat: '무통', d: '전동 주입 장치로 마취액을 천천히 일정하게 주입합니다.' },
+  { img: 'anesthetic-warmer-iject-on-v2', name: '마취액 워머', cat: '무통', d: '차가운 마취액이 들어갈 때의 통증을 줄이기 위해 체온에 가깝게 데워서 사용합니다.' },
   { img: 'warm-water-scaling-system', name: '미온수 스케일링 시스템', cat: '무통', d: '스케일링 물을 미온수로 공급해 시린 느낌을 줄입니다. 마취 가글과 함께 사용합니다.' },
   { img: 'morita-dentaport-zx', name: 'Morita Dentaport ZX 근관장 측정기', cat: '신경치료', d: '신경관 길이를 전기적으로 측정해 신경치료 시 과·소충전을 줄입니다.' },
   { img: 'ultrasonic-endo-uc-one', name: '초음파 근관세정기', cat: '신경치료', d: '초음파 진동으로 신경관 안쪽 세균과 잔사를 씻어냅니다. 러버댐과 함께 사용합니다.' },
   { img: 'rubber-dam-isolation', name: '러버댐 격리', cat: '신경치료', d: '치료 치아만 노출하고 침과 세균을 차단합니다. 신경치료·레진·MTA 치료의 기본입니다.' },
-  { img: 'one-fil-putty-mta', name: 'One-Fil Putty MTA', cat: '보존', d: '생활치수치료(VPT)에서 살아있는 신경을 덮어 보호하는 생체친화 재료입니다.' },
+  { img: 'one-fil-putty-mta-v2', name: 'One-Fil Putty MTA', cat: '보존', d: '생활치수치료(VPT)에서 살아있는 신경을 덮어 보호하는 생체친화 재료입니다.' },
   { img: 'bioclear-matrix-system', name: 'Bioclear 매트릭스', cat: '보존', d: '치아 사이 레진을 자연스러운 곡면으로 만들어 음식물이 끼는 공간을 줄입니다.' },
   { img: 'garrison-deep-margin-elevation-kit', name: 'Garrison DME 키트', cat: '보존', d: '잇몸 아래 깊은 충치 경계를 끌어올려 크라운·인레이 접착 경계를 정확히 만듭니다.' },
   { img: 'kavo-mastertorque-handpiece', name: 'KaVo MASTERtorque 핸드피스', cat: '진료', d: '진동과 소음이 적은 고속 핸드피스로 치아 삭제량을 세밀하게 조절합니다.' },
-  { img: 'person-vacuum-autoclave-48l', name: 'Class B 진공 고압멸균기 (48L)', cat: '감염관리', d: '134°C 진공 고압 증기로 기구 내부까지 멸균합니다. 유럽 Class B 기준 장비입니다.' },
+  { img: 'person-vacuum-autoclave-48l-v2', name: 'Class B 진공 고압멸균기 (48L)', cat: '감염관리', d: '134°C 진공 고압 증기로 기구 내부까지 멸균합니다. 유럽 Class B 기준 장비입니다.' },
   { img: 'explasma-z7x-plasma-sterilizer', name: '플라즈마 소독기', cat: '감염관리', d: '열에 약한 장비와 핸드피스를 저온 플라즈마로 소독합니다.' },
-  { img: 'sterilized-handpiece-cassettes', name: '기구별 밀봉 포장', cat: '감염관리', d: '멸균한 기구는 환자별로 밀봉 포장해 보관하고, 진료 직전 환자분 앞에서 개봉합니다.' },
+  { img: 'suwon-dodam-dental-sterilization-room-v2', name: '기구 준비·소독 공간', cat: '감염관리', d: '기구의 세척, 멸균과 보관을 위한 실제 독립 소독 공간입니다.' },
 ]
 const gallery = [
   ['suwon-dodam-dental-entrance-sign', '서울도담치과 입구 간판', 8, 2],
-  ['suwon-dodam-dental-reception-desk', '접수 데스크', 4, 2],
-  ['suwon-dodam-dental-waiting-lounge', '대기 공간', 4, 1],
-  ['suwon-dodam-dental-consult-room', '상담실', 4, 1],
+  ['suwon-dodam-dental-reception-desk-v2', '접수 데스크', 4, 2],
+  ['suwon-dodam-dental-waiting-lounge-v2', '대기 공간', 4, 1],
+  ['suwon-dodam-dental-consult-room-v2', '상담실', 4, 1],
   ['suwon-dodam-dental-operatory', '진료실', 4, 1],
-  ['suwon-dodam-dental-treatment-room', '개별 진료실', 6, 2],
-  ['suwon-dodam-dental-chair-unit', '유닛체어', 6, 2],
+  ['suwon-dodam-dental-treatment-room-v2', '개별 진료실', 6, 2],
+  ['suwon-dodam-dental-chair-unit-v2', '유닛체어', 6, 2],
   ['suwon-dodam-dental-corridor-sign', '복도', 4, 1],
   ['suwon-dodam-dental-doctor-profile-board', '의료진 안내판', 4, 1],
   ['suwon-dodam-dental-waiting-area', '대기실', 4, 1],
@@ -197,7 +197,7 @@ export function floorGuidePage(c: Context<Env>) {
   const clinic = c.get('clinic') as any
   const cats = [...new Set(equipment.map((e) => e.cat))]
   const body = html`
-${pageHero({ eyebrow: '장비 · 감염관리 · 둘러보기', title: html`눈에 보이지 않는 곳에도,<br>진료의 마음을 담습니다.`, lead: '정확한 진단을 위한 장비부터 환자마다 새로 개봉하는 기구까지. 서울도담치과가 지키는 감염관리 과정과 실제 진료 공간을 확인해 보세요.', crumbs: [{ name: '홈', href: '/' }, { name: '장비·감염관리', href: '/floor-guide' }], image: '/static/img/person-vacuum-autoclave-48l.webp', imageAlt: 'Class B 진공 고압멸균기' })}
+${pageHero({ eyebrow: '장비 · 감염관리 · 둘러보기', title: html`눈에 보이지 않는 곳에도,<br>진료의 마음을 담습니다.`, lead: '정확한 진단을 위한 장비부터 환자마다 새로 개봉하는 기구까지. 서울도담치과가 지키는 감염관리 과정과 실제 진료 공간을 확인해 보세요.', crumbs: [{ name: '홈', href: '/' }, { name: '장비·감염관리', href: '/floor-guide' }], image: '/static/img/person-vacuum-autoclave-48l-v2.webp', imageAlt: 'Class B 진공 고압멸균기' })}
 <section class="section" id="sterilization">
   <div class="container">
     <div class="section-head reveal"><p class="eyebrow">감염관리 원칙</p><h2 class="h2">눈에 보이지 않는 곳에<br>기준을 둡니다</h2></div>
@@ -222,5 +222,5 @@ ${cats.map((cat) => html`<section class="section ${cat === '무통' || cat === '
   </div>
 </section>
 ${ctaStrip(clinic, { title: '직접 보시면 더 잘 아실 수 있습니다' })}`
-  return c.html(Layout(c, { title: '장비·감염관리 — 겉은 소박해도 안은 다릅니다', description: '서울도담치과의 진단·무통·신경치료·감염관리 장비. Vatech 저선량 CT, 큐레이, 무통마취기, Class B 고압멸균기, 플라즈마 소독기, 기구별 밀봉 포장. 병원 공간 둘러보기.', path: '/floor-guide', image: '/static/img/person-vacuum-autoclave-48l.webp', crumbs: [{ name: '홈', href: '/' }, { name: '장비·감염관리', href: '/floor-guide' }] }, body))
+  return c.html(Layout(c, { title: '장비·감염관리 — 겉은 소박해도 안은 다릅니다', description: '서울도담치과의 진단·무통·신경치료·감염관리 장비. Vatech 저선량 CT, 큐레이, 무통마취기, Class B 고압멸균기, 플라즈마 소독기, 기구별 밀봉 포장. 병원 공간 둘러보기.', path: '/floor-guide', image: '/static/img/person-vacuum-autoclave-48l-v2.webp', crumbs: [{ name: '홈', href: '/' }, { name: '장비·감염관리', href: '/floor-guide' }] }, body))
 }

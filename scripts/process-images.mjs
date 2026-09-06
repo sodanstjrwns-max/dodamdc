@@ -1,78 +1,57 @@
-// One-off asset pipeline: source photos -> optimized WebP with descriptive names
+// Photo-only curation. Uses clinic-supplied originals, never invents rooms or people.
+// DODAM_PHOTO_SOURCE may point to a local copy of the supplied source collection.
+// Outputs are versioned: existing public originals are intentionally retained.
 import sharp from 'sharp'
-import { mkdirSync, existsSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-const SRC = '/home/user/dodam_src'
-const OUT = '/home/user/webapp/public/static/img'
-mkdirSync(OUT, { recursive: true })
+const source = process.env.DODAM_PHOTO_SOURCE || '/home/user/dodam_src'
+const output = join(process.cwd(), 'public/static/img')
+mkdirSync(output, { recursive: true })
 
-// [source, output-name, maxWidth, quality]
+// Crops are fractions of the auto-oriented source; source dimensions are never upscaled.
+// Room originals are documentary photographs (not the supplied AI-retouched interior folder).
 const jobs = [
-  // 인테리어 (전문 촬영)
-  ['photos/interior/in01.png', 'suwon-dodam-dental-treatment-room.webp', 1800, 82],
-  ['photos/interior/in02.png', 'suwon-dodam-dental-waiting-lounge.webp', 1800, 82],
-  ['photos/interior/in03.png', 'suwon-dodam-dental-reception-desk.webp', 1800, 82],
-  ['photos/interior/in04.png', 'suwon-dodam-dental-information-desk.webp', 1800, 82],
-  // 현장 사진
-  ['photos/m22.jpg', 'suwon-dodam-dental-waiting-area.webp', 1600, 78],
-  ['photos/m30.jpg', 'suwon-dodam-dental-entrance-sign.webp', 1600, 78],
-  ['photos/m27.jpg', 'suwon-dodam-dental-chair-unit.webp', 1600, 78],
-  ['photos/m34.jpg', 'suwon-dodam-dental-consult-room.webp', 1600, 78],
-  ['photos/m03.jpg', 'suwon-dodam-dental-corridor-sign.webp', 1600, 78],
-  ['photos/m05.jpg', 'suwon-dodam-dental-building-exterior.webp', 1600, 78],
-  ['photos/m14.jpg', 'suwon-dodam-dental-operatory.webp', 1600, 78],
-  ['photos/m11.jpg', 'suwon-dodam-dental-doctor-profile-board.webp', 1600, 78],
-  // 장비
-  ['photos/equip/e04.jpg', 'quicksleeper-intraosseous-anesthesia.webp', 1400, 78],
-  ['photos/equip/e21.jpg', 'qraycam-pro-fluorescence-caries-detector.webp', 1400, 78],
-  ['photos/equip/e14.jpg', 'anesthetic-warmer-iject-on.webp', 1400, 78],
-  ['photos/equip/e44.jpg', 'iject-painless-anesthesia-gun.webp', 1400, 78],
-  ['photos/equip/e45.jpg', 'iject-pen-type-anesthesia.webp', 1400, 78],
-  ['photos/equip/e35.jpg', 'denops-i-portable-intraosseous-anesthesia.webp', 1400, 78],
-  ['photos/equip/e24.jpg', 'vatech-green16-low-dose-ct.webp', 1400, 78],
-  ['photos/equip/e38.jpg', 'explasma-z7x-plasma-sterilizer.webp', 1400, 78],
-  ['photos/equip/e40.jpg', 'person-vacuum-autoclave-48l.webp', 1400, 78],
-  ['photos/equip/e27.jpg', 'sterilized-handpiece-cassettes.webp', 1400, 78],
-  ['photos/equip/e19.jpg', 'kavo-handpieces.webp', 1400, 78],
-  ['photos/equip/e01.jpg', 'kavo-mastertorque-handpiece.webp', 1400, 78],
-  ['photos/equip/e05.jpg', 'one-fil-putty-mta.webp', 1400, 78],
-  ['photos/equip/e11.jpg', 'rubber-dam-isolation.webp', 1400, 78],
-  ['photos/equip/e15.jpg', 'warm-water-scaling-system.webp', 1400, 78],
-  ['photos/equip/e33.jpg', 'bioclear-matrix-system.webp', 1400, 78],
-  ['photos/equip/e43.jpg', 'garrison-deep-margin-elevation-kit.webp', 1400, 78],
-  ['photos/equip/e31.jpg', 'morita-dentaport-zx.webp', 1400, 78],
-  ['photos/equip/e36.jpg', 'vatech-intraoral-sensor.webp', 1400, 78],
-  ['photos/equip/e18.jpg', 'ultrasonic-endo-uc-one.webp', 1400, 78],
-  ['photos/equip/e47.jpg', 'portable-xray.webp', 1400, 78],
-  ['photos/equip/e42.jpg', 'operatory-led-light.webp', 1400, 78],
-  ['photos/equip/e10.jpg', 'iject-on-warmer-unit.webp', 1400, 78],
-  // 원장 프로필
-  ['photos/profile/pf09.jpg', 'dr-han-hwirim-portrait.webp', 2000, 82],
-  ['photos/profile/pf08.jpg', 'dr-han-hwirim-standing.webp', 1600, 82],
-  ['photos/profile/pf05.png', 'dr-han-hwirim-cutout.webp', 900, 85],
+  { src: 'photos/m17.jpg', name: 'suwon-dodam-dental-reception-desk-v2', size: [1600, 1100], crop: [0, .17, 1, .64], note: 'Actual reception desk, original file 19' },
+  { src: 'photos/m41.jpg', name: 'suwon-dodam-dental-treatment-room-v2', size: [1600, 1100], crop: [0, .16, 1, .69], note: 'Sunlit treatment room, original file 35' },
+  { src: 'photos/m22.jpg', name: 'suwon-dodam-dental-waiting-lounge-v2', size: [1600, 1100], crop: [0, .23, 1, .61], note: 'Actual wooden waiting room, original file 20' },
+  { src: 'photos/m31.jpg', name: 'suwon-dodam-dental-information-desk-v2', size: [1600, 1100], crop: [0, .18, 1, .64], note: 'Reception counter, original file 18' },
+  { src: 'photos/m28.jpg', name: 'suwon-dodam-dental-sterilization-room-v2', size: [1600, 1100], crop: [0, .16, 1, .67], note: 'Actual sterilization room, original file 46' },
+  { src: 'photos/m34.jpg', name: 'suwon-dodam-dental-consult-room-v2', size: [1600, 1100], crop: [0, .13, 1, .72], note: 'Private consultation room, original file 28' },
+  { src: 'photos/m27.jpg', name: 'suwon-dodam-dental-chair-unit-v2', size: [1400, 1100], crop: [0, .19, 1, .69], note: 'Patient chair, original file 40' },
+  { src: 'photos/m15.jpg', name: 'suwon-dodam-dental-child-room-v2', size: [1400, 1100], crop: [0, .1, 1, .72], note: 'Star-patterned treatment room, original file 44' },
+  // Seated portrait is intentionally cropped around the real face and torso.
+  { src: 'photos/profile/pf09.jpg', name: 'dr-han-hwirim-portrait-v2', size: [1200, 1500], crop: [.20, 0, .60, 1], note: 'Original seated portrait; no facial retouching' },
+  { src: 'photos/profile/pf08.jpg', name: 'dr-han-hwirim-standing-v2', size: [1200, 1500], crop: [0, 0, 1, .84], note: 'Original white-coat portrait; less empty headroom' },
+  { src: 'photos/profile/pf08.jpg', name: 'dr-han-hwirim-avatar-v2', size: [480, 480], crop: [.25, .11, .55, .367], note: 'Dedicated face-and-shoulders avatar crop' },
+  { src: 'photos/equip/e05.jpg', name: 'one-fil-putty-mta-v2', size: [1400, 1100], crop: [.06, .18, .88, .64], note: 'MTA material only, same verified source' },
+  { src: 'photos/equip/e21.jpg', name: 'qraycam-pro-fluorescence-caries-detector-v2', size: [1400, 1100], crop: [0, .14, 1, .73], note: 'Actual Qray diagnostic device' },
+  { src: 'photos/equip/e24.jpg', name: 'vatech-green16-low-dose-ct-v2', size: [1400, 1100], fit: 'contain', note: 'Full CT visible, do not crop the C-arm' },
+  { src: 'photos/equip/e37.jpg', name: 'denops-i-portable-intraosseous-anesthesia-v2', size: [1400, 1100], fit: 'contain', note: 'Correct DENOPS source e37; e35 was an endomotor' },
+  { src: 'photos/equip/e46.jpg', name: 'anesthetic-warmer-iject-on-v2', size: [1400, 1100], crop: [0, .15, 1, .75], note: 'Correct iJECT ON warmer; e14 was an ultrasonic cleaner' },
+  { src: 'photos/equip/e10.jpg', name: 'iject-on-warmer-unit-v2', size: [1400, 1100], crop: [0, .14, 1, .75], note: 'Carpule warmer; separate from the warmer base' },
+  { src: 'photos/equip/e44.jpg', name: 'iject-painless-anesthesia-gun-v2', size: [1400, 1100], fit: 'contain', note: 'Actual iJECT; not the Endosonic instrument previously mislabeled as a pen' },
+  { src: 'photos/equip/e48.jpg', name: 'portable-xray-v2', size: [1400, 1100], fit: 'contain', note: 'Correct EXARO x-ray; e47 was the TMJ laser' },
+  { src: 'photos/equip/e47.jpg', name: 'tmj-phl-laser-v2', size: [1400, 1100], fit: 'contain', note: 'Actual PHL treatment device' },
+  { src: 'photos/equip/e02.jpg', name: 'dental-whitening-light-v2', size: [1400, 1100], fit: 'contain', note: 'Actual whitening light; entire head remains visible' },
+  { src: 'photos/equip/e40.jpg', name: 'person-vacuum-autoclave-48l-v2', size: [1400, 1100], fit: 'contain', note: 'Actual autoclave, retained in full' },
 ]
 
-for (const [src, name, w, q] of jobs) {
-  const inPath = join(SRC, src)
-  if (!existsSync(inPath)) { console.warn('missing', src); continue }
-  const img = sharp(inPath).rotate()
-  const meta = await img.metadata()
-  const out = join(OUT, name)
-  await img.resize({ width: Math.min(w, meta.width || w), withoutEnlargement: true })
-    .webp({ quality: q, effort: 5 }).toFile(out)
-  // small thumbnail variant
-  await sharp(inPath).rotate().resize({ width: 640, withoutEnlargement: true })
-    .webp({ quality: 74 }).toFile(out.replace('.webp', '-sm.webp'))
-  console.log('ok', name)
+for (const job of jobs) {
+  const path = join(source, job.src)
+  if (!existsSync(path)) throw new Error(`Missing supplied original: ${job.src}`)
+  const normalized = await sharp(path).rotate().toBuffer()
+  const meta = await sharp(normalized).metadata()
+  let image = sharp(normalized)
+  if (job.crop) {
+    const [x, y, w, h] = job.crop
+    image = image.extract({ left: Math.round(x * meta.width), top: Math.round(y * meta.height), width: Math.round(w * meta.width), height: Math.round(h * meta.height) })
+  }
+  const buffer = await image.resize(job.size[0], job.size[1], { fit: job.fit || 'cover', position: 'centre', withoutEnlargement: true, background: '#edf2ee' })
+    .modulate({ brightness: 1.025, saturation: 0.98 }).sharpen({ sigma: 0.4 })
+    .webp({ quality: 83, effort: 5 }).toBuffer()
+  await sharp(buffer).toFile(join(output, job.name + '.webp'))
+  await sharp(buffer).resize({ width: 640, withoutEnlargement: true }).webp({ quality: 78 }).toFile(join(output, job.name + '-sm.webp'))
+  console.log(`${job.name}: ${Math.round(buffer.length / 1024)} KB — ${job.note}`)
 }
-
-// Logo: transparent PNG mark + wide
-await sharp(join(SRC, 'logo/13agFWD5Uh5ADqzOzKupSaAhb94KbIdSZ.png')).resize(512).png().toFile(join(OUT, 'logo-mark.png'))
-await sharp(join(SRC, 'logo/1nH2imvu5MC32JuxZ9P4vqyHOmb9VIjAQ.png')).png().toFile(join(OUT, 'logo-wide.png'))
-// favicons
-const PUB = '/home/user/webapp/public'
-for (const s of [16, 32, 48, 180, 192, 512]) {
-  await sharp(join(SRC, 'logo/13agFWD5Uh5ADqzOzKupSaAhb94KbIdSZ.png')).resize(s, s, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toFile(join(PUB, `favicon-${s}.png`))
-}
-console.log('done')
+console.log(`Curated ${jobs.length} images. Original source files and previous public images preserved.`)

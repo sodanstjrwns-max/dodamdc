@@ -22,9 +22,9 @@ export async function homePage(c: Context<Env>) {
     notice = await c.env.DB.prepare('SELECT id, title, created_at FROM notices WHERE published=1 ORDER BY pinned DESC, created_at DESC LIMIT 1').first<Notice>()
   } catch { /* Preview also works before database migrations. */ }
   const care = [
-    { en: 'PRESERVE', title: html`살릴 수 있다면,<br>한 번 더 살펴봅니다.`, text: '신경치료를 결정하기 전에, 치아 속 살아 있는 신경을 보존할 수 있는지 먼저 확인합니다.', image: 'one-fil-putty-mta', caption: '자연치아 보존을 위한 One-Fil Putty MTA', chips: ['MTA 생활치수치료', '러버댐 격리', '큐레이 진단'] },
-    { en: 'PROTECT', title: html`치아를 지탱하는 힘,<br>잇몸부터 지킵니다.`, text: '치아를 오래 쓰려면 그 아래 잇몸이 건강해야 합니다. 잇몸 상태에 맞는 치료와 꾸준한 관리를 함께 계획합니다.', image: 'warm-water-scaling-system', caption: '시린 느낌을 줄이기 위한 미온수 스케일링 시스템', chips: ['잇몸치료', '미온수 스케일링', '정기검진'] },
-    { en: 'RESTORE', title: html`꼭 필요한 자리에는,<br>신중한 임플란트.`, text: '보존이 어려운 치아라면, 뼈와 신경의 위치부터 확인합니다. 구강 상태에 맞는 치료 방법을 충분히 설명드립니다.', image: 'vatech-green16-low-dose-ct', caption: '입체적인 진단을 위한 Vatech Green16 저선량 CT', chips: ['3차원 CT 진단', '치료 계획', '사후관리'] },
+    { en: 'PRESERVE', title: html`살릴 수 있다면,<br>한 번 더 살펴봅니다.`, text: '신경치료를 결정하기 전에, 치아 속 살아 있는 신경을 보존할 수 있는지 먼저 확인합니다.', image: 'one-fil-putty-mta-v2', caption: '자연치아 보존을 위한 One-Fil Putty MTA', chips: ['MTA 생활치수치료', '러버댐 격리', '큐레이 진단'] },
+    { en: 'PROTECT', title: html`치아를 지탱하는 힘,<br>잇몸부터 지킵니다.`, text: '치아를 오래 쓰려면 그 아래 잇몸이 건강해야 합니다. 잇몸 상태에 맞는 치료와 꾸준한 관리를 함께 계획합니다.', image: 'suwon-dodam-dental-chair-unit-v2', caption: '미온수 스케일링 환경을 갖춘 실제 진료 체어', chips: ['잇몸치료', '미온수 스케일링', '정기검진'] },
+    { en: 'RESTORE', title: html`꼭 필요한 자리에는,<br>신중한 임플란트.`, text: '보존이 어려운 치아라면, 뼈와 신경의 위치부터 확인합니다. 구강 상태에 맞는 치료 방법을 충분히 설명드립니다.', image: 'vatech-green16-low-dose-ct-v2', caption: '입체적인 진단을 위한 Vatech Green16 저선량 CT', chips: ['3차원 CT 진단', '치료 계획', '사후관리'] },
   ]
   const faqs = [
     { q: '어떤 치료가 필요한지 몰라도 예약할 수 있나요?', a: '네. 불편한 부분이나 궁금한 점을 알려주세요. 검진 후 현재 상태와 가능한 치료 방법을 설명드립니다. 온라인 예약은 병원에서 확인하고 연락드린 후 확정됩니다.' },
@@ -53,7 +53,7 @@ export async function homePage(c: Context<Env>) {
       <span class="tooth-ground-label" aria-hidden="true">THE DODAM WAY</span>
     </div>
   </div>
-  <div class="kinetic-hero-bottom"><a href="#dodam-philosophy" class="kinetic-scroll"><span class="scroll-disc">↓</span><span>SCROLL INTO DODAM</span></a><a href="/doctors/${dr.slug}" class="hero-doctor-chip"><img src="${dr.photo}" alt="" width="52" height="52"><span><small>통합치의학과 전문의</small>${dr.name} 대표원장 직접 진료</span>${arrow}</a><button type="button" class="motion-toggle" id="motion-toggle" aria-pressed="false" aria-label="애니메이션 일시정지" hidden><span class="motion-icon" aria-hidden="true">Ⅱ</span><span class="motion-toggle-label">모션 켜짐</span></button></div>
+  <div class="kinetic-hero-bottom"><a href="#dodam-philosophy" class="kinetic-scroll"><span class="scroll-disc">↓</span><span>SCROLL INTO DODAM</span></a><a href="/doctors/${dr.slug}" class="hero-doctor-chip"><img src="${dr.photoAvatar}" alt="" width="52" height="52"><span><small>통합치의학과 전문의</small>${dr.name} 대표원장 직접 진료</span>${arrow}</a><button type="button" class="motion-toggle" id="motion-toggle" aria-pressed="false" aria-label="애니메이션 일시정지" hidden><span class="motion-icon" aria-hidden="true">Ⅱ</span><span class="motion-toggle-label">모션 켜짐</span></button></div>
 </section>
 <div class="brand-ticker" aria-hidden="true"><div class="brand-ticker-track">${Array.from({length:4},()=>html`<span>KEEP YOUR OWN</span><i>+</i><span>자연치아를 지키는 다른 생각</span><i>+</i>`)}</div></div>
 
@@ -90,7 +90,7 @@ export async function homePage(c: Context<Env>) {
 
 <section class="doctor-editorial" id="doctor-story" aria-labelledby="doctor-title">
   <div class="container doctor-editorial-grid">
-    <figure class="doctor-editorial-photo reveal"><img src="/static/img/dr-han-hwirim-standing.webp" alt="흰 가운을 입은 한휘림 대표원장" width="1600" height="2400" loading="lazy" decoding="async"><figcaption><span>HAN HWI-RIM</span>통합치의학과 전문의</figcaption></figure>
+    <figure class="doctor-editorial-photo reveal"><img src="${dr.photo}" alt="진료복을 입고 편안하게 미소 짓는 한휘림 대표원장" width="1200" height="1500" loading="lazy" decoding="async"><figcaption><span>HAN HWI-RIM</span>통합치의학과 전문의</figcaption></figure>
     <div class="doctor-editorial-copy reveal"><p class="edition-label">03 / MEET YOUR DENTIST</p><p class="doctor-pretitle">통증에 예민한 치과의사라서</p><h2 id="doctor-title">치료의 두려움도,<br>먼저 이해합니다.</h2><p class="doctor-story-copy">“제가 받기 싫은 치료는<br>환자분께도 하지 않습니다.”</p><p class="doctor-story-description">치료가 무서운 마음을 알기에, 작은 불편도 그냥 넘기지 않습니다. 충분한 설명과 세심한 배려로 진료의 처음부터 끝까지 함께하겠습니다.</p><div class="doctor-signoff"><strong>${dr.name}</strong><span>${dr.title} / ${dr.specialty}</span></div><ul class="doctor-credentials">${dr.license.map(x=>html`<li>${x}</li>`)}<li>단국대학교 치과대학 졸업</li></ul><a href="/doctors/${dr.slug}" class="editorial-link">한휘림 원장의 이야기 <span>${arrow}</span></a></div>
   </div>
 </section>
@@ -100,9 +100,9 @@ export async function homePage(c: Context<Env>) {
     <div class="section-kicker"><span>04 / THE SPACE & CARE</span><span>보이지 않는 곳까지 세심하게</span></div>
     <div class="section-heading-row reveal"><h2 id="space-title" class="display-heading">편안한 공간,<br>흔들림 없는 기본.</h2><div><p>들어서는 순간의 편안함부터<br>진료 직전 새로 개봉하는 기구까지.<br>작은 부분에도 진료의 마음을 담습니다.</p><a href="/floor-guide" class="text-link">공간과 감염관리 살펴보기 ${arrow}</a></div></div>
     <div class="space-experience" id="space-experience"><div class="space-viewport" id="space-viewport" tabindex="0" aria-label="병원 공간 사진. 좌우 버튼 또는 가로 스크롤로 둘러보세요"><div class="space-track">
-      <figure class="space-slide"><img src="/static/img/suwon-dodam-dental-reception-desk.webp" alt="서울도담치과 접수 데스크와 대기 공간" width="1619" height="971" loading="lazy" decoding="async"><figcaption><span>01 / WELCOME</span><strong>처음의 긴장이,<br>편안함으로.</strong><p>당신을 맞이하는 접수 공간</p></figcaption></figure>
-      <figure class="space-slide"><img src="/static/img/suwon-dodam-dental-treatment-room.webp" alt="서울도담치과의 자연광이 들어오는 진료실" width="713" height="541" loading="lazy" decoding="async"><figcaption><span>02 / FOCUS</span><strong>오늘의 진료에,<br>오롯이 집중.</strong><p>자연광이 들어오는 진료 공간</p></figcaption></figure>
-      <figure class="space-slide"><img src="/static/img/sterilized-handpiece-cassettes.webp" alt="서울도담치과에서 개별 포장한 진료 기구" width="800" height="600" loading="lazy" decoding="async"><figcaption><span>03 / THE BASICS</span><strong>보이지 않는 곳도,<br>보이는 것처럼.</strong><p>환자별 기구 포장과 감염관리</p></figcaption></figure>
+      <figure class="space-slide"><img src="/static/img/suwon-dodam-dental-waiting-lounge-v2.webp" alt="서울도담치과의 우드톤 대기 공간" width="1600" height="1100" loading="lazy" decoding="async"><figcaption><span>01 / WELCOME</span><strong>처음의 긴장이,<br>편안함으로.</strong><p>편안하게 기다리는 실제 대기 공간</p></figcaption></figure>
+      <figure class="space-slide"><img src="/static/img/suwon-dodam-dental-treatment-room-v2.webp" alt="서울도담치과의 자연광이 들어오는 진료실" width="1600" height="1100" loading="lazy" decoding="async"><figcaption><span>02 / FOCUS</span><strong>오늘의 진료에,<br>오롯이 집중.</strong><p>자연광이 들어오는 진료 공간</p></figcaption></figure>
+      <figure class="space-slide"><img src="/static/img/suwon-dodam-dental-sterilization-room-v2.webp" alt="서울도담치과의 기구 준비 및 소독 공간" width="1600" height="1100" loading="lazy" decoding="async"><figcaption><span>03 / THE BASICS</span><strong>보이지 않는 곳도,<br>보이는 것처럼.</strong><p>기구 세척과 멸균을 위한 독립 소독 공간</p></figcaption></figure>
     </div></div><div class="space-controls"><span><b id="space-current">01</b> / 03</span><div class="space-progress" aria-hidden="true"><i></i></div><div><button type="button" id="space-prev" aria-label="이전 공간 사진">←</button><button type="button" id="space-next" aria-label="다음 공간 사진">→</button></div></div></div>
     <div class="care-standards stagger"><a href="/floor-guide#equip-진단"><span>01</span><h3>진단부터 차근차근</h3><p>저선량 CT · 큐레이 진단</p>${arrow}</a><a href="/floor-guide#equip-무통"><span>02</span><h3>작은 통증도 세심하게</h3><p>마취액 워머 · 전동 마취기</p>${arrow}</a><a href="/floor-guide#sterilization"><span>03</span><h3>보이지 않는 기본까지</h3><p>Class B 멸균 · 기구별 밀봉</p>${arrow}</a></div>
   </div>

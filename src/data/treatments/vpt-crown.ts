@@ -13,7 +13,7 @@ export const vptCrown: Treatment = {
   heroTitle: '신경치료라는 카드를 한 장 남겨두는 치료',
   heroLead:
     '충치가 깊어도 신경을 전부 제거하지 않고 살릴 수 있는지 먼저 확인합니다. 살릴 수 있다면 MTA로 보호하고 크라운으로 마무리합니다. 나중에 문제가 생기면, 그때 신경치료를 하면 됩니다.',
-  heroImage: '/static/img/one-fil-putty-mta.webp',
+  heroImage: '/static/img/one-fil-putty-mta-v2.webp',
   summary: [
     '생활치수치료(VPT)는 깊은 충치에서 신경(치수)을 전부 제거하지 않고 손상된 일부만 정리한 뒤 MTA로 덮어 살리는 치료입니다.',
     '치아는 재생되지 않습니다. 신경치료는 발치 바로 전 단계이므로, 그 단계로 넘어가는 것 자체를 늦추는 것이 환자에게 이익입니다.',

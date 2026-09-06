@@ -13,7 +13,7 @@ export const periodontal: Treatment = {
   heroTitle: '잇몸뼈는 한 번 녹으면 돌아오지 않습니다',
   heroLead:
     '탈모약이나 선크림과 비슷합니다. 이미 빠진 것을 되돌릴 수는 없지만, 지금 있는 것을 지키기 위해 최대한 일찍 시작하는 것. 그렇다고 늦었다고 포기하지도 않습니다. 더 나빠지지 않게 멈추는 것은 가능합니다.',
-  heroImage: '/static/img/warm-water-scaling-system.webp',
+  heroImage: '/static/img/suwon-dodam-dental-chair-unit-v2.webp',
   summary: [
     '치주질환은 잇몸과 잇몸뼈가 세균에 의해 서서히 무너지는 질환으로, 성인 발치의 가장 큰 원인입니다.',
     '서울도담치과는 잇몸치료를 3개월 주기로 반복하며 경과를 따라갑니다. 그래서 애매한 부분을 서둘러 손대지 않고 “지켜보자”고 말씀드릴 수 있습니다.',

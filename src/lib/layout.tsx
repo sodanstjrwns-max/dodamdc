@@ -13,7 +13,7 @@ export function Layout(c: Context<Env>, meta: PageMeta, body: any) {
   const user = c.get('user')
   const title = fullTitle(meta.title, clinic)
   const url = absUrl(siteUrl, meta.path)
-  const image = absUrl(siteUrl, meta.image || '/static/img/suwon-dodam-dental-reception-desk.webp')
+  const image = absUrl(siteUrl, meta.image || '/static/img/suwon-dodam-dental-reception-desk-v2.webp')
   const lds = [...(meta.jsonld || [])]
   if (meta.crumbs && meta.crumbs.length > 1) lds.push(breadcrumbLd(meta.crumbs, siteUrl))
   const hoursToday = (() => {
@@ -53,7 +53,7 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="manifest" href="/site.webmanifest">
 <link rel="preload" href="/static/fonts/WantedSansVariable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/style.css?v=8">
-<link rel="stylesheet" href="/static/kinetic.css?v=8">
+<link rel="stylesheet" href="/static/kinetic.css?v=9">
 <link rel="alternate" type="application/rss+xml" title="${clinic.shortName} 원장 칼럼" href="/column/rss.xml">
 ${lds.map((l) => raw(`<script type="application/ld+json">${JSON.stringify(l).replace(/</g, '\\u003c')}</script>`))}
 ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?id=${escAttr(clinic.ga4)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${escAttr(clinic.ga4)}',{anonymize_ip:true});</script>`) : ''}

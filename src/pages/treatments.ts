@@ -11,6 +11,22 @@ import { esc, fmtDate } from '../lib/util'
 
 const sid = (i: number) => `sec-${i + 1}`
 
+// Photo subjects are the clinic's actual rooms/equipment, not simulated treatment results.
+const treatmentPhotoAlts: Record<string, string> = {
+  'vpt-crown': '서울도담치과에서 사용하는 One-Fil Putty MTA 보존 재료',
+  periodontal: '미온수 스케일링 환경을 갖춘 서울도담치과의 실제 진료 체어',
+  implant: '서울도담치과에 설치된 바텍 Green16 저선량 CT',
+  endodontics: '신경치료 시 격리에 사용하는 서울도담치과의 러버댐 세트',
+  'wisdom-tooth': '사랑니 진단에 사용하는 서울도담치과의 저선량 CT',
+  restorative: '서울도담치과의 큐레이 형광 충치 진단기',
+  prosthodontics: '보철 치료 계획을 함께 논의하는 서울도담치과 상담실',
+  pediatric: '서울도담치과의 별무늬 장식이 있는 진료 공간',
+  'oral-surgery': '서울도담치과에서 사용하는 EXARO 휴대용 엑스레이',
+  tmj: '서울도담치과의 PHL 턱관절 물리치료 장비',
+  preventive: '검진과 예방관리를 진행하는 서울도담치과 진료실',
+  whitening: '서울도담치과에서 사용하는 치아미백기',
+}
+
 export function treatmentsIndex(c: Context<Env>) {
   const clinic = c.get('clinic') as any
   const body = html`
@@ -27,7 +43,7 @@ ${pageHero({
       ${coreTreatments.map((t, i) => html`<a href="/treatments/${t.slug}" class="treatment-chapter reveal">
         <span class="chapter-number">0${i + 1}</span>
         <div class="chapter-copy"><p class="edition-label">${['PRESERVE', 'PROTECT', 'RESTORE'][i]} / ${t.category}</p><h2>${t.name}</h2><p>${t.heroTitle}</p><span class="link-arrow">진료 이야기 읽기</span></div>
-        ${t.heroImage ? html`<figure><img src="${t.heroImage}" alt="${t.name} 진료에 사용하는 실제 장비와 재료" width="640" height="420" loading="lazy" decoding="async"></figure>` : ''}
+        ${t.heroImage ? html`<figure><img src="${t.heroImage}" alt="${treatmentPhotoAlts[t.slug] || t.name}" width="640" height="420" loading="lazy" decoding="async"></figure>` : ''}
       </a>`)}
     </div>
   </div>
@@ -74,7 +90,7 @@ ${pageHero({
   title: t.heroTitle,
   lead: t.heroLead,
   image: t.heroImage,
-  imageAlt: `${t.name} — ${clinic.shortName}`,
+  imageAlt: treatmentPhotoAlts[t.slug] || `${t.name} — ${clinic.shortName}`,
   crumbs: [{ name: '홈', href: '/' }, { name: '진료 안내', href: '/treatments' }, { name: t.name, href: `/treatments/${t.slug}` }],
   actions: html`<a href="/reservation?treatment=${t.slug}" class="btn btn-primary">이 진료 예약하기</a><a href="#faq" class="btn btn-outline">자주 묻는 질문</a>`,
 })}
@@ -144,7 +160,7 @@ ${pageHero({
       <a href="#faq">자주 묻는 질문</a>
     </nav>
     <div class="side-card side-doctor">
-      <img src="${dr.photo}" alt="${dr.photoAlt}" width="96" height="96" loading="lazy">
+      <img src="${dr.photoAvatar}" alt="${dr.photoAlt}" width="96" height="96" loading="lazy">
       <p class="side-title">담당 의료진</p>
       <p><strong>${dr.name} ${dr.title}</strong><br><small>${dr.specialty}</small></p>
       <a href="/doctors/${dr.slug}" class="link-arrow">소개 보기</a>
