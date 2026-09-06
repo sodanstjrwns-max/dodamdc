@@ -21,6 +21,7 @@
       progress.style.transform = 'scaleX(' + (h > 0 ? Math.min(1, y / h) : 0) + ')';
     }
     if (fab) fab.classList.toggle('show', y > 480);
+    updateReadingPosition();
     lastY = y; ticking = false;
   }
   w.addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
@@ -52,6 +53,34 @@
     });
     w.addEventListener('resize', function() { if (w.innerWidth > 1000 && !mnav.hidden) setMenu(false, false); });
   }
+  /* Show the current page and its parent section, including detail pages. */
+  var currentPath = location.pathname.replace(/\/$/, '') || '/';
+  $$('#gnb a, #mobile-nav a').forEach(function(a) {
+    if (a.getAttribute('href') === currentPath) a.setAttribute('aria-current', 'page');
+  });
+  var navGroups = {
+    '/mission': ['/mission'],
+    '/doctors': ['/doctors'],
+    '/treatments': ['/treatments', '/floor-guide'],
+    '/column': ['/column', '/cases', '/encyclopedia'],
+    '/directions': ['/directions', '/hours', '/pricing', '/faq', '/notice']
+  };
+  $$('.gnb-list > li').forEach(function(li) {
+    var trigger = $('a', li);
+    var paths = navGroups[trigger && trigger.getAttribute('href')] || [];
+    li.classList.toggle('is-current-section', paths.some(function(path) {
+      return currentPath === path || currentPath.indexOf(path + '/') === 0;
+    }));
+  });
+  $$('#mobile-nav details').forEach(function(details) {
+    if ($$('a', details).some(function(a) {
+      var path = a.getAttribute('href');
+      return path && (currentPath === path || currentPath.indexOf(path + '/') === 0);
+    })) {
+      details.open = true;
+      $('summary', details).classList.add('is-current-section');
+    }
+  });
   /* Desktop navigation exposes its expanded state to assistive technology. */
   $$('.gnb-list > li').forEach(function (li) {
     var trigger = $('a', li);
@@ -173,6 +202,27 @@
     steps.forEach(function (s) { sio.observe(s); });
     steps.forEach(function (s) { s.addEventListener('mouseenter', function () { if (w.innerWidth > 960) activate(+s.getAttribute('data-index') || 0); }); });
   });
+
+  /* The compact reading toolbar follows the section without hijacking scrolling. */
+  var readingNav = $('.reading-nav');
+  var readingSections = readingNav ? $$('a[href^="#"]', readingNav).map(function(link) {
+    return { link: link, section: d.getElementById(link.getAttribute('href').slice(1)) };
+  }).filter(function(item) { return item.section; }) : [];
+  var activeReading = null;
+  function updateReadingPosition() {
+    if (!readingNav || !readingSections || !readingSections.length) return;
+    var threshold = readingNav.getBoundingClientRect().bottom + 40;
+    var current = readingSections[0];
+    readingSections.forEach(function(item) {
+      if (item.section.getBoundingClientRect().top <= threshold) current = item;
+    });
+    if (activeReading === current.link) return;
+    if (activeReading) activeReading.removeAttribute('aria-current');
+    activeReading = current.link;
+    activeReading.setAttribute('aria-current', 'location');
+  }
+  updateReadingPosition();
+  w.addEventListener('resize', updateReadingPosition, { passive: true });
 
   /* ── 목차(TOC) 현재 섹션 표시 ─────────────────────────── */
   var toc = $('.toc');

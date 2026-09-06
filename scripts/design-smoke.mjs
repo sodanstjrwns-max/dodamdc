@@ -98,6 +98,39 @@ try {
     }
     await page.close()
   }
+  // Finishing pass: touch controls, Q/A gutters and sticky reading navigation.
+  for (const width of [320, 390, 1440]) {
+    const page = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: 'reduce' })
+    await page.goto(base, { waitUntil: 'networkidle' })
+    // Rotation buttons intentionally stay hidden in SVG fallback; test them with WebGL.
+    await page.locator('.motion-toggle').waitFor({ state: 'visible' })
+    for (const selector of ['.motion-toggle', ...(width < 1000 ? ['#menu-toggle', '.header-cta'] : [])]) {
+      const rect = await page.locator(selector).first().boundingBox()
+      assert.ok(rect && rect.height >= 44, `${selector}: minimum 44px target at ${width}px`)
+    }
+    await page.locator('#home-faq summary').first().click()
+    const answer = page.locator('#home-faq .faq-a').first()
+    assert.ok(await answer.evaluate(el => {
+      const s = getComputedStyle(el), marker = getComputedStyle(el, '::before')
+      return parseFloat(s.paddingLeft) - parseFloat(marker.left) >= 24
+    }), 'FAQ answer marker must have a separate gutter')
+    await page.goto(base + '/treatments/implant', { waitUntil: 'networkidle' })
+    assert.equal(await page.locator('.gnb-list>li.is-current-section>a').getAttribute('href'), '/treatments')
+    assert.equal(await page.locator('.reading-nav [aria-current="location"]').getAttribute('href'), '#summary')
+    await page.locator('.reading-nav a[href="#faq"]').click()
+    await page.waitForTimeout(300)
+    assert.equal(await page.locator('.reading-nav [aria-current="location"]').getAttribute('href'), '#faq')
+    const faqTop = await page.locator('#faq').evaluate(el => el.getBoundingClientRect().top)
+    const toolbarBottom = await page.locator('.reading-nav').evaluate(el => el.getBoundingClientRect().bottom)
+    assert.ok(faqTop >= toolbarBottom - 1 && faqTop <= toolbarBottom + 65, 'Anchor remains visible below both sticky bars')
+    if (width < 1000) {
+      await page.locator('#menu-toggle').click()
+      assert.equal(await page.locator('#mobile-nav a[href="/treatments/implant"]').getAttribute('aria-current'), 'page')
+      assert.equal(await page.locator('#mobile-nav a[href="/treatments/implant"]').isVisible(), true)
+      await page.keyboard.press('Escape')
+    }
+    await page.close()
+  }
   const noJS = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } })
   const plain = await noJS.newPage()
   await plain.goto(base)

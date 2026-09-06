@@ -65,6 +65,10 @@ try {
   await expect(page.locator('#tooth-render')).toHaveAttribute('data-render', 'webgl', { timeout: 20000 })
   await page.waitForTimeout(1800)
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390)
+  for (const selector of ['#model-rotate-left', '#model-rotate-right']) {
+    const target = await page.locator(selector).boundingBox()
+    assert.ok(target && target.width >= 44 && target.height >= 44, 'WebGL rotation controls have 44px touch targets')
+  }
   await page.screenshot({ path: '.artifacts/kinetic-final-mobile.png' })
   await page.locator('#menu-toggle').click()
   await expect(page.locator('#mobile-nav')).toBeVisible()
