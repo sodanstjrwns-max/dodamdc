@@ -35,21 +35,21 @@ export async function homePage(c: Context<Env>) {
   const body = html`
 <section class="kinetic-hero" id="hero-section" aria-labelledby="hero-title">
   <div class="hero-grid-lines" aria-hidden="true"></div>
-  <div class="kinetic-hero-top"><span><i class="live-dot"></i> 자연치아를 지키는 서울도담치과</span><span>SUWON, HWASEO <i>© DODAM</i></span></div>
+  <div class="kinetic-hero-top"><span><i class="live-dot"></i> 자연치아를 지키는 ${clinic.shortName}</span><span>SUWON, HWASEO <i>© DODAM</i></span></div>
   <div class="kinetic-hero-layout">
     <div class="kinetic-hero-copy">
       <p class="kinetic-eyebrow"><span>KEEP YOUR OWN.</span> MAKE IT LAST.</p>
       <h1 id="hero-title"><span class="headline-line"><span>내 치아를 위한</span></span><span class="headline-line"><span>조금 다른</span></span><span class="headline-line"><span>생각, <em>도담</em><i class="headline-dot" aria-hidden="true"></i></span></span></h1>
-      <div class="hero-copy-bottom"><p>빼는 것보다 지키는 것.<br>치료보다 먼저, 당신의 치아를 생각합니다.</p><a href="/mission" class="pill-link" data-magnetic><span>도담의 다른 생각</span><span class="pill-link-icon">${arrow}</span></a></div>
+      <div class="hero-copy-bottom"><p class="hero-slogan">${clinic.slogan}</p><a href="/mission" class="pill-link" data-magnetic><span>도담의 다른 생각</span><span class="pill-link-icon">${arrow}</span></a></div>
     </div>
     <div class="tooth-experience" id="tooth-experience">
       <div class="tooth-orbit-label" aria-hidden="true"><span>NATURAL TOOTH</span><span>LONGER LIFE</span></div>
       <div class="tooth-render" id="tooth-render" role="img" aria-label="자연치아를 감싸는 보호 고리를 표현한 도담 입체 브랜드 그래픽">
-        <svg class="tooth-fallback" viewBox="0 0 600 600" aria-hidden="true"><defs><linearGradient id="enamel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".45" stop-color="#f9ffff"/><stop offset="1" stop-color="#aacbdd"/></linearGradient><filter id="enamel-shadow"><feDropShadow dx="6" dy="22" stdDeviation="18" flood-color="#005d98" flood-opacity=".2"/></filter></defs><ellipse cx="310" cy="480" rx="145" ry="28" fill="#bed1d8" opacity=".35"/><g filter="url(#enamel-shadow)"><path d="M300 150C235 94 156 130 166 217C169 260 195 283 204 351C213 431 235 460 252 412L281 315Q300 286 319 315L348 412C365 460 387 431 396 351C405 283 431 260 434 217C444 130 365 94 300 150Z" fill="url(#enamel)" stroke="#fff" stroke-width="3"/></g><ellipse cx="300" cy="293" rx="229" ry="90" transform="rotate(-24 300 293)" fill="none" stroke="#c9f57b" stroke-width="15"/><ellipse cx="300" cy="293" rx="227" ry="87" transform="rotate(38 300 293)" fill="none" stroke="#087acb" stroke-width="7"/></svg>
+        <svg class="tooth-fallback" viewBox="0 0 600 600" aria-hidden="true"><defs><linearGradient id="enamel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".45" stop-color="#f9ffff"/><stop offset="1" stop-color="#aacbdd"/></linearGradient><filter id="enamel-shadow"><feDropShadow dx="6" dy="22" stdDeviation="18" flood-color="#005d98" flood-opacity=".2"/></filter></defs><ellipse cx="310" cy="480" rx="145" ry="28" fill="#bed1d8" opacity=".35"/><g filter="url(#enamel-shadow)"><path d="M300 150C235 94 156 130 166 217C169 260 195 283 204 351C213 431 235 460 252 412L281 315Q300 286 319 315L348 412C365 460 387 431 396 351C405 283 431 260 434 217C444 130 365 94 300 150Z" fill="url(#enamel)" stroke="#fff" stroke-width="3"/></g><ellipse cx="300" cy="293" rx="229" ry="90" transform="rotate(-24 300 293)" fill="none" stroke="#b9e7a6" stroke-width="15"/><ellipse cx="300" cy="293" rx="227" ry="87" transform="rotate(38 300 293)" fill="none" stroke="#087acb" stroke-width="7"/></svg>
       </div>
       <div class="floating-note note-preserve"><span class="note-symbol" aria-hidden="true">+</span><span>PRESERVE<br><strong>본래의 가치를 지키다</strong></span></div>
       <div class="floating-note note-care"><i aria-hidden="true"></i><span>CARE, NOT JUST CURE.</span></div>
-      <div class="model-controls" hidden><button type="button" id="model-rotate-left" aria-label="입체 치아 모형 왼쪽으로 회전">←</button><p>드래그해서 돌려보세요<span>브랜드 그래픽 · 실제 해부 모형이 아닙니다</span></p><button type="button" id="model-rotate-right" aria-label="입체 치아 모형 오른쪽으로 회전">→</button></div>
+      <div class="model-controls" hidden><button type="button" id="model-rotate-left" aria-label="입체 치아 모형 왼쪽으로 회전">←</button><p><span class="model-desktop-hint">드래그해서 돌려보세요</span><span class="model-mobile-hint">좌우 버튼으로 돌려보세요</span><small>브랜드 그래픽 · 실제 해부 모형이 아닙니다</small></p><button type="button" id="model-rotate-right" aria-label="입체 치아 모형 오른쪽으로 회전">→</button></div>
       <span class="tooth-ground-label" aria-hidden="true">THE DODAM WAY</span>
     </div>
   </div>
@@ -67,7 +67,7 @@ export async function homePage(c: Context<Env>) {
   <div class="philosophy-sticky">
     <div class="container">
       <div class="kinetic-section-label"><span>01 — THE DODAM MINDSET</span><span>자연치아를 대하는 우리의 태도</span></div>
-      <div class="manifesto-layout"><div><h2 id="philosophy-title" class="scroll-manifesto"><span data-ink>치료는 신중하게.</span><br><span data-ink>내 치아는</span><br><span class="manifesto-highlight" data-ink>더 오래도록.</span></h2><p class="manifesto-explanation">치아는 재생되지 않으니까.<br>한 번 손대기 전에, 한 번 더 생각합니다.</p><a href="/mission" class="pill-link light" data-magnetic><span>도담이 지키는 원칙</span><span class="pill-link-icon">${arrow}</span></a></div><div class="mindset-object" aria-hidden="true"><svg viewBox="0 0 400 400"><g class="mindset-ring"><ellipse cx="200" cy="200" rx="166" ry="87" transform="rotate(-37 200 200)"/><ellipse cx="200" cy="200" rx="166" ry="87" transform="rotate(37 200 200)"/></g><text x="200" y="213" text-anchor="middle">도담</text><circle cx="65" cy="101" r="14"/></svg><p>WE CARE ABOUT<br><b>WHAT YOU KEEP.</b></p></div></div>
+      <div class="manifesto-layout"><div><h2 id="philosophy-title" class="scroll-manifesto"><span data-ink>치료는 신중하게.</span><br><span data-ink>내 치아는</span><br><span class="manifesto-highlight" data-ink>더 오래도록.</span></h2><p class="manifesto-explanation">“치아는 재생되지 않습니다.<br>살릴 수 있는 방법이 하나라도 남아 있으면<br>그것부터 합니다.”<span class="manifesto-attribution">${dr.name} 대표원장의 진료 철학</span></p><a href="/mission" class="pill-link light" data-magnetic><span>도담이 지키는 원칙</span><span class="pill-link-icon">${arrow}</span></a></div><div class="mindset-object" aria-hidden="true"><svg viewBox="0 0 400 400"><g class="mindset-ring"><ellipse cx="200" cy="200" rx="166" ry="87" transform="rotate(-37 200 200)"/><ellipse cx="200" cy="200" rx="166" ry="87" transform="rotate(37 200 200)"/></g><text x="200" y="213" text-anchor="middle">도담</text><circle cx="65" cy="101" r="14"/></svg><p>WE CARE ABOUT<br><b>WHAT YOU KEEP.</b></p></div></div>
       <ol class="manifesto-principles"><li><span>01</span><h3>설명부터 충분히</h3><p>알고 받는 진료의 편안함</p></li><li><span>02</span><h3>보존부터 신중히</h3><p>자연치아의 가능성을 먼저</p></li><li><span>03</span><h3>필요한 만큼만</h3><p>당신에게 맞는 치료 계획</p></li></ol>
     </div>
   </div>

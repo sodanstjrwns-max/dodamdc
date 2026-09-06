@@ -39,6 +39,7 @@ function setupGallery() {
   }
   if (!paused && desktop.matches) {
     experience.classList.add('is-scroll-gallery')
+    viewport.scrollLeft = 0
     const tween = gsap.to(track, {
       x: () => -distance(), ease: 'none',
       scrollTrigger: {
@@ -72,7 +73,8 @@ function setupGallery() {
   next.addEventListener('click', following)
   viewport.addEventListener('scroll', scrolling, { passive: true })
   viewport.addEventListener('keydown', keydown)
-  update(0)
+  if (galleryTrigger) update(galleryTrigger.progress)
+  else scrolling()
   galleryCleanup = () => {
     prev.removeEventListener('click', previous); next.removeEventListener('click', following)
     viewport.removeEventListener('scroll', scrolling); viewport.removeEventListener('keydown', keydown)
@@ -99,9 +101,9 @@ function setupMotion() {
     setupGallery()
     if (paused) return
     if (document.querySelector('.kinetic-hero')) {
-    gsap.from('.headline-line > span', { yPercent: 115, rotate: 3, duration: 1.15, stagger: 0.12, ease: 'expo.out', clearProps: 'transform' })
-    gsap.from('.kinetic-hero-top, .kinetic-eyebrow, .hero-copy-bottom', { opacity: 0, y: 15, duration: 0.8, delay: 0.25, stagger: 0.1, clearProps: 'opacity,transform' })
-    gsap.from('.tooth-experience', { opacity: 0, scale: 0.8, duration: 1.5, ease: 'expo.out', clearProps: 'opacity,transform' })
+      gsap.from('.headline-line > span', { yPercent: 115, rotate: 3, duration: 1.15, stagger: 0.12, ease: 'expo.out', clearProps: 'transform' })
+      gsap.from('.kinetic-hero-top, .kinetic-eyebrow, .hero-copy-bottom', { opacity: 0, y: 15, duration: 0.8, delay: 0.25, stagger: 0.1, clearProps: 'opacity,transform' })
+      gsap.from('.tooth-experience', { opacity: 0, scale: 0.8, duration: 1.5, ease: 'expo.out', clearProps: 'opacity,transform' })
     }
     if (desktop.matches && document.querySelector('.kinetic-hero')) {
       gsap.to('.tooth-experience', { y: 100, rotation: 9, ease: 'none', scrollTrigger: { trigger: '#hero-section', start: 'top top', end: 'bottom top', scrub: 1 } })
@@ -154,7 +156,7 @@ all<HTMLElement>('[data-magnetic], .header-cta').forEach(button => {
     const rect = button.getBoundingClientRect()
     gsap.to(button, { x: (event.clientX - rect.left - rect.width / 2) * 0.12, y: (event.clientY - rect.top - rect.height / 2) * 0.2, duration: 0.3, overwrite: true })
   })
-  button.addEventListener('pointerleave', () => gsap.to(button, { x: 0, y: 0, duration: 0.6, ease: 'elastic.out(1, .5)', overwrite: true }))
+  button.addEventListener('pointerleave', () => gsap.to(button, { x: 0, y: 0, duration: paused ? 0 : 0.6, ease: 'elastic.out(1, .5)', overwrite: true }))
 })
 
 // The existing accessible tabs own state; animate only the newly displayed panel.

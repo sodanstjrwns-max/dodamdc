@@ -8,7 +8,10 @@ export function createToothScene(host: HTMLElement, initiallyPaused: boolean): T
   let renderer: THREE.WebGLRenderer
   const small = matchMedia('(max-width: 760px)').matches
   try {
-    renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !small, powerPreference: 'low-power' })
+    const canvas = document.createElement('canvas')
+    const context = canvas.getContext('webgl2', { alpha: true, antialias: !small, powerPreference: 'low-power' })
+    if (!context) { host.dataset.render = 'fallback'; return null }
+    renderer = new THREE.WebGLRenderer({ canvas, context, alpha: true, antialias: !small, powerPreference: 'low-power' })
   } catch {
     host.dataset.render = 'fallback'
     return null
@@ -37,6 +40,9 @@ export function createToothScene(host: HTMLElement, initiallyPaused: boolean): T
   const rim = new THREE.DirectionalLight(0x5fcaff, 2)
   rim.position.set(4, 1, -2)
   scene.add(rim)
+  const fill = new THREE.DirectionalLight(0xffffff, 1.1)
+  fill.position.set(0, 1, 6)
+  scene.add(fill)
 
   const sculpture = new THREE.Group()
   scene.add(sculpture)
@@ -57,16 +63,17 @@ export function createToothScene(host: HTMLElement, initiallyPaused: boolean): T
   geometry.center()
   geometry.computeVertexNormals()
   const enamel = new THREE.MeshPhysicalMaterial({
-    color: 0xf5fcff, metalness: 0.06, roughness: 0.22,
-    clearcoat: 1, clearcoatRoughness: 0.15, envMapIntensity: 1.3,
+    color: 0xffffff, metalness: 0.02, roughness: 0.19,
+    clearcoat: 1, clearcoatRoughness: 0.12, envMapIntensity: 1.1,
+    emissive: 0xe9f8ff, emissiveIntensity: 0.045,
   })
   const tooth = new THREE.Mesh(geometry, enamel)
   tooth.rotation.set(0.02, -0.34, -0.12)
   sculpture.add(tooth)
 
-  const lime = new THREE.MeshPhysicalMaterial({ color: 0xc2f373, roughness: 0.24, metalness: 0.12, clearcoat: 0.8 })
+  const nature = new THREE.MeshPhysicalMaterial({ color: 0xa9dfa0, roughness: 0.24, metalness: 0.12, clearcoat: 0.8 })
   const blue = new THREE.MeshPhysicalMaterial({ color: 0x0069b3, roughness: 0.2, metalness: 0.28, clearcoat: 1 })
-  const outer = new THREE.Mesh(new THREE.TorusGeometry(1.92, 0.085, 12, 110), lime)
+  const outer = new THREE.Mesh(new THREE.TorusGeometry(1.92, 0.085, 12, 110), nature)
   outer.rotation.set(1.05, -0.25, -0.38)
   outer.scale.set(1.08, 1, 1)
   outer.position.y = -0.05
@@ -77,9 +84,9 @@ export function createToothScene(host: HTMLElement, initiallyPaused: boolean): T
   const pearl = new THREE.Mesh(new THREE.SphereGeometry(0.17, 20, 16), blue)
   pearl.position.set(-1.65, 1.37, 0.1)
   sculpture.add(pearl)
-  const limePearl = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 12), lime)
-  limePearl.position.set(1.9, -0.72, 0.5)
-  sculpture.add(limePearl)
+  const naturePearl = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 12), nature)
+  naturePearl.position.set(1.9, -0.72, 0.5)
+  sculpture.add(naturePearl)
 
   const shadowCanvas = document.createElement('canvas')
   shadowCanvas.width = shadowCanvas.height = 128

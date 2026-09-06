@@ -48,8 +48,10 @@ export const clinicDefaults = {
   },
   reviews: { count: 782, asOf: '2026년 8월', source: '네이버 방문자 리뷰' },
   email: 'verygood2875@gmail.com',
-  // 브랜드 컬러 — Q26 로고 실측: 블루 #0069B3 + 차콜 #575757. Q25 그린은 파스텔 민트 카드 톤으로만 사용(브랜드 컬러 아님)
-  brand: { primary: '#0069B3', primaryDark: '#00548F', accent: '#0069B3', ink: '#23303A', charcoal: '#575757', bg: '#F7F4EF', peach: '#F7E4D6', mint: '#E1EEE8' },
+  // 신청서 Q24–25 + 회신서 A9 원문 재확인 (2026-09-06): 깔끔·모던 + 따뜻·친근.
+  // 블루를 메인으로 유지하고 생명·자연의 그린을 포인트로 사용하도록 원장 승인.
+  // 블루는 기존 로고 기준. 아래 그린 HEX는 승인된 색상 방향을 구현한 디자인 선택.
+  brand: { primary: '#0069B3', primaryDark: '#00548F', accent: '#B9E7A6', ink: '#23303A', charcoal: '#575757', bg: '#F7F4EF', peach: '#F7E4D6', mint: '#E1EEE8' },
 }
 
 export type Clinic = typeof clinicDefaults

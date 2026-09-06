@@ -6,7 +6,9 @@ import { mkdir, writeFile } from 'node:fs/promises'
 
 const base = 'http://localhost:3000'
 await mkdir('.artifacts', { recursive: true })
-const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] })
+// Layout matrix uses the supported SVG fallback to avoid repeated software-GPU
+// shader compilation. Real WebGL is exercised by test:kinetic separately.
+const browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-webgl'] })
 const results = [], problems = []
 const routes = ['/', '/mission', '/doctors', '/doctors/han-hwirim', '/treatments', '/floor-guide', '/faq', '/pricing', '/directions', '/hours', '/reservation', '/auth/login', '/auth/register', '/column', '/notice', '/cases/gallery', '/encyclopedia', '/area', '/privacy', '/terms']
 const discovery = await browser.newPage()
@@ -34,6 +36,7 @@ try {
       }))
       const result = { width, route, status: response.status(), ...info }
       results.push(result)
+      console.log(`${width}px ${route}: ${result.status}, overflow=${info.scrollWidth - width}`)
       if (result.status !== 200 || info.h1 !== 1 || info.scrollWidth > width + 1) problems.push(result)
     }
     await page.goto(base, { waitUntil: 'networkidle' })
@@ -58,9 +61,9 @@ try {
     // Load lazy media and reveal all sections before full-page screenshots.
     await page.evaluate(async () => {
       for (let y = 0; y < document.documentElement.scrollHeight; y += 600) {
-        window.scrollTo(0, y); await new Promise(r => setTimeout(r, 70))
+        window.scrollTo({ top: y, behavior: 'instant' }); await new Promise(r => setTimeout(r, 100))
       }
-      window.scrollTo(0, 0)
+      window.scrollTo({ top: 0, behavior: 'instant' })
     })
     await page.waitForTimeout(1000)
     const broken = await page.locator('img').evaluateAll(imgs => imgs.filter(img => img.complete && img.naturalWidth === 0).map(img => img.src))

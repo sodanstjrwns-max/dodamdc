@@ -52,8 +52,8 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
 <link rel="preload" href="/static/fonts/WantedSansVariable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/static/style.css?v=7">
-<link rel="stylesheet" href="/static/kinetic.css?v=7">
+<link rel="stylesheet" href="/static/style.css?v=8">
+<link rel="stylesheet" href="/static/kinetic.css?v=8">
 <link rel="alternate" type="application/rss+xml" title="${clinic.shortName} 원장 칼럼" href="/column/rss.xml">
 ${lds.map((l) => raw(`<script type="application/ld+json">${JSON.stringify(l).replace(/</g, '\\u003c')}</script>`))}
 ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?id=${escAttr(clinic.ga4)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${escAttr(clinic.ga4)}',{anonymize_ip:true});</script>`) : ''}
@@ -232,8 +232,8 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
   <a href="#top" class="fab fab-top" aria-label="맨 위로" id="to-top"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></a>
 </div>
 
-<script src="/static/app.js?v=7" defer></script>
-<script type="module" src="/static/experience/main.js?v=7"></script>
+<script src="/static/app.js?v=8" defer></script>
+<script type="module" src="/static/experience/main.js?v=8"></script>
 </body>
 </html>`
 }
