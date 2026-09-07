@@ -10,7 +10,9 @@ import { getNaverBookingUrl } from './data/clinic'
 import auth from './routes/auth'
 import admin from './routes/admin'
 import content from './routes/content'
+import conversions from './lib/conversions'
 
+import { firstVisitPage } from './pages/journey'
 import { homePage } from './pages/home'
 import { treatmentsIndex, treatmentDetail } from './pages/treatments'
 import { doctorsIndex, doctorDetail, missionPage, floorGuidePage } from './pages/about'
@@ -63,10 +65,12 @@ app.use('*', async (c, next) => {
 // ---------- Sub apps ----------
 app.route('/auth', auth)
 app.route('/admin', admin)
+app.route('/', conversions)
 app.route('/', content)
 
 // ---------- Public pages ----------
 app.get('/', (c) => homePage(c))
+app.get('/first-visit', (c) => firstVisitPage(c))
 app.get('/mission', (c) => missionPage(c))
 app.get('/floor-guide', (c) => floorGuidePage(c))
 
@@ -117,7 +121,7 @@ app.get('/sitemap.xml', async (c) => {
   const add = (path: string, pri = '0.6', freq = 'monthly', lastmod?: string) => urls.push({ loc: site + path, pri, freq, lastmod: isoDate(lastmod) })
 
   add('/', '1.0', 'weekly')
-  for (const p of ['/mission', '/doctors', '/treatments', '/floor-guide', '/directions', '/hours', '/pricing', '/faq', '/encyclopedia', '/cases/gallery', '/column', '/notice', '/reservation']) add(p, '0.8', 'weekly')
+  for (const p of ['/first-visit', '/mission', '/doctors', '/treatments', '/floor-guide', '/directions', '/hours', '/pricing', '/faq', '/encyclopedia', '/cases/gallery', '/column', '/notice', '/reservation']) add(p, '0.8', 'weekly')
   for (const d of doctors) add(`/doctors/${d.slug}`, '0.8')
   for (const t of treatments) add(`/treatments/${t.slug}`, '0.9', 'monthly')
   for (const a of areaPages) add(`/area/${a.slug}`, '0.6')
@@ -188,6 +192,7 @@ ${treatments.map(t => `- [${t.name}](${site}/treatments/${t.slug}): ${t.short}`)
 - [치과 백과사전](${site}/encyclopedia): 용어 정의와 관련 진료
 - [진료실·장비·감염관리](${site}/floor-guide)
 - [비급여 진료비](${site}/pricing): 금액·조건·기준일은 해당 페이지 확인
+- [첫 방문 안내](${site}/first-visit): 준비물·접수·검사·상담 순서
 - [오시는 길](${site}/directions)
 - [진료시간](${site}/hours)
 - [공지사항](${site}/notice): 임시 휴진 등 최신 변경 확인

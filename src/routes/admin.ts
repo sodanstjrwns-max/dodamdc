@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { eventLabels, locationLabels, cleanupConversions } from '../lib/conversions'
 import type { Context } from 'hono'
 import { html, raw } from 'hono/html'
 import type { Env } from '../lib/types'
@@ -283,7 +284,18 @@ admin.get('/stats', async (c) => {
   const daily = (await db.prepare("SELECT date(created_at) d, SUM(CASE WHEN is_bot=0 THEN 1 ELSE 0 END) human, SUM(is_bot) bot FROM page_views WHERE created_at > datetime('now','-30 days') GROUP BY d ORDER BY d DESC").all<any>()).results || []
   const top = (await db.prepare("SELECT path, COUNT(*) n FROM page_views WHERE is_bot=0 AND created_at > datetime('now','-30 days') GROUP BY path ORDER BY n DESC LIMIT 30").all<any>()).results || []
   const ents = (await db.prepare("SELECT entity_type, COUNT(*) n FROM page_views WHERE is_bot=0 AND created_at > datetime('now','-30 days') GROUP BY entity_type").all<any>()).results || []
-  return shell(c, '조회 통계 (최근 30일)', html`<p class="hint">User-Agent 기반으로 검색엔진·AI 크롤러 등 봇을 제외한 실제 방문 조회수입니다. GA4가 연결되면 더 정확한 분석이 가능합니다.</p>
+  const scope = c.req.query('scope') === 'preview' ? 'preview' : 'production'
+  await cleanupConversions(db)
+  const conversions = (await db.prepare("SELECT event, page, location, SUM(count) n FROM conversion_daily WHERE scope=? AND day >= date('now','+9 hours','-29 days') GROUP BY event,page,location ORDER BY n DESC").bind(scope).all<any>()).results || []
+  const totals = (await db.prepare("SELECT event, SUM(count) n FROM conversion_daily WHERE scope=? AND day >= date('now','+9 hours','-29 days') GROUP BY event").bind(scope).all<any>()).results || []
+  const conversionDays = (await db.prepare("SELECT day, SUM(CASE WHEN event='form_completed' THEN count ELSE 0 END) completed, SUM(CASE WHEN event!='form_completed' THEN count ELSE 0 END) clicks FROM conversion_daily WHERE scope=? AND day >= date('now','+9 hours','-29 days') GROUP BY day ORDER BY day DESC").bind(scope).all<any>()).results || []
+  return shell(c, '조회·예약 동선 통계 (최근 30일)', html`<section id="conversion-stats"><h2 class="h3">예약·문의 동선</h2><form method="get" class="admin-toolbar"><label for="conversion-scope">집계 환경</label><select id="conversion-scope" name="scope"><option value="production" ${scope === 'production' ? 'selected' : ''}>운영</option><option value="preview" ${scope === 'preview' ? 'selected' : ''}>미리보기·로컬</option></select><button class="btn btn-primary btn-sm" type="submit">보기</button></form>
+  <p class="hint">한국시간 기준 최근 30일 · 현재 ${scope === 'production' ? '운영' : '미리보기·로컬'} 집계. 네이버·전화·카카오는 클릭이며 실제 예약 완료·통화·상담 완료가 아닙니다. 홈페이지 접수 완료도 병원의 예약 확정과 다릅니다. 집계 시작 이전 데이터는 소급하지 않습니다.</p>
+  <div class="admin-cards">${Object.entries(eventLabels).map(([key, label]) => html`<div class="admin-card"><span class="n">${totals.find(x => x.event === key)?.n || 0}</span><span class="l">${label}</span></div>`)}</div>
+  <p class="hint">동일 화면의 같은 종류·위치 클릭은 1회만 반영(서명 유효기간 30분). 재방문·새로고침은 별도이며 고유 환자 수나 전환율이 아닙니다. 봇 추정·관리자·DNT/GPC 요청은 제외합니다. 스크립트 차단·전송 실패·30분 경과 시 누락될 수 있으며, 자동화 조작을 완전히 차단하는 통계는 아닙니다.</p>
+  ${conversions.length ? html`<div class="table-wrap"><table class="admin-table"><caption>페이지·버튼 위치별 행동 집계</caption><thead><tr><th>페이지</th><th>행동</th><th>위치</th><th>건수</th></tr></thead><tbody>${conversions.map(r => html`<tr><td>${r.page}</td><td>${eventLabels[r.event]}</td><td>${locationLabels[r.location]}</td><td>${r.n}</td></tr>`)}</tbody></table></div><details><summary>일별 클릭·접수 보기</summary><table class="admin-table"><thead><tr><th>날짜 (KST)</th><th>클릭</th><th>신청 접수</th></tr></thead><tbody>${conversionDays.map(r => html`<tr><td>${r.day}</td><td>${r.clicks}</td><td>${r.completed}</td></tr>`)}</tbody></table></details>` : html`<p class="alert-ok">이 환경에 집계된 이벤트가 아직 없습니다. 운영과 미리보기 수치는 섞이지 않습니다.</p>`}
+  <p class="hint">개별 이벤트 원문 대신 날짜·페이지 분류·위치·종류별 합계만 저장합니다. 이름·전화·증상·폼 선택값·IP·UA·유입 주소·쿼리·사용자 ID는 이 집계에 저장하지 않습니다. 합계는 최근 90일, 중복 방지용 무작위 해시는 최대 30분 유효하며 다음 집계 요청 또는 통계 조회 시 만료분을 정리합니다.</p></section>
+  <hr><h2 class="h3">기존 페이지 조회 통계</h2><p class="hint">아래는 기존 조회 통계이며 위의 환경별 전환 집계와 별개입니다. User-Agent로 추정한 봇을 제외한 조회수로, 실제 사람 수를 보장하지 않습니다.</p>
   <div class="admin-cards">${ents.map((e: any) => html`<div class="admin-card"><span class="n">${e.n}</span><span class="l">${e.entity_type || 'page'}</span></div>`)}</div>
   <div class="grid-2" style="margin-top:24px"><section><h2 class="h3">일별</h2><table class="admin-table"><thead><tr><th>날짜</th><th>방문</th><th>봇</th></tr></thead><tbody>${daily.map((d: any) => html`<tr><td>${d.d}</td><td>${d.human}</td><td class="hint">${d.bot}</td></tr>`)}</tbody></table></section>
   <section><h2 class="h3">인기 페이지</h2><table class="admin-table"><thead><tr><th>경로</th><th>조회</th></tr></thead><tbody>${top.map((r: any) => html`<tr><td><a href="${r.path}" target="_blank">${r.path}</a></td><td>${r.n}</td></tr>`)}</tbody></table></section></div>`, 'stats')

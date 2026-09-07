@@ -9,6 +9,8 @@ import { autoLink, termsForTreatment } from '../data/encyclopedia'
 import { imageAttrs, pageHero, faqList, ctaStrip } from '../lib/ui'
 import { esc, fmtDate } from '../lib/util'
 
+import { consultationGuide, patientSituations } from './journey'
+
 const sid = (i: number) => `sec-${i + 1}`
 
 // Photo subjects are the clinic's actual rooms/equipment, not simulated treatment results.
@@ -60,6 +62,7 @@ ${pageHero({
     </div>
   </div>
 </section>
+${patientSituations()}
 ${ctaStrip(clinic)}`
   return c.html(Layout(c, {
     title: '진료 안내',
@@ -94,7 +97,7 @@ ${pageHero({
   crumbs: [{ name: '홈', href: '/' }, { name: '진료 안내', href: '/treatments' }, { name: t.name, href: `/treatments/${t.slug}` }],
   actions: html`<a href="/reservation?treatment=${t.slug}" class="btn btn-primary">이 진료 예약하기</a><a href="#faq" class="btn btn-outline">자주 묻는 질문</a>`,
 })}
-<nav class="reading-nav" aria-label="진료 안내 빠른 목차"><div class="container"><span>${t.name}</span><a href="#summary">핵심 요약</a>${t.steps ? html`<a href="#steps">치료 과정</a>` : ''}<a href="#side-effects">주의사항</a><a href="#faq">자주 묻는 질문</a><a class="reading-reserve" href="/reservation?treatment=${t.slug}">예약하기 ↗</a></div></nav>
+<nav class="reading-nav" aria-label="진료 안내 빠른 목차"><div class="container"><span>${t.name}</span><a href="#summary">핵심 요약</a>${t.core ? html`<a href="#consultation-guide">상담 전 확인</a>` : ''}${t.steps ? html`<a href="#steps">치료 과정</a>` : ''}<a href="#side-effects">주의사항</a><a href="#faq">자주 묻는 질문</a><a class="reading-reserve" href="/reservation?treatment=${t.slug}">예약하기 ↗</a></div></nav>
 <div class="container tx-layout">
   <article class="tx-body">
     <section class="summary-box reveal" id="summary" aria-labelledby="summary-h">
@@ -103,6 +106,7 @@ ${pageHero({
       <ul>${t.summary.map((s) => html`<li>${s}</li>`)}</ul>
     </section>
 
+    ${consultationGuide(t.slug)}
     <div class="prose">
     ${t.sections.map((s, i) => html`<section id="${sid(i)}" class="reveal">
       <h2>${s.h}</h2>
@@ -147,13 +151,15 @@ ${pageHero({
       <ul class="notice-list">${columns.map((p) => html`<li class="notice-row"><a href="/column/${p.slug}">${p.title}</a><span class="date">${fmtDate(p.published_at)}</span></li>`)}</ul>
     </section>` : ''}
 
-    <p class="reviewed">이 페이지는 <a href="/doctors/${dr.slug}">${dr.name} ${dr.title}</a>(${dr.specialty})이 검토했습니다. 최종 검토 <time datetime="${t.reviewedAt}">${t.reviewedAt}</time>. 의료광고법에 따라 치료 효과를 보장하거나 비교·과장하는 표현을 사용하지 않습니다.</p>
+    <p class="reviewed">기존 진료 자료의 검토자: <a href="/doctors/${dr.slug}">${dr.name} ${dr.title}</a>(${dr.specialty}). 기존 자료 검토일 <time datetime="${t.reviewedAt}">${t.reviewedAt}</time>. 추가·수정된 상담 안내와 표현은 의료진 재검토 전이며, 이 날짜가 새 콘텐츠의 검토일을 의미하지 않습니다. 개인별 치료 효과를 보장하지 않습니다.</p>
   </article>
 
   <aside class="tx-side">
     <nav class="side-card toc" aria-label="이 페이지 목차">
       <p class="side-title">목차</p>
       <a href="#summary">결론 요약</a>
+      ${t.core ? html`<a href="#consultation-guide">상담 전 확인할 질문</a>` : ''}
+      <a href="/first-visit">첫 방문 안내</a>
       ${t.sections.map((s, i) => html`<a href="#${sid(i)}">${s.h}</a>`)}
       ${t.steps ? html`<a href="#steps">치료 과정</a>` : ''}
       ${t.compare ? html`<a href="#compare">비교표</a>` : ''}
@@ -183,7 +189,7 @@ ${ctaStrip(clinic, { title: `${t.name}, 필요한지부터 함께 확인해 드�
     description: truncate(`수원 화서동 서울도담치과 ${t.name}. ${t.short} ${t.heroLead}`),
     path: `/treatments/${t.slug}`,
     image: t.heroImage,
-    type: 'article', reviewer: dr, reviewedAt: t.reviewedAt,
+    type: 'article', reviewer: t.core ? undefined : dr, reviewedAt: t.core ? undefined : t.reviewedAt,
     imageAlt: treatmentPhotoAlts[t.slug],
     jsonld: [procedureLd(t, clinic, siteUrl), physicianLd(dr, clinic, siteUrl), faqLd(t.faqs, `${siteUrl}/treatments/${t.slug}`)],
     crumbs: [{ name: '홈', href: '/' }, { name: '진료 안내', href: '/treatments' }, { name: t.name, href: `/treatments/${t.slug}` }],

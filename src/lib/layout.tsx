@@ -6,6 +6,7 @@ import { coreTreatments, otherTreatments } from '../data/treatments'
 import { doctors } from '../data/doctors'
 import { imageManifest } from '../data/image-manifest'
 import { naverBookingLink } from './ui'
+import { conversionMeta } from './conversions'
 
 const escAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
@@ -39,6 +40,7 @@ export function Layout(c: Context<Env>, meta: PageMeta, body: any) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${title}</title>
 <meta name="description" content="${meta.description}">
+${conversionMeta(c, meta.path)}
 <link rel="canonical" href="${url}">
 ${noindex ? raw('<meta name="robots" content="noindex, follow">') : raw('<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">')}
 <meta property="og:type" content="${meta.type || 'website'}">
@@ -69,7 +71,7 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="preload" href="/static/fonts/WantedSansCore-v1.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/fonts/wanted-subsets.css?v=1">
 <link rel="stylesheet" href="/static/style.css?v=8">
-<link rel="stylesheet" href="/static/kinetic.css?v=12">
+<link rel="stylesheet" href="/static/kinetic.css?v=13">
 <link rel="alternate" type="application/rss+xml" title="${clinic.shortName} 원장 칼럼" href="/column/rss.xml">
 ${lds.map((l) => raw(`<script type="application/ld+json">${JSON.stringify(l).replace(/</g, '\\u003c')}</script>`))}
 ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?id=${escAttr(clinic.ga4)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${escAttr(clinic.ga4)}',{anonymize_ip:true});</script>`) : ''}
@@ -130,7 +132,7 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
         <li class="has-drop">
           <a href="/directions" aria-haspopup="true" aria-expanded="false">내원 안내</a>
           <ul class="drop">
-            <li><a href="/directions">오시는 길</a></li>
+            <li><a href="/first-visit">첫 방문 안내</a></li><li><a href="/directions">오시는 길</a></li>
             <li><a href="/hours">진료시간</a></li>
             <li><a href="/pricing">비급여 수가</a></li>
             <li><a href="/faq">FAQ</a></li>
@@ -160,7 +162,7 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
         <li><a href="/cases/gallery">치료 전후</a></li><li><a href="/column">원장 칼럼</a></li><li><a href="/encyclopedia">치과 백과사전</a></li>
       </ul></details></li>
       <li><details><summary>내원 안내</summary><ul>
-        <li><a href="/directions">오시는 길</a></li><li><a href="/hours">진료시간</a></li><li><a href="/pricing">비급여 수가</a></li><li><a href="/faq">FAQ</a></li><li><a href="/notice">공지사항</a></li>
+        <li><a href="/first-visit">첫 방문 안내</a></li><li><a href="/directions">오시는 길</a></li><li><a href="/hours">진료시간</a></li><li><a href="/pricing">비급여 수가</a></li><li><a href="/faq">FAQ</a></li><li><a href="/notice">공지사항</a></li>
       </ul></details></li>
       <li class="mobile-nav-actions">
         ${user ? html`<a href="/auth/mypage">마이페이지</a>` : html`<a href="/auth/login">로그인</a><a href="/auth/register">회원가입</a>`}
@@ -249,7 +251,7 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
   <a href="#top" class="fab fab-top" aria-label="맨 위로" id="to-top"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></a>
 </div>
 
-<script src="/static/app.js?v=10" defer></script>
+<script src="/static/app.js?v=13" defer></script>
 <script type="module" src="/static/experience/main.js?v=11"></script>
 </body>
 </html>`

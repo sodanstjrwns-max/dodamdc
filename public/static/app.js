@@ -6,6 +6,45 @@
   var $ = function (s, r) { return (r || d).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || d).querySelectorAll(s)); };
 
+  /* Only allowlisted actions and a signed per-render ticket. Never read form values,
+     query strings, referrers, patient details, or send data to GA4. */
+  var conversionTicket = $('meta[name="conversion-ticket"]');
+  var sentConversions = new Set();
+  function trackConversionClick(e) {
+    if (!e.isTrusted || (e.type === 'auxclick' && e.button !== 1) || !conversionTicket || navigator.doNotTrack === '1' || navigator.globalPrivacyControl) return;
+    var link = e.target instanceof Element ? e.target.closest('a[href]') : null;
+    if (!link) return;
+    var url;
+    try { url = new URL(link.href, w.location.origin); } catch (_) { return; }
+    var event = link.dataset.bookingProvider === 'naver' ? 'naver_click' :
+      url.protocol === 'tel:' ? 'phone_click' :
+      url.hostname === 'pf.kakao.com' ? 'kakao_click' :
+      url.origin === w.location.origin && url.pathname === '/reservation' ? 'reservation_click' : '';
+    if (!event) return;
+    var location = link.dataset.conversionLocation ||
+      (link.closest('.mobile-action-bar') ? 'mobile_bar' :
+      link.closest('#mobile-nav') ? 'mobile_menu' :
+      link.closest('.site-header') ? 'header' :
+      link.closest('.floating-cta') ? 'floating' :
+      link.closest('.site-footer') ? 'footer' :
+      link.closest('.reading-nav') ? 'reading_nav' :
+      link.closest('.tx-side') ? 'sidebar' :
+      link.closest('.cta-strip') ? 'cta_strip' :
+      d.body.classList.contains('reservation-page') ? 'reservation' :
+      d.body.classList.contains('home-page') ? 'home' :
+      link.closest('.page-hero') ? 'hero' : 'content');
+    var key = event + ':' + location;
+    if (sentConversions.has(key)) return;
+    sentConversions.add(key);
+    // Navigation must not wait on analytics. No retries (avoids duplicate sends).
+    fetch('/api/conversions', { method: 'POST', keepalive: true, credentials: 'omit',
+      referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: event, location: location, ticket: conversionTicket.content })
+    }).catch(function () {});
+  }
+  d.addEventListener('click', trackConversionClick);
+  d.addEventListener('auxclick', trackConversionClick);
+
   /* ── 헤더: 스크롤 상태 / 진행바 / 플로팅 CTA ───────────── */
   var header = $('#site-header'), progress = $('#scroll-progress'), fab = $('#floating-cta');
   var lastY = 0, ticking = false;

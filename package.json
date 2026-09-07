@@ -9,6 +9,7 @@
     "test:kinetic": "node scripts/kinetic-smoke.mjs",
     "test:seo": "node scripts/seo-smoke.mjs",
     "test:mobile": "node scripts/mobile-smoke.mjs",
+    "test:journey": "node scripts/journey-smoke.mjs",
     "typecheck": "tsc --noEmit",
     "preview": "wrangler pages dev",
     "deploy": "npm run build && wrangler pages deploy dist",

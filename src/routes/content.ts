@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { conversionScope, conversionStatement, cleanupConversions } from '../lib/conversions'
 import { html, raw } from 'hono/html'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
@@ -192,6 +193,7 @@ content.get('/notice/:id', async (c) => {
 })
 
 // ── 예약 ─────────────────────────────────────────────────
+// Completion is a server-side aggregate in the same transaction as reservation insertion.
 function reservationForm(c: any, o: { error?: string; v?: Record<string, any>; ok?: boolean }) {
   const clinic = c.get('clinic') as any, user = c.get('user')
   const v = o.v || {}
@@ -222,7 +224,7 @@ ${!o.ok && getNaverBookingUrl(clinic) ? html`<section class="section-sm naver-re
   <aside class="res-side" aria-label="예약 및 첫 방문 안내">
     <div class="info-card info-card-cta"><h3>빠른 문의는 전화로</h3><p class="info-phone"><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></p><p>진료 시간 내 전화가 가장 빠릅니다. 통증이 심하시면 전화로 먼저 말씀해 주세요.</p><a href="${clinic.channels.kakao}" target="_blank" rel="noopener" class="btn btn-light btn-sm">카카오톡 채널 상담</a></div>
     <div class="info-card" style="margin-top:16px"><h3>진료시간</h3><table class="hours-table"><tbody>${clinic.hours.map((h: any) => html`<tr data-day="${h.day}"><th>${h.day}</th><td>${h.open ? `${h.open} – ${h.close}` : html`<span class="closed">휴진</span>`}</td><td class="note">${h.note || (h.lunch ? `점심 ${h.lunch}` : '')}</td></tr>`)}</tbody></table><p class="hint">${clinic.hoursNote}</p></div>
-    <div class="info-card" style="margin-top:16px"><h3>첫 방문 준비</h3><ul class="info-list"><li>신분증 (건강보험 확인)</li><li>복용 중인 약 이름</li><li>다른 병원 방사선 사진 (있다면)</li></ul></div>
+    <div class="info-card" style="margin-top:16px"><h3>첫 방문 준비</h3><ul class="info-list"><li>신분증 (건강보험 확인)</li><li>복용 중인 약 이름</li><li>다른 병원 방사선 사진 (있다면)</li></ul><a href="/first-visit" class="text-link">첫 방문 순서와 준비물 자세히 ↗</a></div>
   </aside>
 </div></section>`
   return c.html(Layout(c, { title: '진료 예약', description: `서울도담치과 네이버 예약과 홈페이지 진료 예약 신청 안내. 홈페이지에 이름·연락처·희망 일시를 남기시면 확인 후 연락드립니다. 전화 ${clinic.phone}. 화요일 야간진료.`, path: '/reservation', crumbs: [{ name: '홈', href: '/' }, { name: '진료 예약', href: '/reservation' }] }, body))
@@ -238,7 +240,11 @@ content.post('/reservation', async (c) => {
   const recent = await c.env.DB.prepare("SELECT COUNT(*) n FROM reservations WHERE phone=? AND created_at > datetime('now','-10 minutes')").bind(phone).first<any>()
   if ((recent?.n || 0) >= 3) return reservationForm(c, { error: '잠시 후 다시 시도해 주세요.', v: f })
   const user = c.get('user')
-  await c.env.DB.prepare('INSERT INTO reservations (name, phone, email, treatment, preferred_date, preferred_time, message, user_id) VALUES (?,?,?,?,?,?,?,?)').bind(name, phone, email || null, f.treatment || null, f.preferred_date || null, f.preferred_time || null, String(f.message || '').slice(0, 1000) || null, user?.id || null).run()
+  const insert = c.env.DB.prepare('INSERT INTO reservations (name, phone, email, treatment, preferred_date, preferred_time, message, user_id) VALUES (?,?,?,?,?,?,?,?)').bind(name, phone, email || null, f.treatment || null, f.preferred_date || null, f.preferred_time || null, String(f.message || '').slice(0, 1000) || null, user?.id || null)
+  const scope = conversionScope(c)
+  await c.env.DB.batch([insert, ...(scope ? [conversionStatement(c.env.DB, scope, '/reservation', 'form_completed', 'form')] : [])])
+  // Cleanup is independent of the saved reservation, and must not turn success into an error.
+  c.executionCtx?.waitUntil?.(cleanupConversions(c.env.DB).catch(() => {}))
   // 이메일 알림 (Resend)
   if (c.env.RESEND_API_KEY && c.env.NOTIFICATION_EMAIL) {
     const clinic = c.get('clinic') as any

@@ -7,6 +7,7 @@ import { coreTreatments, otherTreatments } from '../data/treatments'
 import { doctors } from '../data/doctors'
 import { faqList, imageAttrs, naverBookingLink } from '../lib/ui'
 import { fmtDate } from '../lib/util'
+import { patientSituations } from './journey'
 
 type Post = { slug: string; title: string; excerpt: string; thumbnail: string | null; published_at: string }
 type Notice = { id: number; title: string; created_at: string }
@@ -63,6 +64,8 @@ export async function homePage(c: Context<Env>) {
   <a href="/directions"><span class="quick-number">02</span><div><small>수원 화서동 신우상가 2층</small><strong>오시는 길 · 주차 안내</strong></div>${arrow}</a>
   <a href="tel:${clinic.phoneTel}"><span class="quick-number">03</span><div><small>궁금한 점은 편하게 물어보세요</small><strong>${clinic.phone}</strong></div>${arrow}</a>
 </div></nav>
+
+${patientSituations()}
 
 <section class="philosophy-kinetic" id="dodam-philosophy" aria-labelledby="philosophy-title">
   <div class="philosophy-sticky">
