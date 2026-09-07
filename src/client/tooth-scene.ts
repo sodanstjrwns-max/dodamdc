@@ -19,7 +19,7 @@ export function createToothScene(host: HTMLElement, initiallyPaused: boolean): T
   renderer.setPixelRatio(Math.min(devicePixelRatio, small ? 1.3 : 1.7))
   renderer.outputColorSpace = THREE.SRGBColorSpace
   renderer.toneMapping = THREE.ACESFilmicToneMapping
-  renderer.toneMappingExposure = 1.1
+  renderer.toneMappingExposure = 1.04
   renderer.setClearColor(0x000000, 0)
   renderer.domElement.setAttribute('aria-hidden', 'true')
   host.appendChild(renderer.domElement)
@@ -37,7 +37,7 @@ export function createToothScene(host: HTMLElement, initiallyPaused: boolean): T
   const key = new THREE.DirectionalLight(0xffffff, 3.2)
   key.position.set(-3, 5, 5)
   scene.add(key)
-  const rim = new THREE.DirectionalLight(0x5fcaff, 2)
+  const rim = new THREE.DirectionalLight(0x9ccddd, 1.35)
   rim.position.set(4, 1, -2)
   scene.add(rim)
   const fill = new THREE.DirectionalLight(0xffffff, 1.1)
@@ -73,7 +73,7 @@ export function createToothScene(host: HTMLElement, initiallyPaused: boolean): T
 
   const nature = new THREE.MeshPhysicalMaterial({ color: 0xa9dfa0, roughness: 0.24, metalness: 0.12, clearcoat: 0.8 })
   const blue = new THREE.MeshPhysicalMaterial({ color: 0x0069b3, roughness: 0.2, metalness: 0.28, clearcoat: 1 })
-  const outer = new THREE.Mesh(new THREE.TorusGeometry(1.92, 0.085, 12, 110), nature)
+  const outer = new THREE.Mesh(new THREE.TorusGeometry(1.92, 0.06, 12, 110), nature)
   outer.rotation.set(1.05, -0.25, -0.38)
   outer.scale.set(1.08, 1, 1)
   outer.position.y = -0.05
@@ -81,7 +81,7 @@ export function createToothScene(host: HTMLElement, initiallyPaused: boolean): T
   const inner = new THREE.Mesh(new THREE.TorusGeometry(1.95, 0.024, 8, 110), blue)
   inner.rotation.set(0.92, 0.62, 0.65)
   sculpture.add(inner)
-  const pearl = new THREE.Mesh(new THREE.SphereGeometry(0.17, 20, 16), blue)
+  const pearl = new THREE.Mesh(new THREE.SphereGeometry(0.12, 20, 16), blue)
   pearl.position.set(-1.65, 1.37, 0.1)
   sculpture.add(pearl)
   const naturePearl = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 12), nature)
@@ -92,8 +92,8 @@ export function createToothScene(host: HTMLElement, initiallyPaused: boolean): T
   shadowCanvas.width = shadowCanvas.height = 128
   const context = shadowCanvas.getContext('2d')!
   const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 62)
-  gradient.addColorStop(0, 'rgba(18, 76, 106, .23)')
-  gradient.addColorStop(0.5, 'rgba(18, 76, 106, .08)')
+  gradient.addColorStop(0, 'rgba(18, 76, 106, .16)')
+  gradient.addColorStop(0.5, 'rgba(18, 76, 106, .06)')
   gradient.addColorStop(1, 'rgba(18, 76, 106, 0)')
   context.fillStyle = gradient
   context.fillRect(0, 0, 128, 128)
@@ -171,10 +171,10 @@ export function createToothScene(host: HTMLElement, initiallyPaused: boolean): T
       const t = now * 0.001
       sculpture.rotation.y += (turn + pointerX + Math.sin(t * 0.35) * 0.11 - sculpture.rotation.y) * 0.05
       sculpture.rotation.x += (pointerY - sculpture.rotation.x) * 0.04
-      sculpture.position.y = Math.sin(t * 0.8) * 0.075
-      outer.rotation.z = -0.38 + Math.sin(t * 0.45) * 0.14
-      inner.rotation.z = 0.65 + Math.sin(t * 0.35) * 0.16
-      pearl.position.y = 1.37 + Math.sin(t * 1.1) * 0.12
+      sculpture.position.y = Math.sin(t * 0.55) * 0.045
+      outer.rotation.z = -0.38 + Math.sin(t * 0.32) * 0.08
+      inner.rotation.z = 0.65 + Math.sin(t * 0.32) * 0.09
+      pearl.position.y = 1.37 + Math.sin(t * 0.55) * 0.06
     }
     renderer.render(scene, camera)
     if (!paused) raf = requestAnimationFrame(render)

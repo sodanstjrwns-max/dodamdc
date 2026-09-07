@@ -6,7 +6,7 @@ import { pageHero, faqList, ctaStrip } from '../lib/ui'
 import { faqLd } from '../lib/seo'
 import { treatmentPricingUrl } from '../data/pricing'
 
-export function patientSituations() {
+export function patientSituations(compact = false) {
   const items = [
     ['신경치료를 권유받았어요', '신경을 보존할 수 있는 조건과 치료 선택지를 확인해 보세요.', '/treatments/vpt-crown#consultation-guide', '보존 가능성 살펴보기'],
     ['잇몸에서 피가 나요', '스케일링과 잇몸치료의 차이, 검사에서 확인할 내용을 알아보세요.', '/treatments/periodontal#consultation-guide', '잇몸 상태 이해하기'],
@@ -14,6 +14,7 @@ export function patientSituations() {
     ['마취가 무서워요', '불안했던 경험을 미리 알려주세요. 통증을 배려하는 장비와 안내를 확인하세요.', '/first-visit#anxiety', '두려움 미리 이야기하기'],
     ['검진·스케일링을 받고 싶어요', '불편하지 않을 때에도 내 치아와 잇몸을 살피는 시간을 가져보세요.', '/treatments/preventive#summary', '예방관리 알아보기'],
   ]
+  if (compact) return html`<section class="patient-situations situation-rail" id="patient-situations" aria-labelledby="situations-title"><div class="container"><header class="situation-rail-heading"><h2 id="situations-title">지금, 어떤 고민으로 오셨나요?</h2><p>내 이야기와 가까운 안내부터. <span>진단이 아닌 정보 안내입니다.</span></p></header><nav class="situation-grid" aria-label="환자 상황별 정보 안내">${items.map(([title, , href], i) => html`<a class="situation-card" href="${href}"><span class="situation-index">0${i + 1}</span><h3>${title}</h3><span class="situation-rail-arrow" aria-hidden="true">↗</span></a>`)}</nav><a class="first-visit-teaser" href="/first-visit"><span>처음 오시나요? <strong>첫 방문 준비물과 진료 흐름</strong></span><span aria-hidden="true">↗</span></a></div></section>`
   return html`<section class="section patient-situations" id="patient-situations" aria-labelledby="situations-title"><div class="container">
     <div class="section-kicker"><span>START WITH YOUR STORY</span><span>치료 이름을 몰라도 괜찮습니다</span></div>
     <div class="section-heading-row"><h2 id="situations-title" class="display-heading">지금, 어떤 고민으로<br>오셨나요?</h2><p>내 이야기와 가까운 안내부터 읽어보세요.<br>증상만으로 치료를 결정하는 진단 기능은 아닙니다.</p></div>

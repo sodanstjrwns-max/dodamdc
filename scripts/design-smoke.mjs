@@ -110,6 +110,24 @@ try {
   for (const width of [320, 390, 1440]) {
     const page = await browser.newPage({ viewport: { width, height: 900 }, reducedMotion: 'reduce' })
     await page.goto(base, { waitUntil: 'networkidle' })
+    // Quiet editorial edition: compact guidance, earlier doctor story, primary CTA hierarchy.
+    const composition = await page.evaluate(() => {
+      const rail=document.querySelector('#patient-situations');
+      const doctor=document.querySelector('#doctor-story');
+      const care=document.querySelector('#core-treatments');
+      const header=document.querySelector('.header-cta');
+      const primary=document.querySelector('.mobile-action-bar .naver-booking-link');
+      const portrait=document.querySelector('.doctor-editorial-photo img');
+      return {railHeight:rail.getBoundingClientRect().height,doctorFirst:!!(doctor.compareDocumentPosition(care)&Node.DOCUMENT_POSITION_FOLLOWING),headerBackground:getComputedStyle(header).backgroundColor,primaryBackground:getComputedStyle(primary).backgroundColor,portraitFilter:getComputedStyle(portrait).filter,cards:[...rail.querySelectorAll('.situation-card')].map(a=>({height:a.getBoundingClientRect().height,href:a.getAttribute('href')}))};
+    });
+    assert.ok(composition.doctorFirst,'Doctor appears before the treatment directory');
+    assert.ok(composition.railHeight<600,'Situation navigation is a compact transition');
+    assert.equal(composition.cards.length,5);
+    assert.ok(composition.cards.every(c=>c.height>=44&&c.href.startsWith('/')));
+    assert.equal(composition.headerBackground,'rgba(0, 0, 0, 0)','Header reservation is secondary outline');
+    if(width<760)assert.equal(composition.primaryBackground,'rgb(3, 199, 90)','Sticky reservation remains primary');
+    assert.match(composition.portraitFilter,/brightness/,'Source portrait uses restrained reversible grading');
+    assert.equal(await page.locator('.doctor-editorial-photo img').getAttribute('src'),'/static/img/dr-han-hwirim-portrait-v2.webp');
     // Rotation buttons intentionally stay hidden in SVG fallback; test them with WebGL.
     await page.locator('.motion-toggle').waitFor({ state: 'visible' })
     for (const selector of ['.motion-toggle', ...(width < 1000 ? ['#menu-toggle', '.header-cta'] : [])]) {

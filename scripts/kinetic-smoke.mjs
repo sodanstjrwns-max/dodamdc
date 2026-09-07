@@ -39,8 +39,9 @@ try {
   const range = await page.locator('#space-experience').evaluate(el => {
     const view = document.getElementById('space-viewport')
     const track = document.querySelector('.space-track')
-    return { start: el.getBoundingClientRect().top + scrollY - 115, distance: track.scrollWidth - view.clientWidth }
+    return { start: el.getBoundingClientRect().top + scrollY - 115, distance: (track.scrollWidth - view.clientWidth) * Number(el.dataset.scrollRatio), ratio: Number(el.dataset.scrollRatio) }
   })
+  assert.ok(range.ratio > 0 && range.ratio <= 0.65, 'Gallery pin distance is deliberately shorter than the previous 1.05 ratio')
   await page.evaluate(({ start, distance }) => scrollTo({ top: start + distance * 0.57, behavior: 'instant' }), range)
   await page.waitForTimeout(1300)
   await expect(page.locator('#space-current')).toHaveText('02')

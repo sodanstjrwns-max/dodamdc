@@ -8,6 +8,8 @@ const desktop = matchMedia('(min-width: 1001px)')
 const finePointer = matchMedia('(hover: hover) and (pointer: fine)')
 const all = <T extends Element = HTMLElement>(selector: string) => Array.from(document.querySelectorAll<T>(selector))
 const body = document.body
+const motionEase = 'power3.out'
+const galleryScrollRatio = 0.62
 const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection
 const constrainedConnection = connection?.saveData || /^(slow-)?2g$/.test(connection?.effectiveType || '')
 const modelEnable = document.querySelector<HTMLButtonElement>('#model-enable')
@@ -42,11 +44,12 @@ function setupGallery() {
   }
   if (!paused && desktop.matches) {
     experience.classList.add('is-scroll-gallery')
+    experience.dataset.scrollRatio = String(galleryScrollRatio)
     viewport.scrollLeft = 0
     const tween = gsap.to(track, {
       x: () => -distance(), ease: 'none',
       scrollTrigger: {
-        trigger: experience, start: 'top 115px', end: () => `+=${distance() * 1.05}`,
+        trigger: experience, start: 'top 115px', end: () => `+=${distance() * galleryScrollRatio}`,
         pin: true, scrub: 0.65, invalidateOnRefresh: true, anticipatePin: 1,
         onUpdate: self => update(self.progress),
       },
@@ -104,27 +107,27 @@ function setupMotion() {
     setupGallery()
     if (paused) return
     if (desktop.matches && document.querySelector('.kinetic-hero')) {
-      gsap.from('.headline-line > span', { yPercent: 115, rotate: 3, duration: 1.15, stagger: 0.12, ease: 'expo.out', clearProps: 'transform' })
+      gsap.from('.headline-line > span', { yPercent: 75, duration: 0.85, stagger: 0.1, ease: motionEase, clearProps: 'transform' })
       gsap.from('.kinetic-hero-top, .kinetic-eyebrow, .hero-copy-bottom', { opacity: 0, y: 15, duration: 0.8, delay: 0.25, stagger: 0.1, clearProps: 'opacity,transform' })
-      gsap.from('.tooth-experience', { opacity: 0, scale: 0.8, duration: 1.5, ease: 'expo.out', clearProps: 'opacity,transform' })
+      gsap.from('.tooth-experience', { opacity: 0, scale: 0.96, duration: 1.05, ease: motionEase, clearProps: 'opacity,transform' })
     }
     if (desktop.matches && document.querySelector('.kinetic-hero')) {
-      gsap.to('.tooth-experience', { y: 100, rotation: 9, ease: 'none', scrollTrigger: { trigger: '#hero-section', start: 'top top', end: 'bottom top', scrub: 1 } })
+      gsap.to('.tooth-experience', { y: 38, rotation: 2, ease: 'none', scrollTrigger: { trigger: '#hero-section', start: 'top top', end: 'bottom top', scrub: 1 } })
       const manifesto = document.querySelector('#dodam-philosophy')
       if (manifesto) {
         const lines = all<HTMLElement>('[data-ink]')
         const timeline = gsap.timeline({ scrollTrigger: { trigger: manifesto, start: 'top 30%', end: 'bottom 95%', scrub: 0.6 } })
         lines.forEach((line, i) => timeline.fromTo(line, { '--ink-fill': '0%' }, { '--ink-fill': '100%', duration: 1 }, i * 0.7))
-        gsap.to('.mindset-ring', { rotation: 150, transformOrigin: '50% 50%', ease: 'none', scrollTrigger: { trigger: manifesto, start: 'top bottom', end: 'bottom top', scrub: 1.4 } })
+        gsap.to('.mindset-ring', { rotation: 55, transformOrigin: '50% 50%', ease: 'none', scrollTrigger: { trigger: manifesto, start: 'top bottom', end: 'bottom top', scrub: 1.4 } })
       }
     }
     all<HTMLElement>('.display-heading, .doctor-editorial-copy h2, .page-hero .h1, .mission-poster h1').forEach(heading => {
       // Keep initial mobile text paint visible; animate only later sections.
       if (!desktop.matches && heading.getBoundingClientRect().top < innerHeight) return
-      gsap.from(heading, { clipPath: 'inset(0 0 100% 0)', y: 22, duration: 0.95, ease: 'expo.out', clearProps: 'clipPath,transform', scrollTrigger: { trigger: heading, start: 'top 92%', once: true } })
+      gsap.from(heading, { y: 16, duration: 0.75, ease: motionEase, clearProps: 'clipPath,transform', scrollTrigger: { trigger: heading, start: 'top 92%', once: true } })
     })
     const photo = document.querySelector('.doctor-editorial-photo img')
-    if (photo) gsap.fromTo(photo, { scale: 1.12, yPercent: 4 }, { scale: 1, yPercent: 0, ease: 'none', scrollTrigger: { trigger: '#doctor-story', start: 'top bottom', end: 'bottom top', scrub: 1 } })
+    if (photo) gsap.fromTo(photo, { scale: 1.035, yPercent: 1 }, { scale: 1, yPercent: 0, ease: 'none', scrollTrigger: { trigger: '#doctor-story', start: 'top bottom', end: 'bottom top', scrub: 1 } })
     const footer = document.querySelector('.footer-wordmark')
     if (footer) gsap.fromTo(footer, { yPercent: 35, letterSpacing: '0.035em' }, { yPercent: 0, letterSpacing: '-0.07em', ease: 'none', scrollTrigger: { trigger: '.site-footer', start: 'top bottom', end: 'bottom bottom', scrub: 1 } })
   })
@@ -168,9 +171,9 @@ all<HTMLElement>('[data-magnetic], .header-cta').forEach(button => {
   button.addEventListener('pointermove', event => {
     if (paused || !finePointer.matches) return
     const rect = button.getBoundingClientRect()
-    gsap.to(button, { x: (event.clientX - rect.left - rect.width / 2) * 0.12, y: (event.clientY - rect.top - rect.height / 2) * 0.2, duration: 0.3, overwrite: true })
+    gsap.to(button, { x: (event.clientX - rect.left - rect.width / 2) * 0.06, y: (event.clientY - rect.top - rect.height / 2) * 0.08, duration: 0.4, overwrite: true })
   })
-  button.addEventListener('pointerleave', () => gsap.to(button, { x: 0, y: 0, duration: paused ? 0 : 0.6, ease: 'elastic.out(1, .5)', overwrite: true }))
+  button.addEventListener('pointerleave', () => gsap.to(button, { x: 0, y: 0, duration: paused ? 0 : 0.4, ease: motionEase, overwrite: true }))
 })
 
 // The existing accessible tabs own state; animate only the newly displayed panel.
@@ -178,7 +181,7 @@ all<HTMLButtonElement>('.care-tab').forEach(button => {
   const animatePanel = () => {
     if (paused) return
     const panel = document.querySelector<HTMLElement>('.care-panel:not([hidden])')
-    if (panel) gsap.fromTo(panel.querySelectorAll('.care-panel-copy > *, .care-panel-photo'), { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.55, stagger: 0.045, ease: 'power3.out', overwrite: true, clearProps: 'opacity,transform' })
+    if (panel) gsap.fromTo(panel.querySelectorAll('.care-panel-copy > *, .care-panel-photo'), { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.035, ease: motionEase, overwrite: true, clearProps: 'opacity,transform' })
   }
   button.addEventListener('click', () => requestAnimationFrame(animatePanel))
   button.addEventListener('keydown', event => { if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) requestAnimationFrame(animatePanel) })
