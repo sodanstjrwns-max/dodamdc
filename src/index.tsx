@@ -5,6 +5,7 @@ import { loadClinic } from './lib/settings'
 import { readMemberSession, readAdminSession } from './lib/auth'
 import { trackView } from './lib/util'
 import { resolveSiteUrl, isoDate, xmlEscape } from './lib/seo'
+import { getNaverBookingUrl } from './data/clinic'
 
 import auth from './routes/auth'
 import admin from './routes/admin'
@@ -177,7 +178,7 @@ app.get('/llms.txt', (c) => {
 - 진료시간: ${clinic.hours.map(h => `${h.day} ${h.open ? h.open + '–' + h.close : '휴진'}${h.lunch ? ' (점심 ' + h.lunch + ')' : ''}${h.note ? ' (' + h.note + ')' : ''}`).join(', ')}
 - 참고: ${clinic.hoursNote}
 - 주차: ${clinic.directions.parking}
-- 예약은 신청 후 병원의 확인 연락을 거쳐 확정됩니다.
+- 홈페이지 예약 신청은 병원의 확인 연락 후 확정됩니다. 네이버 예약의 가능 일정과 확정 조건은 네이버 예약 페이지에서 확인하세요.
 
 ## 공식 안내와 근거 페이지
 - [진료 철학](${site}/mission): ${clinic.slogan}
@@ -191,7 +192,8 @@ ${treatments.map(t => `- [${t.name}](${site}/treatments/${t.slug}): ${t.short}`)
 - [진료시간](${site}/hours)
 - [공지사항](${site}/notice): 임시 휴진 등 최신 변경 확인
 - [원장 칼럼](${site}/column)
-- [진료 예약](${site}/reservation)
+- [진료 예약 방법](${site}/reservation): 네이버 예약과 홈페이지 신청 안내
+${getNaverBookingUrl(clinic) ? `- [공식 네이버 예약](${getNaverBookingUrl(clinic)}): 외부 예약 페이지` : ''}
 
 ## 이용 시 주의
 - 이 파일은 참고용 목차이며 검색 순위나 AI 답변 인용을 보장하는 표준이 아닙니다.

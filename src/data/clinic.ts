@@ -42,6 +42,8 @@ export const clinicDefaults = {
   },
   channels: {
     naverPlace: 'https://map.naver.com/p/search/서울도담치과/place/13229580',
+    // Verified from this clinic's Naver Place booking button, 2026-09-07.
+    naverBooking: 'https://m.booking.naver.com/booking/13/bizes/1258951?theme=place&lang=ko&area=ple',
     naverBlog: 'https://blog.naver.com/verygood2875',
     instagram: 'https://www.instagram.com/seouldodam',
     kakao: 'http://pf.kakao.com/_pLxlBn',
@@ -55,6 +57,14 @@ export const clinicDefaults = {
 }
 
 export type Clinic = typeof clinicDefaults
+
+export function getNaverBookingUrl(clinic: Pick<Clinic, 'channels'>): string {
+  try {
+    const url = new URL(clinic.channels.naverBooking)
+    if (url.protocol === 'https:' && ['booking.naver.com', 'm.booking.naver.com'].includes(url.hostname) && /^\/booking\/\d+\/bizes\/\d+/.test(url.pathname) && !url.username && !url.password) return url.href
+  } catch { /* Unconfigured/invalid links must not become public booking buttons. */ }
+  return ''
+}
 
 // 인근 유입 지역 (지역 SEO 조합용)
 export const nearbyAreas = [

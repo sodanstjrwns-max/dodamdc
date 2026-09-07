@@ -40,6 +40,13 @@ try {
       if (result.status !== 200 || info.h1 !== 1 || info.scrollWidth > width + 1) problems.push(result)
     }
     await page.goto(base, { waitUntil: 'networkidle' })
+    const naverLinks = await page.locator('[data-booking-provider="naver"]').evaluateAll(as => as.map(a => ({ href: a.href, target: a.target, rel: a.rel })))
+    assert.ok(naverLinks.length >= 4, 'Naver booking should be available in primary entry points')
+    for (const link of naverLinks) {
+      assert.equal(new URL(link.href).pathname, '/booking/13/bizes/1258951')
+      assert.equal(link.target, '_blank')
+      assert.ok(link.rel.includes('noopener') && link.rel.includes('noreferrer'))
+    }
     await page.getByRole('tab').nth(1).click()
     assert.equal(await page.locator('#care-panel-1').isVisible(), true)
     assert.equal(await page.locator('#care-panel-0').isVisible(), false)
@@ -81,6 +88,7 @@ try {
     await page.locator('.faq-search input').fill('')
     await page.goto(base + '/reservation?treatment=implant', { waitUntil: 'networkidle' })
     assert.equal(await page.locator('#treatment').inputValue(), '임플란트')
+    assert.equal(await page.locator('.naver-reservation-card [data-booking-provider="naver"]').count(), 1)
     await page.locator('#reservation-form button[type=submit]').click()
     assert.equal(await page.locator('#name').evaluate(el => el.validity.valueMissing), true)
     const afterImage = await context.request.get(base + '/files/cases/after/design-test.webp')

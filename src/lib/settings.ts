@@ -15,6 +15,7 @@ export const EDITABLE_KEYS: { key: string; label: string; type?: 'text' | 'texta
   { key: 'directions.parking', label: '오시는길 - 주차', type: 'textarea' },
   { key: 'directions.landmark', label: '오시는길 - 건물 안내' },
   { key: 'channels.naverPlace', label: '네이버 플레이스 URL' },
+  { key: 'channels.naverBooking', label: '네이버 예약 URL (booking.naver.com 예약 페이지)' },
   { key: 'channels.naverBlog', label: '네이버 블로그 URL' },
   { key: 'channels.instagram', label: '인스타그램 URL' },
   { key: 'channels.kakao', label: '카카오톡 채널 URL' },

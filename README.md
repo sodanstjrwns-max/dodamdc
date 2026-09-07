@@ -5,8 +5,8 @@
 - **목표**: 자연치아 보존 철학을 담은 브랜드 홈페이지와 환자 중심 진료·예약 안내
 - **스택**: Hono + TypeScript + Cloudflare Pages/Workers + D1 + R2. Vanilla JS, GSAP/ScrollTrigger, Three.js WebGL.
 - **작업 경로 / 브랜치**: `/home/user/webapp` / `main`
-- **최근 변경**: 2026-09-07 모바일 리소스, 메타·헤딩·캐노니컬·스키마·AEO 정비
-- **미리보기**: https://3000-im9044c37cori5huz389s-c81df28e.sandbox.novita.ai/?v=11
+- **최근 변경**: 2026-09-07 모바일·SEO·AEO 정비 및 공식 네이버 예약 연결
+- **미리보기**: https://3000-im9044c37cori5huz389s-c81df28e.sandbox.novita.ai/?v=12
 - **기존 운영 주소**: https://seoul-dodam-dental.pages.dev
 - **운영 반영**: 이번 개편은 미배포. 운영 사이트, 운영 D1/R2, 도메인은 수정하지 않았습니다.
 - 미리보기는 임시 서비스입니다. 배포 요청 시 사용자 계정 Cloudflare 또는 Genspark Hosted 중 경로를 별도로 확인합니다.
@@ -42,6 +42,16 @@
 - 대기실·진료실·소독 공간은 AI 수정 interior 폴더가 아닌 실제 촬영 원본입니다.
 - 마취액 워머, DENOPS, EXARO, PHL 등의 잘못된 사진 매칭과 소독 공간 설명을 교정했습니다.
 - 재생성: `DODAM_PHOTO_SOURCE=/path/to/supplied/originals node scripts/process-images.mjs`. 기본 원본 경로는 `/home/user/dodam_src`이며 원본은 Git에 포함하지 않습니다.
+
+## 네이버 예약 연결 — 2026-09-07
+- 공식 네이버 플레이스 `https://m.place.naver.com/hospital/13229580/booking`의 예약 버튼에서 확인한 URL: `https://m.booking.naver.com/booking/13/bizes/1258951?theme=place&lang=ko&area=ple`.
+- 연결된 페이지에서 수원 화서동·한휘림 원장·화양로 34·원문 슬로건을 대조했습니다. 실제 예약을 제출하지는 않았습니다.
+- 상단 예약 버튼, 모바일 하단 바, 플로팅 버튼, 공통 푸터/CTA, 메인 내원 영역, `/reservation`의 우선 안내에 네이버 예약을 연결했습니다.
+- 기존 홈페이지 신청 폼과 희망 진료 전달은 유지합니다. 네이버 예약과 홈페이지 신청을 구분하고, 네이버의 가능 일정·확정 조건은 네이버 화면에서 확인하도록 안내합니다.
+- 연결은 외부 새 창 링크입니다. 네이버 예약 내역을 D1이나 홈페이지 관리자와 동기화하는 API 연동은 아닙니다. 홈페이지의 이름·전화·희망일 등 입력값을 전달하지 않습니다.
+- URL은 `channels.naverBooking`에서 관리하며 관리자 기본정보에서 수정할 수 있습니다. 렌더링 시 HTTPS 네이버 예약 도메인과 경로를 검사하고, 잘못된 링크면 상단/모바일 주요 버튼은 홈페이지 예약으로 돌아갑니다.
+- 320/390/1440px에서 공식 링크·새 창 이동(외부 요청을 가로챈 격리 테스트)·폼 필수값·희망 진료 유지·가로 넘침을 확인했습니다. 네이버 계정 로그인이나 실제 예약 생성은 테스트하지 않았습니다.
+- 승인한 전체 테마는 유지하고 네이버 예약 버튼에만 식별 가능한 그린을 적용했습니다. 배포는 하지 않았습니다.
 
 ## 모바일 최적화
 - **글꼴 초기 파일**: 기존 1,289,292 bytes → Core 136,256 bytes (약 89.4% 감소). 같은 Wanted Sans와 가변 굵기를 유지합니다.

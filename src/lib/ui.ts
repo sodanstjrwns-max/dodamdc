@@ -4,6 +4,14 @@ import type { FAQ } from '../data/treatments'
 import type { Crumb } from './seo'
 import { esc } from './util'
 import { imageManifest } from '../data/image-manifest'
+import { getNaverBookingUrl, type Clinic } from '../data/clinic'
+
+/** External reservation handoff only; no patient data or selected dates are forwarded. */
+export function naverBookingLink(clinic: Clinic, classes = 'btn btn-primary', label = '네이버 예약', arrow = true) {
+  const url = getNaverBookingUrl(clinic)
+  if (!url) return ''
+  return html`<a href="${url}" class="${classes} naver-booking-link" target="_blank" rel="noopener noreferrer" aria-label="${label} (네이버 예약, 새 창)" data-booking-provider="naver">${label}${arrow ? html`<span aria-hidden="true">↗</span>` : ''}</a>`
+}
 
 export function imageAttrs(src: string, sizes = '(max-width: 760px) calc(100vw - 44px), (max-width: 1000px) 50vw, 600px', width = 960, height = 640) {
   const asset = imageManifest[src]
@@ -54,7 +62,8 @@ export function ctaStrip(clinic: any, o: { title?: string; sub?: string } = {}) 
         <p>${o.sub || `전화 ${clinic.phone} · 화요일 야간진료 20:30까지 · ${clinic.addressShort}`}</p>
       </div>
       <div class="cta-strip-actions">
-        <a href="/reservation" class="btn btn-primary">진료 예약</a>
+        ${naverBookingLink(clinic)}
+        <a href="/reservation" class="btn btn-outline">홈페이지 예약 신청</a>
         <a href="tel:${clinic.phoneTel}" class="btn btn-outline">전화 문의</a>
       </div>
     </div>

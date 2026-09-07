@@ -5,7 +5,7 @@ import { Layout } from '../lib/layout'
 import { faqLd } from '../lib/seo'
 import { coreTreatments, otherTreatments } from '../data/treatments'
 import { doctors } from '../data/doctors'
-import { faqList, imageAttrs } from '../lib/ui'
+import { faqList, imageAttrs, naverBookingLink } from '../lib/ui'
 import { fmtDate } from '../lib/util'
 
 type Post = { slug: string; title: string; excerpt: string; thumbnail: string | null; published_at: string }
@@ -27,7 +27,7 @@ export async function homePage(c: Context<Env>) {
     { en: 'RESTORE', title: html`꼭 필요한 자리에는,<br>신중한 임플란트.`, text: '보존이 어려운 치아라면, 뼈와 신경의 위치부터 확인합니다. 구강 상태에 맞는 치료 방법을 충분히 설명드립니다.', image: 'vatech-green16-low-dose-ct-v2', caption: '입체적인 진단을 위한 Vatech Green16 저선량 CT', chips: ['3차원 CT 진단', '치료 계획', '사후관리'] },
   ]
   const faqs = [
-    { q: '어떤 치료가 필요한지 몰라도 예약할 수 있나요?', a: '네. 불편한 부분이나 궁금한 점을 알려주세요. 검진 후 현재 상태와 가능한 치료 방법을 설명드립니다. 온라인 예약은 병원에서 확인하고 연락드린 후 확정됩니다.' },
+    { q: '어떤 치료가 필요한지 몰라도 예약할 수 있나요?', a: '네. 불편한 부분이나 궁금한 점을 알려주세요. 검진 후 현재 상태와 가능한 치료 방법을 설명드립니다. 홈페이지 예약 신청은 병원에서 확인 연락 후 확정되며, 네이버 예약은 네이버 화면의 안내를 확인해 주세요.' },
     { q: '신경치료 대신 치아 신경을 살릴 수도 있나요?', a: '치수의 상태에 따라 MTA 생활치수치료를 고려할 수 있습니다. 모든 치아에 가능한 것은 아니며, 검사와 진단을 통해 보존 가능성을 먼저 확인합니다.' },
     { q: '치과 치료가 무서워요. 미리 말씀드려도 될까요?', a: '물론입니다. 불안한 부분을 먼저 말씀해 주세요. 치료 과정을 충분히 설명하고 마취크림, 마취액 워머, 전동 마취기 등을 상황에 맞게 사용합니다. 통증의 정도는 개인마다 다를 수 있습니다.' },
     { q: '퇴근 후에도 진료받을 수 있나요?', a: '화요일은 오후 2시부터 오후 8시 30분까지 진료합니다. 공휴일이나 임시 휴진 여부는 공지사항 또는 전화로 확인해 주세요.' },
@@ -115,7 +115,7 @@ export async function homePage(c: Context<Env>) {
 
 <section class="section visit-editorial" id="visit-info" aria-labelledby="visit-title"><div class="container">
   <div class="section-kicker"><span>YOUR FIRST VISIT</span><span>만나 뵙겠습니다</span></div>
-  <div class="visit-grid"><div class="visit-address reveal"><h2 id="visit-title" class="display-heading">가까이에서,<br>오래 함께.</h2><p>${clinic.address}</p><a href="tel:${clinic.phoneTel}" class="visit-phone">${clinic.phone}</a><div class="hero-links"><a href="/directions" class="editorial-link">오시는 길 · 주차 안내 <span>${arrow}</span></a></div><div class="visit-note"><span>온라인 예약 안내</span><p>예약 신청 후 병원에서 확인 연락을 드립니다.<br>내원 일정은 연락 후 확정됩니다.</p></div></div><div class="visit-hours reveal"><h3>진료시간 <span>OPENING HOURS</span></h3><table class="hours-table"><caption class="sr-only">서울도담치과 요일별 진료시간</caption><tbody>${clinic.hours.map((h:any)=>html`<tr data-day="${h.day}"><th scope="row">${h.day}요일</th><td>${h.open ? `${h.open} — ${h.close}` : html`<span class="closed">휴진</span>`}</td><td class="note">${h.note || (h.lunch ? `점심 ${h.lunch}` : '')}</td></tr>`)}</tbody></table><p class="hint">${clinic.hoursNote}</p><a href="/reservation" class="btn btn-primary btn-block visit-reserve">첫 방문 예약하기 ${arrow}</a></div></div>
+  <div class="visit-grid"><div class="visit-address reveal"><h2 id="visit-title" class="display-heading">가까이에서,<br>오래 함께.</h2><p>${clinic.address}</p><a href="tel:${clinic.phoneTel}" class="visit-phone">${clinic.phone}</a><div class="hero-links"><a href="/directions" class="editorial-link">오시는 길 · 주차 안내 <span>${arrow}</span></a></div><div class="visit-note"><span>홈페이지 예약 신청 안내</span><p>예약 신청 후 병원에서 확인 연락을 드립니다.<br>내원 일정은 연락 후 확정됩니다.</p></div></div><div class="visit-hours reveal"><h3>진료시간 <span>OPENING HOURS</span></h3><table class="hours-table"><caption class="sr-only">서울도담치과 요일별 진료시간</caption><tbody>${clinic.hours.map((h:any)=>html`<tr data-day="${h.day}"><th scope="row">${h.day}요일</th><td>${h.open ? `${h.open} — ${h.close}` : html`<span class="closed">휴진</span>`}</td><td class="note">${h.note || (h.lunch ? `점심 ${h.lunch}` : '')}</td></tr>`)}</tbody></table><p class="hint">${clinic.hoursNote}</p>${naverBookingLink(clinic, 'btn btn-primary btn-block visit-reserve', '네이버로 첫 방문 예약하기')}<a href="/reservation" class="text-link">홈페이지 예약 신청 ${arrow}</a></div></div>
   ${notice ? html`<a href="/notice/${notice.id}" class="editorial-notice"><span>NOTICE</span><strong>${notice.title}</strong><time>${fmtDate(notice.created_at)}</time>${arrow}</a>` : ''}
 </div></section>`
   return c.html(Layout(c, {

@@ -6,7 +6,8 @@ import { articleLd, truncate, physicianLd, isoDate } from '../lib/seo'
 import { treatments, getTreatment } from '../data/treatments'
 import { doctors, getDoctor } from '../data/doctors'
 import { autoLink } from '../data/encyclopedia'
-import { pageHero, ctaStrip, articleHtml, imageAttrs, paginate, alertBox } from '../lib/ui'
+import { pageHero, ctaStrip, articleHtml, imageAttrs, paginate, alertBox, naverBookingLink } from '../lib/ui'
+import { getNaverBookingUrl } from '../data/clinic'
 import { fmtDate, trackView, stripTags, formData, isEmail, normPhone } from '../lib/util'
 
 const content = new Hono<Env>()
@@ -195,13 +196,14 @@ function reservationForm(c: any, o: { error?: string; v?: Record<string, any>; o
   const clinic = c.get('clinic') as any, user = c.get('user')
   const v = o.v || {}
   const tx = v.treatment || c.req.query('treatment') || ''
-  const body = html`${pageHero({ eyebrow: '진료 예약', title: html`첫 만남의 시작은,<br>편안한 대화부터.`, lead: '어떤 치료가 필요한지 아직 모르셔도 괜찮습니다. 불편한 점과 편한 시간을 남겨주시면 확인 후 연락드리겠습니다.', crumbs: [{ name: '홈', href: '/' }, { name: '진료 예약', href: '/reservation' }], actions: html`<div class="reservation-progress" aria-label="예약 진행 순서"><span><b>01</b> 예약 신청</span><span><b>02</b> 병원 확인 연락</span><span><b>03</b> 일정 확정 · 내원</span></div>` })}
+  const body = html`${pageHero({ eyebrow: '진료 예약', title: html`첫 만남의 시작은,<br>편안한 대화부터.`, lead: '어떤 치료가 필요한지 아직 모르셔도 괜찮습니다. 불편한 점과 편한 시간을 남겨주시면 확인 후 연락드리겠습니다.', crumbs: [{ name: '홈', href: '/' }, { name: '진료 예약', href: '/reservation' }], actions: html`<div class="reservation-progress" aria-label="홈페이지 예약 신청 진행 순서"><span><b>01</b> 예약 신청</span><span><b>02</b> 병원 확인 연락</span><span><b>03</b> 일정 확정 · 내원</span></div>` })}
+${!o.ok && getNaverBookingUrl(clinic) ? html`<section class="section-sm naver-reservation-section" aria-labelledby="naver-reservation-title"><div class="container"><div class="naver-reservation-card"><div><p class="edition-label"><span class="naver-mark" aria-hidden="true">N</span> NAVER BOOKING</p><h2 id="naver-reservation-title">네이버로 편하게 예약하세요.</h2><p>서울도담치과의 공식 네이버 예약 페이지로 연결됩니다.<br>예약 가능 일정과 확정 안내는 네이버 화면에서 확인해 주세요.</p></div><div class="naver-reservation-actions">${naverBookingLink(clinic, 'btn btn-primary btn-lg', '네이버 예약 바로가기')}<a href="#reservation-form" class="naver-reservation-alternative">홈페이지로 예약 신청하기 ↓</a><small>네이버 페이지가 새 창으로 열립니다.</small></div></div></div></section>` : ''}
 <section class="section-sm"><div class="container grid-2 reservation-grid res-grid">
   <div>
     ${o.ok ? html`<div class="form-card reservation-success center" role="status"><span class="success-mark" aria-hidden="true">✓</span><p class="edition-label">THANK YOU FOR REACHING OUT</p><h2>예약 신청이 접수되었습니다.</h2><p class="lead" style="margin-top:18px">진료시간 내에 확인 연락을 드리겠습니다.<br>병원과 통화하신 후 예약이 최종 확정됩니다.</p><div class="hero-actions" style="justify-content:center"><a href="/" class="btn btn-primary">홈으로 돌아가기</a>${user ? html`<a href="/auth/mypage" class="btn btn-outline">내 예약 보기</a>` : ''}</div></div>` : html`
     ${alertBox(o.error)}
     <form method="post" action="/reservation" id="reservation-form" class="form form-card" data-once>
-      <div class="reservation-intro"><h2>예약 정보를 남겨주세요</h2><p>* 표시는 필수 항목입니다. 신청만으로 예약이 확정되지는 않습니다.</p></div>
+      <div class="reservation-intro"><h2>홈페이지 예약 신청</h2><p>네이버 예약 대신 병원의 확인 연락을 원하시면 아래 정보를 남겨주세요. * 표시는 필수 항목이며, 신청만으로 예약이 확정되지는 않습니다.</p></div>
       <div class="form-row">
         <div class="field"><label for="name">이름 <span class="req">*</span></label><input id="name" name="name" required maxlength="40" value="${v.name || user?.name || ''}" autocomplete="name"></div>
         <div class="field"><label for="phone">연락처 <span class="req">*</span></label><input id="phone" name="phone" type="tel" required inputmode="numeric" placeholder="010-0000-0000" value="${v.phone || ''}" autocomplete="tel"></div>
@@ -223,7 +225,7 @@ function reservationForm(c: any, o: { error?: string; v?: Record<string, any>; o
     <div class="info-card" style="margin-top:16px"><h3>첫 방문 준비</h3><ul class="info-list"><li>신분증 (건강보험 확인)</li><li>복용 중인 약 이름</li><li>다른 병원 방사선 사진 (있다면)</li></ul></div>
   </aside>
 </div></section>`
-  return c.html(Layout(c, { title: '진료 예약', description: `서울도담치과 온라인 진료 예약. 이름·연락처·희망 일시를 남기시면 확인 후 연락드립니다. 전화 ${clinic.phone}. 화요일 야간진료.`, path: '/reservation', crumbs: [{ name: '홈', href: '/' }, { name: '진료 예약', href: '/reservation' }] }, body))
+  return c.html(Layout(c, { title: '진료 예약', description: `서울도담치과 네이버 예약과 홈페이지 진료 예약 신청 안내. 홈페이지에 이름·연락처·희망 일시를 남기시면 확인 후 연락드립니다. 전화 ${clinic.phone}. 화요일 야간진료.`, path: '/reservation', crumbs: [{ name: '홈', href: '/' }, { name: '진료 예약', href: '/reservation' }] }, body))
 }
 content.get('/reservation', (c) => reservationForm(c, { ok: c.req.query('ok') === '1' }))
 content.post('/reservation', async (c) => {

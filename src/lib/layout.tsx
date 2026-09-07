@@ -5,6 +5,7 @@ import { fullTitle, absUrl, breadcrumbLd, canonicalPath, dentistLd, websiteLd, w
 import { coreTreatments, otherTreatments } from '../data/treatments'
 import { doctors } from '../data/doctors'
 import { imageManifest } from '../data/image-manifest'
+import { naverBookingLink } from './ui'
 
 const escAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
@@ -68,7 +69,7 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="preload" href="/static/fonts/WantedSansCore-v1.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/fonts/wanted-subsets.css?v=1">
 <link rel="stylesheet" href="/static/style.css?v=8">
-<link rel="stylesheet" href="/static/kinetic.css?v=11">
+<link rel="stylesheet" href="/static/kinetic.css?v=12">
 <link rel="alternate" type="application/rss+xml" title="${clinic.shortName} 원장 칼럼" href="/column/rss.xml">
 ${lds.map((l) => raw(`<script type="application/ld+json">${JSON.stringify(l).replace(/</g, '\\u003c')}</script>`))}
 ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?id=${escAttr(clinic.ga4)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${escAttr(clinic.ga4)}',{anonymize_ip:true});</script>`) : ''}
@@ -143,7 +144,7 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
       ${user
         ? html`<a href="/auth/mypage" class="header-user">${user.name}님</a>`
         : html`<a href="/auth/login" class="header-login">로그인</a>`}
-      <a href="/reservation" class="btn btn-primary btn-sm header-cta">진료 예약 <span aria-hidden="true">↗</span></a>
+      ${naverBookingLink(clinic, 'btn btn-primary btn-sm header-cta') || html`<a href="/reservation" class="btn btn-primary btn-sm header-cta">진료 예약 <span aria-hidden="true">↗</span></a>`}
       <button class="menu-toggle" id="menu-toggle" aria-label="메뉴 열기" aria-expanded="false" aria-controls="mobile-nav"><span></span><span></span><span></span></button>
     </div>
   </div>
@@ -180,7 +181,8 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
         <h2 class="footer-cta-title">당신의 치아 이야기,<br>도담에서 시작하세요.</h2>
       </div>
       <div class="footer-cta-actions">
-        <a href="/reservation" class="btn btn-light">첫 방문 예약하기 <span aria-hidden="true">↗</span></a>
+        ${naverBookingLink(clinic, 'btn btn-light', '네이버로 예약하기')}
+        <a href="/reservation" class="btn btn-ghost-light">홈페이지 예약 신청 <span aria-hidden="true">↗</span></a>
         <a href="tel:${clinic.phoneTel}" class="btn btn-ghost-light">${clinic.phone}</a>
         <a href="${clinic.channels.kakao}" class="btn btn-ghost-light" target="_blank" rel="noopener">카카오톡 상담</a>
       </div>
@@ -237,13 +239,13 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
 <nav class="mobile-action-bar" aria-label="빠른 상담 및 예약">
   <a href="tel:${clinic.phoneTel}">전화 문의</a>
   <a href="${clinic.channels.kakao}" target="_blank" rel="noopener">카카오 상담</a>
-  <a href="/reservation">진료 예약 <span aria-hidden="true">↗</span></a>
+  ${naverBookingLink(clinic, '', '네이버 예약') || html`<a href="/reservation">진료 예약 <span aria-hidden="true">↗</span></a>`}
 </nav>
 
 <div class="floating-cta" id="floating-cta">
   <a href="tel:${clinic.phoneTel}" class="fab fab-call" aria-label="전화하기"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></a>
   <a href="${clinic.channels.kakao}" class="fab fab-kakao" target="_blank" rel="noopener" aria-label="카카오톡 상담"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.2 4.6 6.6L5.5 21l4.3-2.8c.7.1 1.4.2 2.2.2 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg></a>
-  <a href="/reservation" class="fab fab-book">예약</a>
+  ${naverBookingLink(clinic, 'fab fab-book', '네이버 예약', false) || html`<a href="/reservation" class="fab fab-book">예약</a>`}
   <a href="#top" class="fab fab-top" aria-label="맨 위로" id="to-top"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></a>
 </div>
 
