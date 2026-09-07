@@ -20,6 +20,27 @@ export function sanitizeArticle(input: string) {
   return articleFilter.process(String(input || '')).replace(/<img\b[^>]*>/gi, tag => tag.replace(/^<img\b/i, `<img${/\bwidth=/.test(tag) ? '' : ' width="960"'}${/\bheight=/.test(tag) ? '' : ' height="640"'}${/\bloading=/.test(tag) ? '' : ' loading="lazy"'}`))
 }
 
+// Match only an actual image emitted by the same sanitizer used for rendering.
+// A URL in prose, a comment, a removed script, or a longer filename is not publication.
+export function articleUsesImage(input: string, key: string) {
+  const src = `/files/${key}`
+  return Array.from(sanitizeArticle(input).matchAll(/<img\b[^>]*\bsrc="([^"]*)"/gi))
+    .some(match => match[1] === src)
+}
+
+export async function hasPublishedEditorialImage(db: D1Database, key: string) {
+  for (const [table, cover] of [['columns', 'thumbnail'], ['notices', 'image']] as const) {
+    const direct = await db.prepare(`SELECT id FROM ${table} WHERE published=1 AND ${cover}=? LIMIT 1`).bind(key).first()
+    if (direct) return true
+    // Candidate filter only; never use a substring match as an authorization decision.
+    // New CMS HTML is normalized on save. Legacy encoded URLs require review/re-save.
+    const candidates = await db.prepare(`SELECT content_html FROM ${table} WHERE published=1 AND instr(content_html,?)>0`)
+      .bind(`/files/${key}`).all<{ content_html: string }>()
+    if (candidates.results.some(row => articleUsesImage(row.content_html, key))) return true
+  }
+  return false
+}
+
 const allowed = ['image/jpeg','image/png','image/webp','image/gif']
 export async function checkedImage(file: File) {
   if (!allowed.includes(file.type) || file.size < 12 || file.size > 8 * 1024 * 1024) throw new Error('8MB 이하의 JPG·PNG·WebP·GIF 이미지가 필요합니다.')

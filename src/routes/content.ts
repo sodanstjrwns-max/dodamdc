@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { safeFileKey } from '../lib/content-safety'
+import { safeFileKey, hasPublishedEditorialImage } from '../lib/content-safety'
 import { canAccessStaff } from '../lib/security'
 import { conversionScope, conversionStatement, cleanupConversions } from '../lib/conversions'
 import { html, raw } from 'hono/html'
@@ -20,29 +20,34 @@ const PER = 12
 content.get('/files/:key{.+}', async (c) => {
   const key = c.req.param('key')
   const reviewer = canAccessStaff(c.get('staff'), '/admin/cases') && !c.get('staff')?.bootstrap
-  const namedAfter = key.startsWith('cases/after/') || /_after\.[a-z0-9]+$/i.test(key)
+  const namedAfter = /^cases\/after\//i.test(key) || /_after\.[a-z0-9]+$/i.test(key)
   if (namedAfter && !c.get('user') && !reviewer) return c.text('로그인이 필요합니다', 401)
   if (!safeFileKey(key)) return c.notFound()
   const refs = (await c.env.DB.prepare('SELECT published,CASE WHEN intra_after=? OR pano_after=? THEN 1 ELSE 0 END is_after FROM cases WHERE intra_before=? OR pano_before=? OR intra_after=? OR pano_after=?').bind(key,key,key,key,key,key).all<any>()).results || []
   const isAfter = namedAfter || refs.some(r => r.is_after)
   if (isAfter && !c.get('user') && !reviewer) return c.text('로그인이 필요합니다', 401)
-  if (!reviewer) {
-    let published = refs.some(r => r.published === 1)
-    if (!key.startsWith('cases/') && !isAfter && !refs.length) {
-      const column = await c.env.DB.prepare('SELECT id FROM columns WHERE published=1 AND (thumbnail=? OR instr(content_html,?)>0) LIMIT 1').bind(key, '/files/'+key).first()
-      const notice = await c.env.DB.prepare('SELECT id FROM notices WHERE published=1 AND (image=? OR instr(content_html,?)>0) LIMIT 1').bind(key, '/files/'+key).first()
-      published = !!column || !!notice
-    }
-    if (!published) return c.notFound()
-  }
+  // A clinical reference wins over an editorial reference, even when the case is
+  // unpublished or the same key is reused as a column cover. Staff review access
+  // must not make a draft image indexable.
+  const clinical = /^cases\//i.test(key) || isAfter || refs.length > 0
+  const editorialPublished = !clinical && await hasPublishedEditorialImage(c.env.DB, key)
+  const published = refs.some(r => r.published === 1 && (!isAfter || r.is_after === 1)) || editorialPublished
+  if (!reviewer && !published) return c.notFound()
+  const indexable = editorialPublished && new URL(c.req.url).origin === c.get('siteUrl')
   const obj = await c.env.R2.get(key)
   if (!obj) return c.notFound()
-  const type = obj.httpMetadata?.contentType || ''
+  // MIME tokens are case-insensitive; discard legacy parameters before emitting
+  // our fixed image Content-Type. Missing/unsupported types still fail closed.
+  const type = (obj.httpMetadata?.contentType || '').split(';', 1)[0].trim().toLowerCase()
   if (!['image/jpeg','image/png','image/webp','image/gif'].includes(type)) return c.notFound()
   return new Response(obj.body, { headers: {
     'Content-Type': type, 'Cache-Control': 'private, no-store', 'X-Content-Type-Options':'nosniff',
     'Content-Disposition': 'inline', 'Cross-Origin-Resource-Policy':'same-origin',
-    'X-Robots-Tag': isAfter ? 'noindex, noimageindex' : 'noindex', 'Referrer-Policy':'no-referrer',
+    // Keep every R2 response non-cacheable so unpublishing is checked on the next
+    // request. Search eligibility is separate from access and cache policy.
+    'X-Robots-Tag': indexable ? 'index, follow' : 'noindex, noimageindex',
+    ...(indexable ? { Link: `<${c.get('siteUrl')}/files/${key}>; rel="canonical"` } : {}),
+    'Referrer-Policy':'no-referrer',
   } })
 })
 

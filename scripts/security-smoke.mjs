@@ -18,11 +18,11 @@ let browser
 const password='Long-Owner-Fixture-Password'
 function client(ip='192.0.2.10') {
  const cookies=new Map();let csrf=''
- return {cookies, get csrf(){return csrf}, async request(path, {method='GET',data,headers={},protect=true}={}) {
+ return {cookies, get csrf(){return csrf}, async request(path, {method='GET',data,headers={},protect=true,base=origin}={}) {
   let body=data
   if(data && !(data instanceof FormData) && typeof data!=='string'){body=new URLSearchParams(data);headers={'content-type':'application/x-www-form-urlencoded',...headers}}
   const jobs=[]
-  const response=await app.fetch(new Request(origin+path,{method,body,headers:{'user-agent':ua,'cf-connecting-ip':ip,cookie:[...cookies].map(([k,v])=>k+'='+v).join('; '),...(method!=='GET'?{origin,...(protect?{'x-csrf-token':csrf}:{})}:{}),...headers}}),env,{waitUntil(p){jobs.push(p)},passThroughOnException(){}})
+  const response=await app.fetch(new Request(base+path,{method,body,headers:{'user-agent':ua,'cf-connecting-ip':ip,cookie:[...cookies].map(([k,v])=>k+'='+v).join('; '),...(method!=='GET'?{origin:base,...(protect?{'x-csrf-token':csrf}:{})}:{}),...headers}}),env,{waitUntil(p){jobs.push(p)},passThroughOnException(){}})
   await Promise.all(jobs)
   for(const value of response.headers.getSetCookie()){const pair=value.split(';')[0],i=pair.indexOf('=');cookies.set(pair.slice(0,i),pair.slice(i+1))}
   const text=response.headers.get('content-type')?.includes('text/html')?await response.clone().text():''
@@ -147,6 +147,86 @@ try{
  assert.equal((await editor.request('/files/'+after)).status,200)
  checks.push('File MIME/signature/prefix checks; no arbitrary attachment keys; orphan/draft/private assets blocked; sanitized CMS at save and render')
 
+ // Production-origin policy is simulated via app.fetch, never sent to a live host.
+ const production={base:env.SITE_URL}
+ async function asset(who,key,options={}) { return who.request('/files/'+key,{...production,...options}) }
+ const expectPrivate = response => {
+  assert.equal(response.headers.get('cache-control'),'private, no-store')
+  assert.match(response.headers.get('x-robots-tag'),/noindex/)
+  assert.equal(response.headers.get('link'),null)
+ }
+ await DB.prepare('UPDATE columns SET published=1 WHERE id=?').bind(article.id).run()
+ let image=await asset(stranger,key)
+ assert.equal(image.status,200)
+ assert.equal(image.headers.get('x-robots-tag'),'index, follow')
+ assert.equal(image.headers.get('cache-control'),'private, no-store','Search eligibility does not enable caching')
+ assert.equal(image.headers.get('link'),`<${env.SITE_URL}/files/${key}>; rel="canonical"`)
+ assert.equal(image.headers.get('cross-origin-resource-policy'),'same-origin')
+ for(const base of [origin,'https://preview.example','https://clinic.example.attacker.test']) {
+  image=await asset(stranger,key,{base,headers:{'x-forwarded-host':'clinic.example'}})
+  assert.equal(image.status,200);expectPrivate(image)
+ }
+ const head=await asset(stranger,key,{method:'HEAD'})
+ assert.equal(head.status,200);assert.equal(await head.text(),'');assert.equal(head.headers.get('x-robots-tag'),'index, follow')
+ image=await stranger.request('/files/'+key+'?tracking=ignored',production)
+ assert.equal(image.headers.get('link'),`<${env.SITE_URL}/files/${key}>; rel="canonical"`)
+ // Literal URL mention, links, comments, removed HTML and prefix matches must not
+ // turn an unreferenced object into a publicly accessible image.
+ const negativeBodies=[`<p>/files/${key}</p>`,`<a href="/files/${key}">file</a>`,`<!-- <img src="/files/${key}"> -->`,`<script><img src="/files/${key}"></script>`,`<template><img src="/files/${key}"></template>`,`<img src="/files/${key}.backup.png">`,`<img src="https://external.example/files/${key}">`,`<p title='/files/${key}'>text</p>`]
+ for(const body of negativeBodies) {
+  await DB.prepare('UPDATE columns SET content_html=? WHERE id=?').bind(body,article.id).run()
+  image=await asset(stranger,key);assert.equal(image.status,404,body);expectPrivate(image)
+ }
+ // Legacy quote/case variations that still render a valid image remain usable.
+ for(const body of [`<IMG SRC='/files/${key}' alt='safe'>`,`<img src=/files/${key}>`,article.content_html]) {
+  await DB.prepare('UPDATE columns SET content_html=? WHERE id=?').bind(body,article.id).run()
+  assert.equal((await asset(stranger,key)).status,200)
+ }
+ await DB.prepare('UPDATE columns SET content_html=?,thumbnail=? WHERE id=?').bind('<p>Cover only</p>',key,article.id).run()
+ assert.equal((await asset(stranger,key)).headers.get('x-robots-tag'),'index, follow')
+ await DB.prepare('UPDATE columns SET published=0 WHERE id=?').bind(article.id).run()
+ image=await asset(stranger,key,{headers:{'if-none-match':'old-etag'}})
+ assert.equal(image.status,404);expectPrivate(image)
+ image=await asset(editor,key);assert.equal(image.status,200);expectPrivate(image)
+ // A published notice can reference the same key; clearing it revokes access.
+ const notice=await DB.prepare('INSERT INTO notices(title,content_html,image,published) VALUES (?,?,?,1) RETURNING id').bind('FILE POLICY FIXTURE','<p>Notice</p>',key).first()
+ assert.equal((await asset(stranger,key)).headers.get('x-robots-tag'),'index, follow')
+ await DB.prepare('UPDATE notices SET image=NULL,content_html=? WHERE id=?').bind(`<img src="/files/${key}">`,notice.id).run()
+ assert.equal((await asset(stranger,key)).status,200)
+ await DB.prepare('UPDATE notices SET content_html=? WHERE id=?').bind('<p>Removed</p>',notice.id).run()
+ assert.equal((await asset(stranger,key)).status,404)
+ // Clinical restrictions win over both column and notice publication.
+ await DB.prepare('UPDATE columns SET published=1,thumbnail=? WHERE id=?').bind(after,article.id).run()
+ assert.equal((await asset(stranger,after)).status,401)
+ image=await asset(editor,after);assert.equal(image.status,200);expectPrivate(image)
+ image=await asset(stranger,before);assert.equal(image.status,200);expectPrivate(image)
+ await DB.prepare('UPDATE cases SET intra_after=? WHERE slug=?').bind(key,'case-fixture').run()
+ await DB.prepare('UPDATE columns SET thumbnail=? WHERE id=?').bind(key,article.id).run()
+ assert.equal((await asset(stranger,key)).status,401,'After-photo status is determined by DB references, not only pathname')
+ const viewer=client('192.0.2.41');await viewer.request('/auth/register')
+ assert.equal((await viewer.request('/auth/register',{method:'POST',data:{name:'File Viewer Fixture',email:'files@example.invalid',phone:'01000000041',password,agree_privacy:'1'}})).status,302)
+ image=await asset(viewer,key);assert.equal(image.status,200);expectPrivate(image)
+ await DB.prepare('UPDATE cases SET published=0 WHERE slug=?').bind('case-fixture').run()
+ await DB.prepare("INSERT INTO cases(slug,title,treatment_slug,intra_before,published) VALUES ('shared-before-fixture','Shared fixture','implant',?,1)").bind(key).run()
+ assert.equal((await asset(viewer,key)).status,404,'A published before-reference must not reveal an unpublished after-photo')
+ image=await asset(editor,key);assert.equal(image.status,200);expectPrivate(image)
+ const upperAfter='CASES/AFTER/legacy.JPG'
+ await R2.put(upperAfter,png,{httpMetadata:{contentType:'image/png'}})
+ await DB.prepare('UPDATE columns SET thumbnail=? WHERE id=?').bind(upperAfter,article.id).run()
+ assert.equal((await asset(stranger,upperAfter)).status,401,'Case-insensitive after prefix stays protected')
+ for (const [fileKey,mime,expected] of [['uploads/legacy_2020-01.jpg','image/jpeg',200],['notices/legacy.PNG','image/png',200],['columns/legacy.webp','image/webp',200],['uploads/legacy.gif','image/gif',200],['columns/legacy-type.PNG','IMAGE/PNG',200],['columns/legacy-parameter.jpeg','image/jpeg; charset=binary',200],['uploads/unsupported.svg','image/svg+xml',404],['uploads/wrong-type.png','text/html',404],['uploads/missing-type.png',null,404],['uploads/subfolder/nested.png','image/png',404],['uploads/name.with.dots.png','image/png',404]]) {
+  await R2.put(fileKey,png,mime?{httpMetadata:{contentType:mime}}:{})
+  await DB.prepare('UPDATE columns SET thumbnail=? WHERE id=?').bind(fileKey,article.id).run()
+  image=await asset(stranger,fileKey);assert.equal(image.status,expected,fileKey)
+  if(expected===404)expectPrivate(image)
+  else assert.equal(image.headers.get('content-type'),mime.split(';')[0].toLowerCase())
+ }
+ await DB.prepare('UPDATE columns SET thumbnail=? WHERE id=?').bind('uploads/absent.png',article.id).run()
+ image=await asset(stranger,'uploads/absent.png');assert.equal(image.status,404);expectPrivate(image)
+ // Restore independent fixtures for later tests; all these objects die with mf.
+ await DB.prepare('UPDATE columns SET published=0,thumbnail=NULL,content_html=? WHERE id=?').bind(article.content_html,article.id).run()
+ checks.push('Exact rendered-image publication; production-only editorial indexing; preview/draft/clinical noindex; HEAD/canonical/revocation; shared after-photo and legacy key/MIME boundaries')
+
  // Snapshot preview and explicit owner reauthentication; no real data is touched.
  await DB.prepare("INSERT INTO reservations(name,phone,status,created_at) VALUES ('EXPIRED TEST','01000000001','done','2020-01-01 00:00:00')").run()
  const expired=(await DB.prepare("SELECT id FROM reservations WHERE name='EXPIRED TEST'").first()).id
@@ -210,6 +290,14 @@ try{
  assert.equal(/onerror|onload|<script|<svg/.test(sanitized),false)
  const externalImage=await page.evaluate(()=>window.AdminSanitizer.clean('<img src="https://example.invalid/tracker.png">'))
  assert.equal(externalImage.includes('https://example.invalid'),false)
+ for (const path of ['/admin/columns/new','/admin/notices/new']) {
+  for (const width of [320,390,1440]) {
+   await page.setViewportSize({width,height:844})
+   await page.goto(origin+path,{waitUntil:'networkidle'})
+   assert.equal(await page.getByRole('complementary',{name:'이미지 공개 안내'}).count(),1)
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${path} overflow ${width}`)
+  }
+ }
  assert.deepEqual(errors,[])
  checks.push('Fixture-only responsive staff board at 320/390/768/1440; private details excluded from cards; client sanitizer loaded without JS errors')
  console.log(JSON.stringify({checks,errors:[]},null,2))

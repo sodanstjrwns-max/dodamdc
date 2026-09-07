@@ -173,8 +173,9 @@ admin.post('/cases/:id', async (c) => { const id = Number(c.req.param('id')); tr
 admin.post('/cases/:id/delete', async (c) => { await c.env.DB.prepare('DELETE FROM cases WHERE id=?').bind(c.req.param('id')).run(); return c.redirect('/admin/cases') })
 
 // ── 원장 칼럼 (SEO 에디터) ───────────────────────────────
+const editorialImageNotice = html`<aside class="ops-panel" aria-label="이미지 공개 안내"><h2 class="h3">게시 전에 이미지 공개 범위를 확인하세요</h2><p>공개 칼럼·공지에 연결한 일반 이미지는 누구나 볼 수 있고, 운영 사이트에서는 검색 대상이 될 수 있습니다. 업로드만 했거나 비공개 글에만 연결된 이미지는 담당 직원만 확인할 수 있습니다.</p><p>치료 후 사진을 칼럼·공지용으로 다시 업로드하지 마세요. 동일 사진을 새 파일로 올린 경우 자동으로 식별하지 못합니다. 환자 동의·비식별화·촬영 메타데이터는 게시자가 확인해야 합니다.</p><p class="hint">다른 공개 글에서도 쓰는 이미지는 한 글만 비공개로 바꿔도 계속 공개됩니다. 검색 결과·외부 복제본의 즉시 삭제를 보장하지 않습니다.</p></aside>`
 function columnForm(c: any, p: any = {}, err?: string) {
-  const body = html`${alertBox(err)}<form method="post" enctype="multipart/form-data" class="admin-form" data-once id="column-form">
+  const body = html`${alertBox(err)}${editorialImageNotice}<form method="post" enctype="multipart/form-data" class="admin-form" data-once id="column-form">
   <div class="field"><label>제목 (H1) *</label><input name="title" required value="${p.title || ''}" maxlength="80" data-count></div>
   <div class="form-row"><div class="field"><label>슬러그 (URL)</label><input name="slug" value="${p.slug || ''}" placeholder="비우면 제목에서 자동 생성"></div><div class="field"><label>작성자</label><select name="author_slug">${doctors.map((d) => html`<option value="${d.slug}" ${(p.author_slug || 'han-hwirim') === d.slug ? 'selected' : ''}>${d.name} ${d.title}</option>`)}</select></div><div class="field"><label>관련 진료 (인링크)</label><select name="treatment_slug"><option value="">없음</option>${treatments.map((t) => html`<option value="${t.slug}" ${p.treatment_slug === t.slug ? 'selected' : ''}>${t.name}</option>`)}</select></div></div>
   <div class="field"><label>요약 (excerpt · 목록·OG에 사용)</label><textarea name="excerpt" rows="2" maxlength="200" data-count>${p.excerpt || ''}</textarea></div>
@@ -228,7 +229,7 @@ admin.post('/columns/:id/delete', async (c) => { await c.env.DB.prepare('DELETE 
 
 // ── 공지사항 ─────────────────────────────────────────────
 function noticeForm(c: any, n: any = {}, err?: string) {
-  const body = html`${alertBox(err)}<form method="post" enctype="multipart/form-data" class="admin-form" data-once>
+  const body = html`${alertBox(err)}${editorialImageNotice}<form method="post" enctype="multipart/form-data" class="admin-form" data-once>
   <div class="field"><label>제목 *</label><input name="title" required value="${n.title || ''}"></div>
   <div class="field"><label>내용 *</label><div class="editor-toolbar">${[['h3', 'H3'], ['p', '본문'], ['bold', 'B'], ['ul', '• 목록'], ['link', '링크'], ['image', '이미지']].map(([k, l]) => html`<button type="button" data-cmd="${k}">${l}</button>`)}</div><div class="editor" id="editor" contenteditable="true" data-upload="/admin/api/upload" data-prefix="notices">${raw(sanitizeArticle(n.content_html || '<p></p>'))}</div><textarea name="content_html" id="content_html" hidden>${n.content_html || ''}</textarea></div>
   <div class="field"><label>이미지 (선택)</label><div class="upload-slot ${n.image ? 'has' : ''}">${n.image ? html`<img src="/files/${n.image}" alt="" width="240" height="160">` : html`<span class="upload-empty">클릭 또는 드래그</span>`}<input type="file" name="image_file" accept="image/*"><input type="hidden" name="image" value="${n.image || ''}"><label class="check small"><input type="checkbox" name="image_clear" value="1"> 삭제</label></div></div>
