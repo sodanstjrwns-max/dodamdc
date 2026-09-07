@@ -7,7 +7,7 @@
 - **경로 / 브랜치**: `/home/user/webapp` / `main`
 - **최근 작업**: 2026-09-07 디자인 제안 1~6 전체 반영 — 차분한 히어로, CTA 위계, 압축된 읽기 동선, 원장 중심 편집, 실제 사진 표시 톤/크롭, 공통 궤도·모션. **사용자 승인 후 최신 디자인 운영 배포 완료.**
 - **현재 운영 소스**: `2ece8da` / 배포 `d62ed212`. 기존 `6c4eab5e` 릴리스에서 디자인을 업데이트했습니다. 이번에는 DB migration·예약 데이터·secret 변경이 없습니다.
-- **최신 디자인 미리보기**: https://3000-im9044c37cori5huz389s-c81df28e.sandbox.novita.ai/?v=15
+- **최신 디자인 미리보기**: https://3000-im9044c37cori5huz389s-c81df28e.sandbox.novita.ai/?v=16
 - **운영 관리자**: https://seoul-dodam-dental.pages.dev/admin/login
 - **운영 첫 방문**: https://seoul-dodam-dental.pages.dev/first-visit
 - **운영 주소**: https://seoul-dodam-dental.pages.dev
@@ -15,6 +15,16 @@
 - **운영 반영: 배포 완료.** 기존 Pages 프로젝트 `seoul-dodam-dental`의 `main`을 업데이트했습니다. 운영 D1 migration 0002/0003 적용 완료. 기존 DB/R2 연결과 secret은 유지했으며 커스텀 도메인·검색 서비스 등록은 변경하지 않았습니다.
 - 실제 환자 파기, 미리보기 DB의 테스트 직원/환자 생성, 외부 예약·전화·카카오·메일 발송은 실행하지 않았습니다. 보안 테스트는 별도 폐기 가능한 D1/R2를 사용합니다.
 - 배포 경로는 사용자가 선택한 **본인 Cloudflare 계정(BYOK)** 입니다. Hosted 접근 규칙/신원 연동은 설정하지 않았으며, 현재 권한은 애플리케이션 내부 RBAC입니다. 샌드박스 미리보기와 운영 DB는 서로 별개입니다.
+
+## 모바일 스크린샷 피드백 반영 (CSS v16)
+- 사용자 iOS 인앱브라우저 화면의 모형/캡션 겹침과 회전 화살표 문자 선택 현상에 대응했습니다. 모바일 모형과 조작부를 별도 grid 행으로 배치하고 장식 캡션은 모바일에서 숨깁니다. 안내 문구는 유지하고 버튼은 48px로 확대했습니다.
+- 회전 화살표는 선택 가능한 문자 대신 aria-hidden SVG, 버튼에는 기존 aria-label을 유지합니다. 조작 버튼에만 user-select/touch-callout 억제를 적용하고 본문·주소·입력 필드의 선택 기능은 유지합니다. 모형 위 세로 스크롤과 pinch zoom을 허용합니다.
+- 철학 문장과 3개 원칙은 그대로 두고 모바일 제목/여백/목록 간격을 정리했습니다. 하단 예약 바는 56px 높이와 safe-area를 사용하며 footer/맨 위로 버튼/root scroll-padding-bottom에 여유를 확보합니다.
+- PC 배치는 유지하며 예약·회원·관리자·DB·secret은 변경하지 않습니다. 스타일 버전은 `/static/kinetic.css?v=16`입니다.
+- `TEST_WEBKIT=1 npm run test:mobile`로 Chromium + Linux WebKit 모바일 에뮬레이션을 검사합니다. WebKit 설치: `npx playwright install --with-deps webkit`. 기본 `npm run test:mobile`은 Chromium만 필요합니다.
+- 검사 항목: 320/390/430px, WebGL 터치 회전, 모형/조작부 경계, SVG 무문자 버튼/user-select, 철학 원칙 보존, 뷰포트 높이 500px 전후 변화와 예약 바 위치, 메뉴 동작, 기존 폰트/절약모드.
+- **검증 한계**: Linux WebKit은 실제 iPhone/Kakao 브라우저 UI가 아니며 iOS 전용 `-webkit-touch-callout`을 지원하지 않습니다. 지원 여부를 결과에 기록하며 이를 native long-press/키보드/홈 인디케이터 실기기 검증으로 주장하지 않습니다. 사용자의 인앱브라우저에서 최종 확인이 필요합니다.
+- 캡처: `.artifacts/mobile-fix-{chromium,webkit}-{hero,philosophy}.png`. 모바일 8그룹(Chromium/WebKit 포함), 모션 9그룹, 환자 동선 8그룹, 디자인 80화면, SEO 700페이지, 보안 8그룹을 통과했습니다. 운영 반영 전 검증 완료 상태입니다.
 
 ## 디자인 1~6 전체 마감 — 운영 반영 완료
 1. 히어로: 첫 제목 줄은 작고 차분하게, 주요 두 줄은 크게 구성. 작은 영문 배지/떠다니는 라벨을 줄이고, 입체 치아 뒤 은은한 타원 배경과 단일 캡션 사용. 원문 슬로건과 ‘도담의 다른 생각’ 링크 유지.
