@@ -1,7 +1,7 @@
 // 비급여 진료비 고지 — 원본 수가표(2026) 기준. '사용안함', 이벤트/할인, 교정(미시행), 내부 관리용 항목 제외.
 // 의료광고법: 가격 비교·할인 문구 사용 금지. 금액은 '~원부터'가 아닌 고지 금액 그대로.
 export type PriceItem = { name: string; price: number | null; unit?: string; note?: string }
-export type PriceGroup = { group: string; desc?: string; items: PriceItem[] }
+export type PriceGroup = { id: string; group: string; desc?: string; items: PriceItem[] }
 
 export const pricingUpdatedAt = '2026-08-01'
 
@@ -23,8 +23,8 @@ export const insuredItems: string[] = [
 
 export const pricing: PriceGroup[] = [
   {
-    group: '임플란트',
-    desc: '식립 + 기본 보철 기준. 뼈이식·상악동 거상술은 뼈 상태에 따라 추가될 수 있으며 CT 진단 후 사전에 안내드립니다.',
+    id: 'implant', group: '임플란트',
+    desc: '아래는 항목별 고지 금액입니다. 식립·보철의 포함 범위와 별도 비용은 치료 계획에서 확인해 주세요. 뼈이식·상악동 거상술 등 추가 항목의 필요 여부도 진단 후 안내드립니다.',
     items: [
       { name: '오스템 임플란트 (구치부)', price: 990000, unit: '1개' },
       { name: '오스템 임플란트 (전치부)', price: 1090000, unit: '1개' },
@@ -44,7 +44,7 @@ export const pricing: PriceGroup[] = [
     ],
   },
   {
-    group: '크라운·보철',
+    id: 'crown', group: '크라운·보철',
     items: [
       { name: '풀 지르코니아 크라운 (구치부)', price: 450000, unit: '1개' },
       { name: '풀 지르코니아 크라운 (전치부)', price: 550000, unit: '1개' },
@@ -54,7 +54,7 @@ export const pricing: PriceGroup[] = [
     ],
   },
   {
-    group: '치수보존치료(VPT)·신경치료 관련',
+    id: 'vpt', group: '치수보존치료(VPT)·신경치료 관련',
     desc: '신경치료 자체는 건강보험 적용. 아래는 생체재료·코어 등 비급여 재료 항목입니다.',
     items: [
       { name: 'MTA (생체재료)', price: 50000, unit: '1치' },
@@ -66,7 +66,7 @@ export const pricing: PriceGroup[] = [
     ],
   },
   {
-    group: '충치·보존치료',
+    id: 'restorative', group: '충치·보존치료',
     items: [
       { name: '레진 (단순)', price: 100000, unit: '1면' },
       { name: '레진 (앞니)', price: 150000, unit: '1치' },
@@ -78,7 +78,7 @@ export const pricing: PriceGroup[] = [
     ],
   },
   {
-    group: '틀니',
+    id: 'dentures', group: '틀니',
     items: [
       { name: '부분 틀니', price: 1500000, unit: '1악' },
       { name: '전체 틀니', price: 1500000, unit: '1악' },
@@ -89,7 +89,7 @@ export const pricing: PriceGroup[] = [
     ],
   },
   {
-    group: '소아치과',
+    id: 'pediatric', group: '소아치과',
     items: [
       { name: 'SS 크라운 (유치)', price: 150000, unit: '1치' },
       { name: 'Band & Loop (공간유지장치)', price: 200000, unit: '1개' },
@@ -98,7 +98,7 @@ export const pricing: PriceGroup[] = [
     ],
   },
   {
-    group: '턱관절·기타',
+    id: 'other', group: '턱관절·기타',
     items: [
       { name: '이갈이 장치 (스플린트)', price: 600000, unit: '1개' },
       { name: '비급여 스케일링', price: 50000, unit: '1회' },
@@ -108,12 +108,23 @@ export const pricing: PriceGroup[] = [
     ],
   },
   {
-    group: '치아 미백 (과세)',
+    id: 'whitening', group: '치아 미백 (과세)',
     items: [
       { name: '전문가 미백 (1회)', price: 150000, unit: '1회' },
       { name: '전문가 미백 (3회)', price: 400000, unit: '3회' },
     ],
   },
 ]
+
+// Stable fragment IDs, independent of treatment display names and Korean URL encoding.
+const treatmentPriceGroups: Record<string, string> = {
+  'vpt-crown': 'vpt', periodontal: 'insured', implant: 'implant', endodontics: 'vpt',
+  'wisdom-tooth': 'insured', restorative: 'restorative', prosthodontics: 'crown',
+  pediatric: 'pediatric', 'oral-surgery': 'insured', tmj: 'other', preventive: 'insured', whitening: 'whitening',
+}
+export const treatmentPricingUrl = (slug: string) => {
+  const id = treatmentPriceGroups[slug]
+  return id ? `/pricing#${id}` : '/pricing'
+}
 
 export const won = (n: number) => n.toLocaleString('ko-KR') + '원'

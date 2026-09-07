@@ -21,7 +21,7 @@ try {
   const fonts = requests.filter(url => url.endsWith('.woff2'))
   assert.equal(fonts.some(url => url.includes('WantedSansVariable')), false)
   assert.equal(fonts.some(url => url.includes('Extended')), false, 'Home should only need the core subset')
-  assert.ok(fonts.some(url => url.includes('Core-v1')))
+  assert.ok(fonts.some(url => url.includes('Core-v2')))
   result.resourceSamples.push({ page: '/', saveData: true, fontRequests: fonts, sceneRequested: false })
   result.checks.push('Save-data/2G keeps SVG without downloading the 3D bundle; core font only')
   await page.locator('#model-enable').click()
@@ -54,8 +54,21 @@ try {
     await page.keyboard.press('Escape')
   }
   result.checks.push('Small phone and short tablet viewport retain menu and form access')
+  // Check new static text too, not just the homepage; a single missing glyph loads Extended.
   await page.close()
-  result.fontBytes = { original: (await stat('public/static/fonts/WantedSansVariable.woff2')).size, initialCore: (await stat('public/static/fonts/WantedSansCore-v1.woff2')).size }
+  for (const path of ['/first-visit', '/treatments/vpt-crown', '/treatments/periodontal', '/treatments/implant', '/pricing']) {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' })
+    const sample = await context.newPage(), fontRequests = []
+    sample.on('request', request => { if (request.url().endsWith('.woff2')) fontRequests.push(request.url()) })
+    await sample.goto(base + path, { waitUntil: 'networkidle' })
+    await sample.evaluate(() => document.fonts.ready)
+    assert.ok(fontRequests.some(url => url.includes('Core-v2')), `${path}: current core font`)
+    assert.equal(fontRequests.some(url => url.includes('Extended')), false, `${path}: static guide must not require the large extended font`)
+    result.resourceSamples.push({ page: path, fontRequests })
+    await context.close()
+  }
+  result.checks.push('First-visit, core treatments and pricing use only the refreshed core subset')
+  result.fontBytes = { original: (await stat('public/static/fonts/WantedSansVariable.woff2')).size, initialCore: (await stat('public/static/fonts/WantedSansCore-v2.woff2')).size }
   assert.ok(result.fontBytes.initialCore < result.fontBytes.original * 0.2)
 } catch (error) { result.errors.push(error.stack || String(error)) }
 finally { await browser.close(); await writeFile('.artifacts/mobile-audit.json', JSON.stringify(result, null, 2)) }

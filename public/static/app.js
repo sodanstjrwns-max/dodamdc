@@ -102,7 +102,7 @@
     '/doctors': ['/doctors'],
     '/treatments': ['/treatments', '/floor-guide'],
     '/column': ['/column', '/cases', '/encyclopedia'],
-    '/directions': ['/directions', '/hours', '/pricing', '/faq', '/notice']
+    '/directions': ['/first-visit', '/directions', '/hours', '/pricing', '/faq', '/notice']
   };
   $$('.gnb-list > li').forEach(function(li) {
     var trigger = $('a', li);
@@ -376,7 +376,23 @@
   });
   $$('form[data-once]').forEach(function (f) {
     f.addEventListener('submit', function () {
-      var b = $('button[type=submit]', f); if (b) { b.disabled = true; b.textContent = b.getAttribute('data-loading') || '처리 중…'; }
+      var b = $('button[type=submit]', f);
+      if (b && !b.disabled) {
+        b.dataset.submitLabel = b.innerHTML;
+        b.disabled = true;
+        b.textContent = b.getAttribute('data-loading') || '처리 중…';
+      }
+    });
+  });
+
+  // A page restored by Back/Forward cache keeps DOM state, including disabled buttons.
+  // Restore only buttons disabled by this handler; preserve deliberately disabled controls.
+  w.addEventListener('pageshow', function (e) {
+    if (!e.persisted) return;
+    $$('form[data-once] button[data-submit-label]').forEach(function (b) {
+      b.innerHTML = b.dataset.submitLabel;
+      b.disabled = false;
+      delete b.dataset.submitLabel;
     });
   });
 

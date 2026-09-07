@@ -152,9 +152,10 @@ export function pricingPage(c: Context<Env>) {
 ${pageHero({ eyebrow: '비급여 진료비 고지', title: html`치료 전에 먼저 알려드리는<br>비용`, lead: '의료법에 따라 비급여 항목의 진료비를 고지합니다. 이벤트·할인 없이 고지된 금액을 동일하게 적용하며, 상담에서 예상 비용을 먼저 안내드립니다.', crumbs: [{ name: '홈', href: '/' }, { name: '비급여 진료비', href: '/pricing' }] })}
 <section class="section">
   <div class="container container-narrow">
-    <div class="price-notice reveal in"><p><strong>기준일 ${pricingUpdatedAt.replace(/-/g, '.')}</strong> · 금액은 1개(1부위) 기준이며 뼈 상태·치료 범위에 따라 항목이 추가될 수 있습니다. 추가되는 항목은 치료 전 반드시 안내드립니다. 표시된 금액은 부가세 면세(의료 서비스)입니다.</p></div>
-    <nav class="pill-list reveal in" aria-label="항목 바로가기">${pricing.map((g) => html`<li><a href="#${encodeURIComponent(g.group)}">${g.group}</a></li>`)}<li><a href="#insured">건강보험 적용 항목</a></li></nav>
-    ${pricing.map((g) => html`<section class="reveal" id="${encodeURIComponent(g.group)}">
+    <div class="price-notice reveal in"><p><strong>기준일 ${pricingUpdatedAt.replace(/-/g, '.')}</strong> · 금액과 적용 단위는 각 행을 확인해 주세요. 개인의 상태·치료 범위에 따라 항목이 추가될 수 있으며, 포함 범위와 총비용은 치료 전에 안내드립니다. 과세 여부는 해당 항목의 표기를 확인해 주세요.</p></div>
+    <nav class="reveal in" aria-label="항목 바로가기"><ul class="pill-list price-navigation">${pricing.map((g) => html`<li><a href="#${g.id}">${g.group}</a></li>`)}<li><a href="#insured">건강보험 적용 항목</a></li></ul></nav>
+    ${pricing.map((g) => html`<section class="reveal" id="${g.id}">
+      <span class="fragment-alias" id="${encodeURIComponent(g.group)}" aria-hidden="true"></span><span class="fragment-alias" id="${g.group}" aria-hidden="true"></span>
       <h2 class="h3">${g.group}</h2>
       ${g.desc ? html`<p class="hint" style="margin:0 0 12px">${g.desc}</p>` : ''}
       <div class="table-wrap" role="region" aria-label="${g.group} 진료비 표, 작은 화면에서는 좌우로 이동할 수 있습니다" tabindex="0"><table class="price-table"><thead><tr><th>항목</th><th>단위</th><th>금액</th><th>비고</th></tr></thead><tbody>
@@ -192,7 +193,7 @@ ${pageHero({ eyebrow: `${p.areaFull} · ${t.category}`, title: html`${p.areaName
       <section class="reveal"><h2>진료 전 알아두실 점</h2><ul>${t.sideEffects.slice(0, 3).map((s) => html`<li>${s}</li>`)}</ul><p class="hint">개인의 구강 상태에 따라 치료 방법과 결과는 다를 수 있습니다.</p></section>
     </div>
     <section class="reveal" id="faq"><h2 class="h3">${p.areaName} 분들이 자주 묻는 ${t.name} 질문</h2>${faqList(t.faqs.slice(0, 6), { cat: t.slug, open: 1 })}</section>
-    <p class="reviewed">${reviewLine(clinic)}. 이 페이지는 ${p.areaFull} 거주·근무 분들을 위한 안내로, 한휘림 원장(통합치의학과 전문의)이 검토했습니다.</p>
+    <p class="reviewed">${reviewLine(clinic)}. 이 페이지는 ${p.areaFull} 거주·근무 분들을 위한 안내입니다. ${t.core ? '연결된 핵심 진료 자료의 추가·수정 표현은 의료진 재검토 전입니다.' : '기존 진료 자료는 한휘림 원장(통합치의학과 전문의)이 검토했습니다.'}</p>
   </article>
   <aside class="tx-side">
     <div class="side-card side-cta"><p class="side-title">${p.areaName}에서 예약</p><p class="side-phone"><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></p><a href="/reservation?treatment=${t.slug}" class="btn btn-primary btn-block">온라인 예약</a><a href="/directions" class="link-arrow">오시는 길</a></div>

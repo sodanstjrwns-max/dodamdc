@@ -5,6 +5,7 @@ import { Layout } from '../lib/layout'
 import { procedureLd, faqLd, physicianLd, truncate } from '../lib/seo'
 import { treatments, coreTreatments, otherTreatments, getTreatment, type Treatment } from '../data/treatments'
 import { doctors } from '../data/doctors'
+import { treatmentPricingUrl } from '../data/pricing'
 import { autoLink, termsForTreatment } from '../data/encyclopedia'
 import { imageAttrs, pageHero, faqList, ctaStrip } from '../lib/ui'
 import { esc, fmtDate } from '../lib/util'
@@ -123,8 +124,10 @@ ${pageHero({
 
     ${t.compare ? html`<section id="compare" class="reveal">
       <h2 class="h3">${t.compare.caption}</h2>
-      <div class="table-wrap"><table class="compare-table"><thead><tr>${t.compare.head.map((h) => html`<th>${h}</th>`)}</tr></thead>
+      <p class="hint" id="compare-scroll-hint">작은 화면에서는 표를 좌우로 움직여 보세요. 키보드로 표에 초점을 맞춘 뒤 방향키로 이동할 수도 있습니다.</p>
+      <div class="table-wrap" role="region" aria-label="${t.compare.caption}" aria-describedby="compare-scroll-hint compare-note" tabindex="0"><table class="compare-table"><caption class="sr-only">${t.compare.caption}</caption><thead><tr>${t.compare.head.map((h) => html`<th scope="col">${h}</th>`)}</tr></thead>
       <tbody>${t.compare.rows.map((r) => html`<tr>${r.map((cell, j) => (j === 0 ? html`<th scope="row">${cell}</th>` : html`<td>${cell}</td>`))}</tr>`)}</tbody></table></div>
+      <p class="hint" id="compare-note">일반적인 차이를 이해하기 위한 안내입니다. 증상만으로 치료를 선택할 수 없으며, 적용 여부·기간·비용은 검사와 상담 후 확인해야 합니다.</p>
     </section>` : ''}
 
     <section id="side-effects" class="side-effects reveal">
@@ -178,7 +181,7 @@ ${pageHero({
       <p class="side-title">예약·문의</p>
       <p class="side-phone"><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></p>
       <a href="/reservation?treatment=${t.slug}" class="btn btn-primary btn-block">온라인 예약</a>
-      <a href="/pricing#${encodeURIComponent(t.name)}" class="link-arrow">비급여 진료비 확인</a>
+      <a href="${treatmentPricingUrl(t.slug)}" class="link-arrow">진료비·보험 안내 확인</a>
     </div>
   </aside>
 </div>

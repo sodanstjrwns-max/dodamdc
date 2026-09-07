@@ -126,6 +126,14 @@ try {
       await page.goto('http://localhost:3000' + path, { waitUntil: 'networkidle' })
       assert.equal(await page.locator('main h1').count(), 1)
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${path} overflow ${width}`)
+      if (path === '/first-visit') {
+        for (const id of ['visit-preparation', 'visit-steps', 'anxiety', 'first-visit-faq']) {
+          await page.locator(`.visit-reading-nav a[href="#${id}"]`).click()
+          const target = await page.locator('#' + id).boundingBox()
+          const toolbar = await page.locator('.visit-reading-nav').boundingBox()
+          assert.ok(target.y >= toolbar.y + toolbar.height - 2, `${width}px ${id}: heading behind sticky toolbar`)
+        }
+      }
       if (path.startsWith('/treatments/')) {
         await page.locator('.reading-nav a[href="#consultation-guide"]').click()
         const anchor = await page.locator('#consultation-guide').boundingBox()
@@ -174,8 +182,62 @@ try {
   assert.equal(await fallback.locator('.visit-steps>li').count(), 6)
   await fallback.locator('#first-visit-faq summary').first().click()
   assert.equal(await fallback.locator('#first-visit-faq details').first().getAttribute('open'), '')
-  assert.deepEqual(errors, [])
   checks.push('24 new-page viewport combinations; anchors, real click payload/dedup, no-JS steps and FAQ')
+
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  await page.goto('http://localhost:3000/first-visit', { waitUntil: 'networkidle' })
+  assert.equal(await page.locator('.gnb-list > li.is-current-section > a').getAttribute('href'), '/directions')
+  for (const id of ['visit-preparation', 'visit-steps', 'anxiety', 'first-visit-faq']) {
+    await page.locator(`.visit-reading-nav a[href="#${id}"]`).click()
+    await page.waitForTimeout(100)
+    assert.equal(await page.locator('.visit-reading-nav [aria-current="location"]').getAttribute('href'), '#' + id)
+    const target = await page.locator('#' + id).boundingBox()
+    assert.ok(target.y >= 70 && target.y < 350, `${id}: sticky anchor ${target.y}`)
+  }
+  await page.setViewportSize({ width: 320, height: 650 })
+  await page.goto('http://localhost:3000/treatments/implant#compare', { waitUntil: 'networkidle' })
+  const table = page.locator('#compare .table-wrap')
+  assert.equal(await table.getAttribute('tabindex'), '0')
+  await table.focus(); await table.press('ArrowRight'); await page.waitForTimeout(250)
+  assert.ok(await table.evaluate(el => el.scrollLeft > 0), 'Comparison scrolls with keyboard')
+  await page.goto('http://localhost:3000/treatments', { waitUntil: 'networkidle' })
+  const txPaths = await page.locator('.treatment-chapter, .tx-item').evaluateAll(links => links.map(a => new URL(a.href).pathname))
+  let linkCount = 0
+  for (const path of txPaths) {
+    const source = await (await page.request.get('http://localhost:3000' + path)).text()
+    const links = await page.evaluate(source => {
+      const doc = new DOMParser().parseFromString(source, 'text/html')
+      return [...doc.querySelectorAll('.side-cta a[href^="/pricing"], #consultation-guide a[href^="/pricing"], #consultation-guide a[href^="/floor-guide"]')].map(a => a.getAttribute('href'))
+    }, source)
+    for (const href of links) {
+      const url = new URL(href, 'http://localhost:3000')
+      assert.ok(url.hash, `${path}: exact destination required`)
+      const response = await page.request.get(url.origin + url.pathname)
+      assert.equal(response.status(), 200)
+      assert.ok(await page.evaluate(({ source, id }) => !!new DOMParser().parseFromString(source, 'text/html').getElementById(id), { source: await response.text(), id: decodeURIComponent(url.hash.slice(1)) }), `${path}: missing ${href}`)
+      linkCount++
+    }
+  }
+  await fallback.goto('http://localhost:3000/pricing#vpt', { waitUntil: 'networkidle' })
+  assert.ok((await fallback.locator('#vpt').boundingBox()).y < 300, 'No-JS stable price anchor')
+  await page.goto('http://localhost:3000/pricing#' + encodeURIComponent('크라운·보철'), { waitUntil: 'networkidle' })
+  assert.ok((await page.locator('#crown').boundingBox()).y < 300, 'Legacy Korean anchor retained')
+  checks.push(`First-visit active menu/toolbar, keyboard comparison scrolling and ${linkCount} exact price/equipment links across 12 treatments`)
+
+  await page.goto('http://localhost:3000/reservation', { waitUntil: 'networkidle' })
+  const recovery = await page.evaluate(() => {
+    const form = document.querySelector('#reservation-form')
+    const button = form.querySelector('button[type="submit"]')
+    const before = button.innerHTML
+    form.addEventListener('submit', e => e.preventDefault())
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    const wasDisabled = button.disabled
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))
+    return { wasDisabled, restored: !button.disabled && button.innerHTML === before }
+  })
+  assert.deepEqual(recovery, { wasDisabled: true, restored: true })
+  checks.push('Back/forward-cache recovery restores the submit button without posting a reservation')
+  assert.deepEqual(errors, [])
   console.log(JSON.stringify({ checks, errors: [] }, null, 2))
   await writeFile('.artifacts/journey-audit.json', JSON.stringify({ checks, errors: [] }, null, 2))
 } finally {

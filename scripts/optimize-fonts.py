@@ -8,6 +8,7 @@ from fontTools.ttLib import TTFont
 ROOT = Path(__file__).resolve().parents[1]
 DIR = ROOT / 'public/static/fonts'
 SOURCE = DIR / 'WantedSansVariable.woff2'
+VERSION = 'v2'  # Bump when glyph coverage changes; font files use immutable caching.
 original = TTFont(SOURCE)
 coverage = set(original.getBestCmap())
 text = ''.join(p.read_text() for p in (ROOT / 'src').rglob('*') if p.suffix in ('.ts', '.tsx'))
@@ -41,7 +42,7 @@ for name, points in [('Core', core), ('Extended', remaining)]:
     worker.populate(unicodes=points)
     worker.subset(font)
     font.flavor = 'woff2'
-    output = DIR / f'WantedSans{name}-v1.woff2'
+    output = DIR / f'WantedSans{name}-{VERSION}.woff2'
     font.save(output)
     result = TTFont(output)
     actual = set(result.getBestCmap())
