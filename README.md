@@ -1,171 +1,194 @@
 # 서울도담치과의원 홈페이지 (webapp)
 
-## 프로젝트와 배포 상태
+## 프로젝트·배포 상태
 - **병원**: 서울도담치과의원 · 한휘림 대표원장 · 수원 화서동
-- **목표**: 자연치아 보존 철학을 담은 브랜드 홈페이지와 환자 중심 진료·예약 안내
+- **목표**: 자연치아 보존 철학을 담은 브랜드 홈페이지, 환자 중심 진료 안내, 홈페이지 예약 응대 관리.
 - **스택**: Hono + TypeScript + Cloudflare Pages/Workers + D1 + R2. Vanilla JS, GSAP/ScrollTrigger, Three.js WebGL.
 - **경로 / 브랜치**: `/home/user/webapp` / `main`
-- **최근 변경**: 2026-09-07 환자 동선 보강 후 내부 링크·첫 방문 목차·비교표·의료 표현 추가 마감
-- **미리보기**: https://3000-im9044c37cori5huz389s-c81df28e.sandbox.novita.ai/?v=14
+- **최근 작업**: 2026-09-07 예약 응대 업무판·직원 권한·보안·승인형 보유기간 파기, 최종 검증 및 인수 기록.
+- **미리보기**: https://3000-im9044c37cori5huz389s-c81df28e.sandbox.novita.ai/
+- **관리자 진입**: https://3000-im9044c37cori5huz389s-c81df28e.sandbox.novita.ai/admin/login
 - **첫 방문**: https://3000-im9044c37cori5huz389s-c81df28e.sandbox.novita.ai/first-visit
 - **기존 운영 주소**: https://seoul-dodam-dental.pages.dev
-- **운영 반영**: 미배포. 운영 D1/R2·도메인·Search Console·네이버 등록/제출 미변경. migration 0002는 이전 단계에서 로컬에만 적용했고 이번 마감에서는 DB 구조를 변경하지 않았습니다.
-- 미리보기는 임시 서비스입니다. 배포 요청 시 사용자 Cloudflare와 Genspark Hosted 중 경로를 확인해야 합니다.
+- **운영 반영: 미배포.** 운영 D1/R2·도메인·검색 등록 미변경. migration 0002와 0003은 로컬에만 적용했습니다.
+- 실제 환자 파기, 미리보기 DB의 테스트 직원/환자 생성, 외부 예약·전화·카카오·메일 발송은 실행하지 않았습니다. 보안 테스트는 별도 폐기 가능한 D1/R2를 사용합니다.
+- 미리보기는 임시 서비스입니다. 운영 배포를 요청하면 사용자 Cloudflare와 Genspark Hosted 중 경로를 먼저 선택해야 합니다. Hosted 접근 규칙/신원 연동은 설정하지 않았으며, 현재 권한은 애플리케이션 내부 RBAC입니다.
 
-## 승인된 방향과 보존한 기능
-신청서 XLSX의 서울도담치과 / 한휘림 원장 행과 홈페이지 제작 회신 PDF를 대조한 방향을 유지합니다. 원문은 `.artifacts/`에만 보관하며 Git/공개 자산에 포함하지 않습니다.
+## 승인된 디자인·자료와 보존한 기능
+신청서 XLSX의 서울도담치과/한휘림 원장 행 및 회신 PDF에 근거합니다. 원문은 비공개 `.artifacts/`에 보관하며 Git/공개 자산에 넣지 않습니다.
 
-| 근거 | 방향 |
+| 근거 | 유지하는 방향 |
 | --- | --- |
 | 신청서 Q24 | 깔끔·모던, 따뜻·친근 |
 | 신청서 Q25 + 회신 A9 | 블루 메인 + 자연을 상징하는 그린 포인트 |
 | 신청서 Q23 + 회신 A5 | 이해될 때까지 설명하고, 필요한 만큼만 치료합니다 |
 | 신청서 Q12–13 + 회신 A1 | VPT·크라운 → 치주치료 → 보존 불가 시 임플란트 |
-| 회신 진료 철학 | 치아는 재생되지 않습니다. 살릴 수 있는 방법이 하나라도 남아 있으면 그것부터 합니다 |
-| 회신 A3 / A6 | 통증 배려, 도입 예정 장비를 실제 보유로 표시하지 않음 |
+| 회신 철학 | 치아는 재생되지 않습니다. 살릴 수 있는 방법이 하나라도 남아 있으면 그것부터 합니다 |
+| 회신 A3/A6 | 통증 배려, 도입 예정 장비를 실제 보유로 표시하지 않음 |
 
-“내 치아를 위한 조금 다른 생각, 도담”, Wanted Sans, 보호 고리와 구체적 HEX `#0069B3`·`#B9E7A6`는 디자인 해석이며 원장이 직접 지정한 값이 아닙니다.
-- 입체 치아·보호 고리, 마우스/펜 회전, 모바일 회전 버튼, 모션 토글, reduced-motion, SVG fallback.
+“내 치아를 위한 조금 다른 생각, 도담”, Wanted Sans, 보호 고리와 HEX `#0069B3`·`#B9E7A6`는 디자인 해석입니다.
+- 실제 사진 22장+작은 WebP 22장. 실제 실내 촬영·장비 매칭·원장 크롭 유지. 얼굴 생성/변형 없음.
+- 원본 재처리: `DODAM_PHOTO_SOURCE=/path/to/originals node scripts/process-images.mjs`. 기본 원본 경로 `/home/user/dodam_src`, Git 제외.
+- 입체 치아/보호 고리, 마우스·펜 회전, 모바일 회전 버튼, 모션 토글, reduced-motion, SVG fallback.
 - GSAP 스크롤, PC 가로 갤러리, 모바일 네이티브 갤러리. 브라우저 스크롤을 가로채지 않습니다.
-- 공통 헤더·푸터, 현재 메뉴, 상세 reading-nav, FAQ, 주요 버튼 44px.
-- 회원·관리자 CMS, 홈페이지 신청, 치료 후 사진의 서버 로그인 검사.
-- 실제 사진 22장+작은 WebP 22장. 장비 매칭과 원장 크롭 교정, 얼굴 생성/변형 없음. AI-retouched interior 폴더가 아닌 실제 실내 촬영 원본 사용.
-- 사진 재생성: `DODAM_PHOTO_SOURCE=/path/to/supplied/originals node scripts/process-images.mjs`. 기본 원본 경로 `/home/user/dodam_src`, Git 제외.
-- 가짜 후기·사례·성과 수치 추가 없음. 지도 좌표·주차의 외부 정보와 차이, 원장 영상은 선택 범위 밖이므로 수정하지 않았습니다.
+- 공통 메뉴·푸터·읽기 목차·FAQ·주요 44px 버튼. 공개 화면의 승인된 디자인은 이번 업무판 작업에서 변경하지 않았습니다.
+- 가짜 후기·사례·성과 수치 추가 없음. 지도·주차 정보의 외부 자료 차이와 원장 영상은 별도 검토 범위입니다.
 
-## 환자 동선과 최신 마감
-### 상황별 안내
-메인과 `/treatments`의 `#patient-situations`에 일반 링크 5개를 제공합니다. JS 없이 사용 가능하며 진단·치료 추천 기능이 아닙니다. 카드 선택 자체는 집계하지 않습니다.
-- 신경치료 권유 → `/treatments/vpt-crown#consultation-guide`
-- 잇몸 출혈 → `/treatments/periodontal#consultation-guide`
-- 발치 권유 → `/treatments/implant#consultation-guide`
-- 마취 불안 → `/first-visit#anxiety`
-- 검진·스케일링 → `/treatments/preventive#summary`
+## 직원용 사용 안내
+### 최초 관리책임자 설정
+1. `/admin/login`에서 기존 환경 설정의 관리자 비밀번호로 최초 설정에 들어갑니다. 이 비밀번호를 공개 문서/화면에 기록하지 않습니다.
+2. 직원 이름, 로그인 ID, 새 비밀번호로 **첫 관리책임자 개인 계정**을 만듭니다. ID는 영문·숫자·마침표·밑줄·하이픈 3~40자, 비밀번호는 12~128자입니다.
+3. 최초 설정 세션이 종료되면 새 ID/비밀번호로 다시 로그인합니다.
+4. `/admin/staff`에서 현재 본인 비밀번호를 확인한 후 직원별 계정과 역할을 발급합니다.
 
-### 첫 방문
-`/first-visit`에 준비물 요약과 예약 → 준비 → 이동 → 접수·문진 → 검사·상담 → 치료 계획의 6단계를 제공합니다.
-- `#visit-preparation`, `#visit-steps`, `#anxiety`, `#first-visit-faq`로 바로 이동하는 고정 목차와 현재 읽는 위치 표시.
-- 첫 방문에서 PC 내원 메뉴 활성 표시, 모바일 메뉴 내 현재 페이지 표시.
-- 신분증·복용약 목록·기존 자료 안내. 당일 치료/시간·자료 전달 형식·본인 확인 예외는 병원 확인이 필요함을 명시.
-- 약 임의 중단 금지, 수면(진정) 진료 미시행 안내.
-- 메인·PC/모바일 메뉴·예약 준비물·진료 상세·XML/HTML 사이트맵·llms 연결. FAQ와 구조화 데이터 일치.
+직원 테이블이 비어 있을 때만 공용 비밀번호를 사용할 수 있습니다. 최초 설정 세션은 15분이며 직원 생성 화면만 접근합니다. 첫 계정 생성 이후 공용 비밀번호는 로그인 우회 수단으로 남지 않습니다. 개발 검증 시 실제 미리보기 직원 계정은 0개였습니다. 임의의 납품용 공용 계정은 만들지 않았습니다.
 
-### 진료별 읽기와 비용 동선
-- 핵심 3개 진료에 검사·상담 확인 사항, 상태별 선택지, 진료실에서 할 질문, 장비·의료진·진료비·첫 방문·신청 링크.
-- 장비 링크는 각각 `/floor-guide#equip-보존`, `#equip-무통`, `#equip-진단`으로 직접 이동.
-- 12개 진료의 비용 링크는 진료 표시명이 아닌 `treatmentPricingUrl()`의 고정 매핑 사용. VPT→`vpt`, 치주·예방·발치→`insured`, 임플란트→`implant`, 보철→`crown` 등.
-- 수가표 고정 ID: `implant`, `crown`, `vpt`, `restorative`, `dentures`, `pediatric`, `other`, `whitening`, `insured`. 기존 한글/percent-encoded fragment는 별칭으로 보존.
-- 비교표에 region 이름·설명·caption·열 헤더 scope·키보드 초점·가로 스크롤 안내 추가. 일반 비교이며 개별 진단이 아니라는 설명.
-- 기존 수가 **숫자·단위·기준일은 그대로 유지**. 전체 항목이 동일 단위/면세라는 일괄 표현, 임플란트 식립+보철 포함 단정을 제거하고 항목별 조건 확인 안내로 정리. 실제 포함 범위·과세 고지는 병원 검수 필요.
-- 예약 등 `data-once` 폼에서 BFCache 뒤로가기로 돌아왔을 때 제출 버튼이 계속 비활성화되지 않도록 원래 상태 복구. 이 복구는 접수나 집계 요청을 보내지 않습니다.
-
-### 의료 표현 정리와 검수 상태
-- VPT의 “실패해도 잃는 것이 없다”와 신경치료→발치의 단정적 흐름, 치아 삭제량·감각의 과도한 단순화, 밀봉만으로 회복 보장 표현 완화.
-- 치수 반응 검사와 큐레이의 보조적 역할 구분. VPT 보험/비급여를 개별 항목으로 확인하도록 안내.
-- 치주 관리 주기·재생 한계·마취 후 감각·나이별 치료 필요성을 개인 상태에 맞게 표현. 출처 없는 “시린 이유의 절반” 수치 삭제.
-- 임플란트 주위염의 “방사선만 유일한 검사”, 통증 없음, 특정 관리 간격이 수명을 결정한다는 표현 완화. 임시치아는 상태에 따라 결정하도록 안내.
-- 근거가 제시되지 않은 비교표 씹는 힘 비율·고정 수명 수치 대신 기능에 영향을 주는 요인과 관리 항목 제시. 약·주사 치료 임의 중단 금지 안내.
-- **의료진 재검토 전**: 기존 `2026-09-03`은 원본 자료 검토 이력으로만 표시. 수정된 핵심 3개는 페이지 스키마 `reviewedBy/lastReviewed` 및 reviewer 기반 author 메타를 생략. 담당 Person 스키마 유지. 해당 자료를 사용하는 지역 페이지도 새 표현의 재검토 전 상태 표시.
-- 문구 편집은 새로운 의학적 근거 검증이나 의료광고 적법성 보증이 아닙니다. 실제 원장의 최종 검토가 필요합니다. 기존 지역×진료 경로를 대량 삭제/추가/noindex하지 않았습니다.
-
-## 예약·문의 집계
-### 관리자 사용 방법
-로그인 후 `/admin/stats`에서 운영 또는 미리보기·로컬을 선택합니다. 기본은 운영이며 KST 최근 30일의 행동별 합계, 페이지·버튼 위치별 건수, 일별 클릭/접수를 표시합니다. 기존 예약을 소급 집계하지 않습니다.
-
-| 이벤트 | 의미 |
+| 역할 | 접근 범위 |
 | --- | --- |
-| `naver_click` | 네이버 예약 링크 클릭. 예약 완료 아님 |
-| `phone_click` | 전화 링크 클릭. 연결/통화 완료 아님 |
-| `kakao_click` | 채널 클릭. 상담 시작/완료 아님 |
-| `reservation_click` | 홈페이지 신청 화면 이동 링크 클릭 |
-| `form_completed` | 홈페이지 예약 데이터 저장 성공. 병원의 예약 확정 아님 |
+| 관리책임자 `owner` | 전체 관리, 직원·통계·회원·설정·파기 승인 |
+| 예약 담당 `reception` | 예약 업무판·상세·담당/연락/상태 수정 |
+| 콘텐츠 담당 `editor` | 사례·칼럼·공지·이미지 업로드. 예약/회원 접근 불가 |
 
-위치 enum: header, mobile_menu, mobile_bar, floating, footer, hero, reading_nav, sidebar, consultation, cta_strip, home, reservation, content. 완료는 서버 전용 form.
+- 권한 검사는 메뉴 숨김이 아니라 서버 라우트에서 적용합니다.
+- 마지막 활성 관리책임자를 비활성화하거나 다른 역할로 내릴 수 없습니다.
+- 이름·역할·활성 상태·비밀번호 변경 시 해당 직원의 기존 세션을 무효화합니다. 본인 계정을 수정하면 재로그인합니다.
+- 계정은 삭제 대신 비활성화하여 작업 이력의 연결을 유지합니다.
+- 마지막 관리책임자의 비밀번호 분실 복구 UI는 없습니다. 운영 전 책임자/복구 승인 절차를 정해야 합니다. 초기 공용 비밀번호를 복구용 뒷문으로 재사용하지 마세요.
 
-### 저장과 안전장치
-- migration `0002_conversion_aggregates.sql`: `conversion_daily`와 `conversion_receipts`.
-- `conversion_daily`: KST 날짜 × scope × 공개 페이지 분류 × 행동 × 위치의 합계.
-- 진료 slug는 고정 목록만 허용. 지역·칼럼·공지·용어·사례 상세는 루트 분류로 합침.
-- **수집 제외**: 이름·전화·이메일·증상·희망 진료 선택값·날짜·문의·기타 입력값, IP·UA·referrer·query·회원/예약 ID. 이 집계는 GA4로 전송하지 않습니다.
-- 별도 추적 쿠키·localStorage·sessionStorage 사용 없음. 페이지마다 생성한 무작위 서명 ticket에 허용 페이지·origin·scope·nonce·30분 만료만 포함하며 사람이나 세션 식별자가 아닙니다.
-- JSON POST payload는 event/location/ticket 세 필드만 허용. 다른 키·임의 이벤트·클라이언트 완료·변조/만료 서명·다른 origin을 거부. 2KB 제한, no-store 응답.
-- `conversion_receipts`: SHA-256(nonce+event+location)와 만료만 저장. 원본 nonce·페이지·환자 식별자를 저장하지 않아 다른 행동이나 합계·환자 기록과 조인하지 않습니다.
-- D1 atomic batch의 receipt INSERT OR IGNORE와 changes()로 재전송·동시 요청 중복 제한. 클라이언트도 같은 문서·종류·위치를 한 번만 전송.
-- 홈페이지 예약 INSERT와 접수 합계 증가는 같은 transaction. 실패하면 둘 다 rollback. 성공 query·새로고침으로 증가하지 않음. 별도의 재접수가 생성되면 별도 건수이며 고유 환자 수가 아닙니다.
-- scope는 요청 origin과 검증된 canonical origin을 서버에서 비교해 구분. 클라이언트 지정 불가.
-- UA로 추정한 봇·관리자·DNT/GPC 요청 제외. 스크립트 차단·전송 실패·30분 이상 지난 화면 클릭은 누락 가능. JS 없는 신청 저장은 서버 집계.
-- 링크 이동은 집계를 기다리지 않으며 전송 재시도 없음. 새 화면은 새 ticket이므로 완전한 부정 클릭 방지·고유 방문자 분석·전환율 계산 시스템은 아닙니다.
+### 예약 응대 업무판
+1. `/admin/reservations`에서 확인 대기·일정 확정·처리 완료·취소 접수를 확인합니다.
+2. 예약 상태·연락 상태·담당자로 필터링합니다. 페이지당 최대 50건이며 상단 요약은 전체 데이터 기준입니다.
+3. 카드를 열어 원문 문의를 확인하고 담당자·이번 연락 결과·예약 상태·다음 연락 예정 시각을 저장합니다. 입력/표시 시각은 한국시간, DB 저장은 UTC입니다.
+4. 같은 연락처의 최근 30일 접수는 최대 5건까지 중복 가능성으로 표시합니다. 동일인 확정이나 자동 병합은 하지 않습니다.
+5. 두 직원이 동시에 저장하면 예약 버전이 일치하는 첫 저장만 처리하고 뒤 요청은 409로 중단합니다. 최신 화면을 확인하고 다시 저장하세요.
 
-### 보유와 정리
-최근 90일 합계, 최대 30분 유효 receipt를 사용합니다. 만료분은 다음 집계 요청 또는 관리자 통계 조회 때 삭제하며 cron은 사용하지 않습니다. 요청이 없으면 만료 행이 남을 수 있습니다. 오래된 합계는 조회 범위에서 제외합니다.
+- 연락 상태: 연락 기록 없음 / 연락 시도 / 통화 확인. 기존 예약의 과거 연락 여부는 추정하지 않습니다.
+- 처리 결과: 상태·담당만 변경 / 전화 부재 / 전화 연결 / 카카오 안내 발송 **기록**. 실제 전화나 메시지를 자동 실행하지 않습니다.
+- 목록에는 전화 끝자리만 표시하며 문의/증상 원문은 권한이 있는 상세 화면에서만 표시합니다.
+- 응대 이력은 실제 수정 직원, 상태·담당 계정·연락 상태·재연락 시각·보존 검토 표시의 전후 값으로 구성합니다. 별도 자유 메모에 환자 건강 정보를 중복 저장하지 않습니다. 최근 100개 이력을 표시합니다.
+- 네이버 예약·전화·카카오 기록을 가져오는 통합 CRM이 아닙니다. 홈페이지 접수만 관리합니다. 상태 변경으로 접수 전환 집계를 추가하지 않습니다.
 
-기존 `page_views`의 pathname·UA·시각 저장 정책과 신규 집계는 별개입니다. 개인정보 제외 정책을 모든 기존 분석 수단에 적용했다고 주장하지 않습니다. 자체 집계와 외부 분석을 구분한 개인정보처리방침은 운영 전 병원 검수가 필요합니다.
+### 보유기간 확인과 승인 파기
+`/admin/privacy`는 관리책임자 전용이며 **자동 삭제하지 않습니다**.
+- 후보: 처리 완료 또는 취소, 보존 검토 표시 없음, 접수일과 유효한 희망일 중 늦은 날에서 1년 경과. 확인 대기·일정 확정·미래 일정·접수일 확인 불가·보존 검토 대상은 제외합니다.
+- 최대 50건 미리보기 → 현재 비밀번호 재확인 → `만료 예약 삭제` 문구 입력 → 승인 실행.
+- 서명된 미리보기는 직원 ID/세션 버전·origin·예약 ID/버전·nonce와 10분 만료에 묶입니다. 토큰에 이름·전화·문의는 넣지 않습니다.
+- 미리보기 이후 대상이 바뀌면 전체 작업을 중단합니다. single-use receipt와 D1 transaction을 사용하며 FK cascade로 응대 이력도 함께 삭제합니다. 예약 건수는 `DELETE ... RETURNING id` 결과로 계산합니다.
+- 파기 감사 기록에는 직원·건수·범위만 남기며 삭제한 환자 정보나 예약 ID 목록을 기록하지 않습니다.
+- **삭제하지 않는 것**: 회원 계정, 의무기록, 사례/R2 사진, 네이버 예약, 외부 이메일, 백업. 이들은 별도 보존·파기 절차가 필요합니다.
+- 1년 기준은 구현된 홈페이지 접수 검토 기준이지 모든 의료 정보의 법정 보유기간이라는 뜻이 아닙니다. 병원 책임자의 개인정보·법적 보존 정책 승인 후 운영해야 합니다. 실제 환자 파기는 테스트하지 않았습니다.
 
-## 네이버 예약
+## 보안 구현과 한계
+### 세션·회원 소유권
+- 회원/직원 토큰은 purpose와 DB session version을 검증합니다. 매 요청 현재 계정 존재·활성·버전을 확인하며 구형 토큰은 거부합니다.
+- 회원 세션에 이름/이메일을 담지 않습니다. 회원 30일, 직원 24시간 유효. HttpOnly 쿠키, HTTPS Secure, 직원 Strict/회원 Lax SameSite.
+- 로그아웃도 세션 버전을 증가시켜 해당 계정의 기존 세션들을 무효화합니다. 비밀번호 변경/탈퇴/직원 비활성화 후 오래된 토큰을 재사용할 수 없습니다.
+- 회원 예약 조회는 `user_id` 일치만 허용합니다. 같은 이메일로 가입했다고 익명 접수를 볼 수 없습니다. 탈퇴 시 예약의 회원 연결을 분리합니다.
+- 회원 비밀번호 변경/탈퇴는 현재 비밀번호 확인. Google 계정 탈퇴는 15분 이내 로그인 확인을 사용합니다.
+- Google OAuth state는 HttpOnly 브라우저 쿠키와 일치해야 합니다. 검증된 이메일·provider subject를 요구하며 같은 이메일의 로컬 계정을 자동 연결하지 않습니다. 실제 Google 왕복 인증은 검증하지 않았습니다.
+- 비밀번호는 기존 salted PBKDF2-SHA256 100,000회 단방향 해시를 유지합니다. MFA·passkey·외부 비밀번호 초기화 발송은 미구현입니다.
+
+### 변경 요청·로그인 보호
+- unsafe method는 정확한 동일 origin을 요구하며 `Sec-Fetch-Site`가 있으면 same-origin이어야 합니다.
+- HttpOnly CSRF seed 쿠키와 origin에 결합된 8시간 서명 토큰을 사용합니다. 서버 POST form에 `_csrf`, 관리자 AJAX에 `X-CSRF-Token`을 사용합니다.
+- `/api/conversions`는 자체 origin-bound 서명 ticket/2KB 검사가 있어 일반 CSRF 토큰 검사에서 제외합니다.
+- 요청 본문 일반 64KiB, 관리자 업로드/CMS multipart 34MiB, 개별 파일 8MiB 제한.
+- D1 atomic fixed-window 로그인 예산: 행위별 15분 동안 계정 식별자 10회·주소 40회. 성공도 예산에 포함합니다. 만료 행은 관련 요청에서 정리합니다.
+- rate table에는 HMAC 키·횟수·만료만 저장합니다. 원문 IP/로그인 ID/비밀번호를 기록하지 않습니다. 플랫폼의 CF-Connecting-IP를 사용하며 X-Forwarded-For를 신뢰하지 않습니다. 로컬에서는 공용 fallback을 사용합니다.
+- 완전한 분산 봇 방어나 독립 보안 인증이 아닙니다. 실제 운영 호스트의 프록시 헤더 신뢰 경계를 확인해야 합니다.
+
+### CMS·파일·설정
+- 서버는 Workers 호환 `xss` whitelist, 브라우저는 DOMPurify를 사용합니다. 저장과 표시 모두 검사하며 paste/drop/HTML 삽입·링크 scheme을 제한합니다.
+- script/handler/form/SVG/MathML/iframe 등과 외부 본문 추적 이미지를 제거합니다. `_blank` 링크는 noopener/noreferrer를 적용합니다.
+- JPG/PNG/WebP/GIF의 MIME·실제 헤더 signature·크기·허용 경로를 검사하고 서버에서 고유 파일명을 만듭니다. 새 첨부는 사용자 제출 hidden key만으로 교체하지 않습니다. 저장 실패 시 신규 R2 객체를 정리합니다.
+- **파일 검사 한계**: 완전한 악성코드 검사·이미지 디코딩/재인코딩·EXIF 제거는 아닙니다.
+- R2는 게시물 참조와 공개 여부를 확인합니다. 비공개/미참조 파일은 일반 방문자에게 404, 치료 후 사진은 회원 인증이 추가로 필요합니다. 책임자/콘텐츠 담당은 편집 목적으로 검토할 수 있습니다.
+- R2 응답은 nosniff, same-origin, private/no-store. 치료 후 이미지는 noindex/noimageindex, 그 외 업로드도 현재 보수적으로 noindex입니다. **이 정책은 공개 CMS 업로드 이미지의 검색 노출과 캐시 성능을 제한합니다.** 승인된 `/static/img/` 실제 사진과 정적 캐시는 변경하지 않았습니다.
+- 허용 파일 키는 cases/before, cases/after, columns, notices, uploads 하위의 안전한 단일 이미지 파일명입니다. 운영의 과거 키 형식·R2 Content-Type 메타데이터를 전수 검증하지 않았습니다. 로컬 업로드/게시물 파일 참조가 모두 0건이므로 기존 운영 자산 호환성을 입증할 수 없습니다. 배포 전 비공개 asset inventory 대조 및 공개 이미지 검색/캐시 정책 승인이 필요합니다.
+- 관리자 설정은 허용 키만 저장하며 GA4 ID·연락처·URL 등을 검증하고 잘못된 과거 값도 읽기에서 제외합니다. GA4는 `/admin`, `/auth`, `/reservation`에서 로딩하지 않습니다.
+- 일반 `staff_audit` 보유기간 정리, 보안 알림/모니터링, 복구 자동화는 미구현입니다. 최근 작업 화면은 30개만 표시하지만 나머지 행을 자동 파기하지 않습니다.
+
+## 환자 동선·진료 안내
+- 메인과 `/treatments#patient-situations`에 신경치료 권유, 잇몸 출혈, 발치 권유, 마취 불안, 검진/스케일링 안내 링크. JS 없는 일반 탐색이며 진단·치료 추천 엔진이 아닙니다.
+- `/first-visit`: 준비물 요약, 예약→준비→이동→접수·문진→검사·상담→치료 계획 6단계, 불안 안내, FAQ. `#visit-preparation`, `#visit-steps`, `#anxiety`, `#first-visit-faq` 고정 목차와 가림 방지 여백.
+- 신분증·복용약·기존 자료 안내, 약 임의 중단 금지, 수면(진정) 진료 미시행. 당일 치료/소요시간을 보장하지 않습니다.
+- 핵심 3개 진료에 검사 확인 사항·선택지·질문·관련 장비/비용/예약 링크. 비교표는 caption·열 scope·region·키보드 가로 스크롤과 일반 비교라는 설명을 제공합니다.
+- 12개 진료 비용 링크는 `treatmentPricingUrl()`의 고정 매핑 사용. 수가표 ID: implant, crown, vpt, restorative, dentures, pediatric, other, whitening, insured. 기존 한글/percent-encoded fragment 별칭 유지.
+- 장비 바로가기: `/floor-guide#equip-보존`, `#equip-무통`, `#equip-진단`. VPT 안내에는 별도 크라운 비용 링크도 있습니다.
+- 기존 수가 숫자·단위·기준일은 보존했습니다. 일괄 면세/동일 단위/임플란트 식립+보철 포함 단정을 제거했으며 포함 범위·과세 고지는 병원 검수 대상입니다.
+- BFCache 복귀 시 `data-once` 폼의 제출 버튼을 복원하되 자동 재접수/집계하지 않습니다.
+- VPT 실패·치아 삭제량·밀봉 효과, 치주 재생/관리 주기, 임플란트 통증/수명/진단 관련 단정과 근거 없는 수치 비교를 완화했습니다.
+- **의료진 재검토 전**: `2026-09-03`은 원본 자료 검토 이력으로만 표시합니다. 수정 핵심 3개 및 관련 지역 페이지에 새 의료 검수가 있었다고 표시하지 않으며 해당 reviewer 기반 메타를 생략합니다. 의료진 Person 스키마는 유지합니다. 원장의 최종 의료·의료광고 검수가 필요합니다.
+
+## 예약·문의 집계와 네이버
+- `/admin/stats?scope=production` 또는 `preview`: 관리책임자만 조회. KST 최근 30일 합계·일별·페이지/위치별 행동, 기본 운영 scope. 기존 예약을 소급 집계하지 않습니다.
+- 이벤트: `naver_click`, `phone_click`, `kakao_click`, `reservation_click`, 서버 전용 `form_completed`.
+- 클릭은 예약/통화/상담 완료가 아니며 홈페이지 접수 저장도 병원의 일정 확정이 아닙니다. 상태 변경은 추가 전환을 만들지 않습니다.
+- API payload는 `{event, location, ticket}`만 허용합니다. 고정 page/위치 enum, 30분 origin-bound per-render ticket, 원자적 receipt dedup. 접수 INSERT와 완료 집계는 같은 D1 transaction입니다.
+- 집계에는 이름·전화·이메일·증상·입력값·IP·UA·referrer·query·회원/예약 ID를 수집하지 않습니다. 별도 추적 쿠키/localStorage/sessionStorage를 사용하지 않고 GA4로 전달하지 않습니다.
+- nonce/event/location의 SHA-256 receipt와 만료만 저장합니다. 같은 화면의 재전송/동시 요청을 제한하되 새로운 화면·재접수는 별개이며 고유 환자/완전한 부정 클릭 방지 기능은 아닙니다.
+- 봇 추정·관리자·DNT/GPC 요청 제외, navigation은 집계를 기다리지 않으며 재시도 없음. 차단/만료로 누락될 수 있습니다.
+- 합계 90일, receipt 30분. 다음 관련 요청/통계 조회 시 lazy cleanup하므로 요청이 없으면 만료 행이 남을 수 있습니다. cron은 사용하지 않습니다.
+- 기존 `page_views`의 pathname·UA·시각 저장과 별개입니다. 신규 최소수집 설명을 기존 모든 분석에 확대 적용하지 않습니다.
 - 공식 Place: https://m.place.naver.com/hospital/13229580/booking
-- 예약: https://m.booking.naver.com/booking/13/bizes/1258951?theme=place&lang=ko&area=ple
-- 이전 확인에서 수원 화서동·한휘림 원장·화양로 34·슬로건 대조. 실제 예약 제출 없음.
-- 상단·모바일 바·플로팅·푸터/CTA·메인·예약 화면에서 새 창 연결. 네이버 가능 일정·확정 조건은 외부 화면 확인.
-- 홈페이지 입력값을 전달하거나 네이버 내역을 D1과 동기화하는 API 연동이 아닙니다.
-- `channels.naverBooking`은 관리자 기본정보에서 수정 가능. HTTPS·정식 도메인·경로 검사, 잘못된 링크는 주요 버튼을 홈페이지 신청으로 fallback. 빈 설정은 기본값으로 돌아가므로 비활성화 수단이 아닙니다.
+- 공식 예약: https://m.booking.naver.com/booking/13/bizes/1258951?theme=place&lang=ko&area=ple
+- 이전 확인에서 수원 화서동·한휘림 원장·화양로 34·슬로건 대조. 실제 예약 제출 없음. 상단·모바일 바·플로팅·푸터/CTA·메인·예약 화면에서 외부 새 창으로 연결합니다.
+- `channels.naverBooking`은 정식 HTTPS 도메인·경로 검증 후 사용합니다. 잘못된 링크는 홈페이지 신청으로 fallback, 빈 설정은 기본값으로 돌아가며 비활성화 수단이 아닙니다. 입력값 전달/API 동기화는 하지 않습니다.
 
-## 모바일·SEO·AEO 기반
-- Wanted Sans 원본 1,289,292 bytes → 초기 Core v2 137,164 bytes (폰트 파일 약 89.4% 감소, 전체 속도 개선율 아님). Core/Extended unicode-range·가변 굵기·원본 cmap·OFL 보존. 새 CMS 문자에 필요하면 Extended 로딩. 첫 방문 등 새 정적 문자를 포함하도록 v2를 생성해 보조 폰트의 불필요한 다운로드를 막았습니다. 이전 v1 파일은 장기 캐시 호환을 위해 보존합니다.
-- 폰트 재생성: `python3 -m pip install 'fonttools[woff]'`, `python3 scripts/optimize-fonts.py`. Python은 빌드 도구 전용. 글자 범위가 바뀌면 script의 VERSION을 올려 immutable 폰트 파일을 덮어쓰지 않습니다.
-- 이미지 manifest의 실제 dimensions/srcset, 상단 우선 로딩·하단 lazy load. Save-Data/2G에서는 명시적 opt-in 전 Three.js 다운로드 안 함.
-- 모바일 첫 제목을 모션 때문에 감추지 않음. 비급여 조건·비고는 접근 가능한 가로 표 안에 유지.
-- SSR title/description/canonical/OG/Twitter, H1 하나, CMS H1의 렌더링 시 H2 변환.
-- 기본 canonical: https://seoul-dodam-dental.pages.dev. SITE_URL은 검증된 HTTPS 운영 origin만 사용. 다른 origin은 preview noindex.
-- 페이지 번호 자기 canonical 유지. 필터/빈 후속 페이지·회원·관리자·API·예약 결과/오류는 noindex.
-- 공개 GET/HEAD trailing slash 301. sitemap은 실제 DB 수정일만 lastmod로 사용. robots 공통 그룹으로 관리자·회원·사례 파일 제외. 공개 칼럼 이미지를 전체 차단하지 않으며 robots는 인증 아님.
-- Dentist/WebSite/WebPage/MedicalWebPage/ProfilePage/Person/MedicalProcedure/BreadcrumbList/FAQPage/DefinedTerm/Article의 안정적 @id 연결.
-- 잘못된 NoninvasiveProcedure·Physician+Person 혼합, 근거 없는 가격범위·평점·창업일·신규환자 수용 상태·speakable 제거.
-- FAQ 본문·스키마 일치, 점심을 분리한 영업시간. llms는 원문 철학·진료 순서·공식 안내 목차이며 순위·AI 인용 보장 아님.
-- 이전 공식 확인: Google FAQ 리치 결과 2026-05-07 중단, 2026-06 문서 제거 공지.
+## 모바일·SEO·AEO
+- Wanted Sans 원본 1,289,292 bytes → 초기 Core v2 137,164 bytes. 폰트 파일 약 89.4% 감소이지 전체 속도 개선율은 아닙니다. Extended가 전체 문자/가변 축을 보완하고 OFL·v1 파일을 보존합니다.
+- 폰트 재생성: `python3 scripts/optimize-fonts.py` (FontTools/Brotli 필요). 문자 범위를 바꾸면 VERSION을 올려 immutable 파일을 덮어쓰지 않습니다. Python은 빌드용입니다.
+- 실제 dimensions/srcset, 상단 우선/하단 lazy image. Save-Data/2G에서는 opt-in 이전 3D bundle 미다운로드, 화면 밖/백그라운드 중지·모바일 DPR 제한.
+- SSR title/description/canonical/OG/Twitter, H1 하나, CMS H1→H2 렌더링, FAQ 본문/스키마 일치, 점심을 분리한 영업시간.
+- 기본 canonical은 기존 운영 주소. SITE_URL은 검증된 HTTPS 운영 origin만 사용하며 다른 origin은 preview noindex입니다. 페이지 번호 자기 canonical, 필터/빈 후속/회원/관리자/API/결과는 noindex.
+- 공개 GET/HEAD trailing slash 301, 실제 DB 수정일만 sitemap lastmod. robots는 인증 기능이 아닙니다.
+- Dentist/WebSite/WebPage/MedicalWebPage/ProfilePage/Person/MedicalProcedure/BreadcrumbList/FAQPage/DefinedTerm/Article의 안정적 @id. 근거 없는 평점·가격범위·창업일·신규환자 수용·speakable 제거.
+- llms는 원문 철학과 공식 목차이며 검색 순위/AI 인용 보장이 아닙니다. 기존 지역×진료 페이지를 대량 삭제/추가/noindex하지 않았습니다.
 - 참고: https://developers.google.com/search/docs/appearance/ai-features · https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls · https://developers.google.com/search/updates
 
-## 주요 진입 URI
+## 주요 URI
 | 경로 | 기능 / 파라미터 |
 | --- | --- |
-| `/#patient-situations` | 상황별 안내 |
-| `/first-visit` | 준비물·순서·불안·FAQ 고정 목차 |
-| `/mission`, `/doctors`, `/doctors/han-hwirim` | 철학·의료진 |
-| `/treatments`, `/treatments/:slug` | 12개 진료, 핵심 3개 `#consultation-guide`, 비교표 `#compare` |
-| `/floor-guide#equip-보존`, `#equip-무통`, `#equip-진단` | 관련 장비·재료 |
-| `/pricing#vpt`, `#crown`, `#implant`, `#insured` 등 | 비용·보험 항목 직접 이동 |
-| `/reservation?treatment=implant` | 진료 선택. POST `/reservation` 접수 |
-| `/reservation?ok=1` | 접수 안내, 확정 아님, noindex |
-| `/api/conversions` | 동일 origin JSON POST 집계 |
-| `/admin/stats?scope=production` 또는 `preview` | 관리자 통계 |
-| `/directions`, `/hours` | 위치·시간 |
-| `/faq`, `/encyclopedia`, `/encyclopedia/:slug` | 질문·용어 |
-| `/column`, `/column/:slug`, `/column/rss.xml` | 칼럼 (`treatment`, `page`) |
-| `/notice`, `/notice/:id` | 공지 (`page`) |
+| `/`, `/first-visit`, `/treatments`, `/treatments/:slug` | 상황별·첫 방문·12개 진료, 핵심 `#consultation-guide` |
+| `/mission`, `/doctors`, `/doctors/han-hwirim`, `/floor-guide` | 철학·의료진·공간/장비 |
+| `/pricing`, `/directions`, `/hours` | 수가·위치·시간 |
+| `/reservation?treatment=implant` | 진료 선택, POST 접수, `?ok=1`은 접수 안내이며 확정 아님 |
+| `/api/conversions` | 동일 origin 서명 JSON POST 집계 |
+| `/admin/login`, POST `/admin/logout` | 최초 설정/직원 인증, 로그아웃 |
+| `/admin/reservations` | GET 필터 `status`, `contact`, `assignee`, `page` |
+| `/admin/reservations/:id` | GET 상세, POST 응대 저장 (`version`, `status`, `assignee_id`, `outcome`, `followup_at`, owner의 `retention_hold`) |
+| `/admin/staff`, `/admin/staff/:id` | 직원 목록/생성·변경, 변경 시 현재 비밀번호 |
+| `/admin/privacy`, POST `/admin/privacy/preview`, POST `/admin/privacy/purge` | 보유기간 후보·승인형 파기 |
+| `/admin/stats?scope=production` 또는 `preview` | 책임자 집계 |
+| `/admin/cases`, `/admin/columns`, `/admin/notices`, `/admin/api/upload` | CMS·파일 업로드 |
+| `/admin/settings`, `/admin/members` | 책임자 기본정보·회원 관리 |
+| `/auth/register`, `/auth/login`, `/auth/mypage`, POST `/auth/delete` | 회원 가입·로그인·예약 조회·탈퇴 |
+| `/auth/google`, `/auth/google/callback` | Google OAuth, 실제 연동 검증 별도 |
 | `/cases/gallery`, `/cases/gallery/:slug` | 사례 (`treatment`, `doctor`, `page`) |
-| `/auth/register`, `/auth/login`, `/auth/mypage` | 회원 |
-| `/admin/login`, `/admin/*` | 관리자 CMS |
-| `/files/:key`, `/api/regions?q=화서` | R2 파일·지역 자동완성 |
-| `/area`, `/area/:slug` | 기존 지역 안내 |
-| `/privacy`, `/terms`, `/sitemap` | 정책·HTML 사이트맵 |
-| `/sitemap.xml`, `/robots.txt`, `/llms.txt`, `/health` | 검색·목차·상태 |
+| `/column`, `/column/:slug`, `/column/rss.xml`, `/notice`, `/notice/:id` | 공개 게시물 (`treatment`, `page`) |
+| `/files/:key`, `/api/regions?q=화서` | 권한 검사 R2 이미지·지역 자동완성 |
+| `/faq`, `/encyclopedia`, `/encyclopedia/:slug`, `/area`, `/area/:slug` | FAQ·용어·지역 |
+| `/privacy`, `/terms`, `/sitemap`, `/sitemap.xml`, `/robots.txt`, `/llms.txt`, `/health` | 정책·검색·상태 |
 
-## 데이터와 개발
-- D1 `DB`: site_settings, users, cases, columns, notices, reservations, page_views, uploads, conversion_daily, conversion_receipts.
-- R2 `R2`: 사례·칼럼·공지 이미지. 치료 후 사진 서버 권한 검사 유지.
-- 기본 정보: `src/data/clinic.ts` + D1 설정. secrets는 `.dev.vars` 또는 운영 secrets에만 저장.
-- 브라우저 입체 소스: `src/client/experience.ts`, `tooth-scene.ts`. 화면 밖/백그라운드 중지·모바일 DPR 제한.
-- `public/static/experience/`, `dist/`, `.wrangler/`, `.artifacts/`는 Git 제외. build가 브라우저 번들과 Worker를 생성.
-- Worker 런타임에서 Python·Node 파일시스템·장기 실행 프로세스를 사용하지 않습니다.
+## 데이터·개발·검증
+- D1 `DB`: site_settings, users, cases, columns, notices, reservations, page_views, uploads.
+- migration 0002: conversion_daily, conversion_receipts.
+- migration 0003: staff, security_rate_limits, staff_audit, purge_receipts, reservation_events. users에 session_version, reservations에 담당/연락/일시/version/retention_hold 필드 추가.
+- R2 `R2`: 사례·칼럼·공지 이미지. 설정 기본값은 `src/data/clinic.ts` + 검증된 D1 설정입니다.
+- secrets는 `.dev.vars`/운영 secrets에만 저장합니다. node_modules, dist, .wrangler, .artifacts, 생성된 experience/admin-sanitizer bundle은 Git 제외입니다.
+- Worker 런타임에서 Python·Node 파일시스템·장기 실행 프로세스를 사용하지 않습니다. 테스트의 Node/esbuild/Miniflare는 개발 전용입니다.
 
 ```bash
 cd /home/user/webapp
 npm ci
 npm run db:migrate:local
+npm run typecheck
 npm run build
-# 시작/재시작 전 기존 PM2 서비스와 포트 3000 정리
+# 처음 시작: 기존 PM2 서비스·포트 3000 정리 후 실행
 pm2 start ecosystem.config.cjs
 curl http://localhost:3000/health
-npm run typecheck
+# 무거운 브라우저/Miniflare 검사는 동시에 돌리지 않습니다.
+npm run test:security
 npm run test:journey
 npm run test:seo
 npm run test:mobile
@@ -173,23 +196,25 @@ npm run test:design
 npm run test:kinetic
 ```
 
-### 검증 범위
-- `test:journey`: 별도 임시 Miniflare D1으로 서명·동시/재전송 중복·scope·필드/origin/만료 제한·DNT/GPC·관리자·보유기간·접수 transaction/rollback 검사. 이메일 credentials 없음. 실제 preview/운영 DB에 예약 fixture를 넣지 않음.
-- 브라우저 24개 신규 페이지/viewport 조합(320/390/768/1440), 상황 카드·앵커·위치별 payload·no-JS 첫 방문/FAQ. 집계 API와 외부 예약은 가로채 테스트 통계를 남기지 않음.
-- 추가: 12개 진료의 비용·장비 링크 19개 실제 목적지 존재 검사, 고정 목차/내원 메뉴, 키보드 비교표 스크롤, no-JS 비용 앵커, 기존 한글 앵커, BFCache 제출 버튼 복원.
-- SEO: 공개 HTML 700개 + 로컬 운영 정책 + 격리 CMS fixture.
-- Design: 기존 80개 화면 조합과 메뉴·FAQ·목차·Naver·폼.
-- Mobile: 메인과 첫 방문·핵심 진료 3개·수가표에서 Core v2만 로딩, 절약모드/입체 opt-in/44px/작은 이미지/비급여 비고/메뉴.
-- Kinetic: WebGL·회전·모션·갤러리·리사이즈·모바일·reduced-motion·fallback·no-JS 9개 그룹.
-- 캡처에서 고정 하단 바가 본문 위에 보이는 경우 실제 스크롤 후 text bounds/elementFromPoint로 내용이 가려지지 않음을 별도 확인. 전체 수가 숫자가 이전 commit과 같음을 비교.
-- 결과: `.artifacts/journey-audit.json`, `seo-audit.json`, `mobile-audit.json`, `design-smoke-results.json`, `kinetic-smoke-results.json` 및 캡처.
-- 로컬 검증이며 실제 외부 예약/통화/상담 완료, 검색 순위, 의료광고 적법성, 전체 관리자 CRUD나 실사용 성능을 보장하지 않습니다.
+### 최종 검증 기록 (2026-09-07)
+- TypeScript/build 통과. Worker 540.88kB (gzip 171.49kB), 관리자 sanitizer 약 29.1kB.
+- Security 7그룹 통과: CSRF/origin, 최초 설정/직원 권한/마지막 owner, 잘못된 설정, 동시 응대 저장, 회원 소유권/세션 무효화, OAuth state 거부, CMS/파일 검사, 파기 재확인·stale snapshot·replay·cascade, 로그인 제한, 320/390/768/1440 fixture 업무판, 외부 추적 이미지 제거. 추가 경계 검사에서도 잘못된 담당 ID·존재하지 않는 날짜/시각을 저장하지 않음, 위조 hidden 첨부 키 무시, 파기 감사 건수에 이력 삭제 건수가 섞이지 않음을 확인했습니다.
+- Journey 8그룹 통과: ticket/dedup/scope/필드/만료/DNT/GPC, 접수 transaction/rollback, 24개 화면 조합, 12개 진료의 비용/장비 링크 19개, 키보드 표, no-JS, BFCache 복원.
+- SEO: 공개 HTML 700개 및 격리 CMS/운영 canonical 정책 검사, 오류/경고 없음.
+- Mobile: 절약모드·opt-in WebGL·작은 이미지·수가 비고·작은 화면 메뉴와 첫 방문/핵심 3개/수가표 Core v2 로딩, 6그룹 통과.
+- Design: 80개 화면 조합, 문제 없음. Kinetic: WebGL/회전/모션/갤러리/리사이즈/모바일/reduced-motion/fallback/no-JS 9그룹 통과. 최초 디자인 검사 도중 로컬 Wrangler preview가 재시작하여 연결이 끊겼고, 복구 후 해당 전체 검사를 다시 실행해 통과했습니다. 중단된 실행은 통과로 계산하지 않았습니다.
+- 보안/예약 테스트는 이메일 자격 증명 없는 별도 임시 D1/R2 사용. fixture 캡처에 실제 환자 데이터가 아님을 표시합니다. 실제 미리보기에서 직원/응대 이력/파기 감사/업로드 자산 참조 각 0건 확인.
+- HTTPS 미리보기에서 실제 CSRF 토큰을 사용한 빈 이름/전화 POST가 정상 입력 검증까지 도달하는 것을 확인했습니다. 예약 저장/이메일 발송 없음.
+- `npm audit --omit=dev`: 알려진 운영 의존성 취약점 0건. 패키지 advisory 확인일 뿐 침투검사/보안 인증을 의미하지 않습니다.
+- 결과 파일: `.artifacts/security-audit.json`, `journey-audit.json`, `seo-audit.json`, `mobile-audit.json`, `design-smoke-results.json`, `kinetic-smoke-results.json`, fixture 캡처. 비공개·Git 제외.
+- 이 검사는 전체 CRUD·실기기·부하/운영 가용성·독립 침투검사·법적 적합성을 보증하지 않습니다. 외부 인증/발송/예약 완료는 테스트하지 않았습니다.
 
-## 미구현·운영 전 다음 단계
-1. 원장의 추가·수정 의료 문구, 수가 포함/과세 조건, 개인정보 집계/보유 정책 최종 검수. 실제 재검토 후에만 reviewer·검토일 갱신.
-2. 배포 요청 시 경로 선택, 운영 D1 migration 0002, SESSION_SECRET·HTTPS SITE_URL, 실제 origin 분류 확인. 현재 운영 migration/배포 미실행.
-3. 네이버 실제 예약 완료는 외부 서비스에서 별도 확인. API 동기화·고유 환자 attribution·광고 전환율·정교한 부정 클릭 방지 미구현.
-4. lazy cleanup은 즉시 파기 작업이 아님. 기존 회원·예약 보유기간 파기 자동화도 별도 운영 점검 대상.
-5. Search Console·네이버 소유권 확인/사이트맵 제출, 실제 도메인 Schema Validator·PageSpeed·Core Web Vitals·Safari/Android 검증.
-6. 지역×진료 페이지는 Search Console 유입/중복을 확인한 뒤 조정. 이번에 대량 삭제/추가/noindex하지 않음.
-7. OAuth·Resend 실제 알림/발신 도메인·커스텀 도메인, 지도·주차 확인, 원장 영상은 별도 과제.
+## 운영 전 인수 체크리스트·미구현
+1. 병원 책임자의 의료 표현·수가 포함/과세·환자 동의·개인정보 보유/파기 정책 검수. 실제 검토 이후에만 의료 reviewer/날짜 갱신.
+2. 직원 계정 발급, 역할 배정, 퇴사 비활성화, 마지막 owner 복구, 외부 이메일/백업 파기, 감사 로그 보유기간의 책임자와 절차 확정.
+3. 실제 운영 R2 키/MIME 호환성 대조와 공개 CMS 이미지의 검색/캐시 정책 확정. 이미지 원본의 환자 동의·비식별화·메타데이터 점검.
+4. 사용자가 배포 경로를 선택한 후에만 운영 migration 0002/0003·secrets·HTTPS SITE_URL을 적용하고 실제 origin과 세션/CSRF를 확인. 구형 세션은 재로그인이 필요합니다. 현재 운영 반영은 하지 않았습니다.
+5. 백업 복구 훈련·모니터링·장애 알림·MFA·비밀번호 복구·일반 감사 로그 자동 정리는 별도 개발 범위입니다. 코드 백업은 운영 D1/R2 데이터 복구 체계를 대체하지 않습니다.
+6. 실제 Safari/iOS/Android·저속 네트워크·부하·독립 보안 검사, OAuth/Resend와 발신 도메인 검증. 로컬 Wrangler 재시작 이력은 운영 가용성 검증과 별개입니다.
+7. Search Console·네이버 소유권/사이트맵, 실제 도메인 구조화 데이터·PageSpeed/Core Web Vitals 검증. 지역 페이지는 유입/중복 데이터를 보고 조정합니다.
+8. 네이버 API 동기화·고유 환자 attribution·광고 전환율·전체 CMS 승인 워크플로·지도/주차 재확인·원장 영상은 미구현/별도 범위입니다.

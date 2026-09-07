@@ -85,6 +85,11 @@ try{
  assert.equal((await reception.request('/admin/reservations/'+id,{method:'POST',data:{...change,version:'2',outcome:'call_reached',status:'confirmed',retention_hold:'1'}})).status,302)
  row=await DB.prepare('SELECT * FROM reservations WHERE id=?').bind(id).first()
  assert.equal(row.contact_state,'reached');assert.equal(row.retention_hold,0,'Reception cannot set legal hold')
+ for (const invalid of [{assignee_id:'0'},{assignee_id:'9007199254740992'},{followup_at:'2026-02-30T09:30'},{followup_at:'2026-10-01T25:30'}]) {
+  const rejected=await reception.request('/admin/reservations/'+id,{method:'POST',data:{...change,version:'3',...invalid}})
+  assert.equal(rejected.headers.get('location'),'/admin/reservations/'+id+'?error=1')
+ }
+ assert.equal((await DB.prepare('SELECT version FROM reservations WHERE id=?').bind(id).first()).version,3,'Invalid values must not mutate the reservation')
  const ev=JSON.stringify((await DB.prepare('SELECT * FROM reservation_events').all()).results)
  assert.equal(/TEST FIXTURE A|01012345678|PRIVATE_HEALTH_TEXT/.test(ev),false)
  assert.equal((await DB.prepare("SELECT SUM(count) n FROM conversion_daily WHERE event='form_completed'").first()).n,1,'Desk status updates do not fabricate conversions')
@@ -123,10 +128,11 @@ try{
  assert.equal((await editor.request('/files/'+key)).status,200)
  const evil='<h1>Visible title</h1><p>Safe paragraph long enough for the editor.</p><img src="/files/'+key+'" onerror=alert(1)><a href="javascript:alert(2)" onclick=alert(3)>Link</a><svg/onload=alert(4)><script>alert(5)</script><form action="https://evil.example"><input name="password"></form>'
  await editor.request('/admin/columns/new')
- const saved=await editor.request('/admin/columns/new',{method:'POST',data:{title:'Security Fixture',content_html:evil,published:'1',slug:'security-fixture',author_slug:'han-hwirim'}})
+ const saved=await editor.request('/admin/columns/new',{method:'POST',data:{title:'Security Fixture',content_html:evil,published:'1',slug:'security-fixture',author_slug:'han-hwirim',thumbnail:'cases/after/forged.jpg'}})
  assert.equal(saved.status,302)
  const article=await DB.prepare("SELECT * FROM columns WHERE slug='security-fixture'").first()
  assert.ok(article);assert.equal(/onerror|onclick|javascript:|<script|<svg|<form|<input/.test(article.content_html),false)
+ assert.ok(!article.thumbnail,'A submitted hidden attachment key cannot attach a private image')
  const publicFile=await stranger.request('/files/'+key);assert.equal(publicFile.status,200);assert.equal(publicFile.headers.get('cache-control'),'private, no-store');assert.equal(publicFile.headers.get('x-content-type-options'),'nosniff')
  await DB.prepare('UPDATE columns SET published=0 WHERE id=?').bind(article.id).run()
  assert.equal((await stranger.request('/files/'+key)).status,404)
@@ -164,6 +170,7 @@ try{
  assert.equal((await DB.prepare("SELECT COUNT(*) n FROM reservations WHERE name IN ('HELD TEST','PENDING TEST','FUTURE TEST')").first()).n,3)
  const audit=JSON.stringify((await DB.prepare("SELECT detail FROM staff_audit WHERE action='reservation.purge'").all()).results)
  assert.equal(/EXPIRED TEST|01000000001/.test(audit),false)
+ assert.equal(JSON.parse((await DB.prepare("SELECT detail FROM staff_audit WHERE action='reservation.purge'").first()).detail).count,1,'Purge audit counts reservations, not cascading event deletions')
  checks.push('Purge excludes holds/open/future reservations; password + typed approval + single-use snapshot; stale-preview rejection and FK history deletion')
 
  const receptionSession=reception.cookies.get('dd_admin')
