@@ -7,6 +7,7 @@ import { doctors } from '../data/doctors'
 import { treatments, getTreatment } from '../data/treatments'
 import { terms, termsByCategory, CATEGORIES, getTerm, initial, autoLink, type Term } from '../data/encyclopedia'
 import { pricing, insuredItems, pricingUpdatedAt, won } from '../data/pricing'
+import { loadPricingGroups } from '../lib/fees'
 import { areaPages, areaAccess, type AreaPage } from '../data/areas'
 import { nearbyAreas } from '../data/clinic'
 import { pageHero, faqList, ctaStrip, reviewLine } from '../lib/ui'
@@ -146,15 +147,17 @@ ${ctaStrip(clinic)}`
 }
 
 // ── 비급여 진료비 ────────────────────────────────────────
-export function pricingPage(c: Context<Env>) {
+export async function pricingPage(c: Context<Env>) {
   const clinic = c.get('clinic') as any
+  // DB(fees) 공개 항목으로 렌더. 비었거나 실패하면 하드코딩 시드로 폴백 → 페이지가 절대 비지 않는다.
+  const groups = (await loadPricingGroups(c.env?.DB, true)) ?? pricing
   const body = html`
 ${pageHero({ eyebrow: '비급여 진료비 고지', title: html`치료 전에 먼저 알려드리는<br>비용`, lead: '의료법에 따라 비급여 항목의 진료비를 고지합니다. 이벤트·할인 없이 고지된 금액을 동일하게 적용하며, 상담에서 예상 비용을 먼저 안내드립니다.', crumbs: [{ name: '홈', href: '/' }, { name: '비급여 진료비', href: '/pricing' }] })}
 <section class="section">
   <div class="container container-narrow">
     <div class="price-notice reveal in"><p><strong>기준일 ${pricingUpdatedAt.replace(/-/g, '.')}</strong> · 금액과 적용 단위는 각 행을 확인해 주세요. 개인의 상태·치료 범위에 따라 항목이 추가될 수 있으며, 포함 범위와 총비용은 치료 전에 안내드립니다. 과세 여부는 해당 항목의 표기를 확인해 주세요.</p></div>
-    <nav class="reveal in" aria-label="항목 바로가기"><ul class="pill-list price-navigation">${pricing.map((g) => html`<li><a href="#${g.id}">${g.group}</a></li>`)}<li><a href="#insured">건강보험 적용 항목</a></li></ul></nav>
-    ${pricing.map((g) => html`<section class="reveal" id="${g.id}">
+    <nav class="reveal in" aria-label="항목 바로가기"><ul class="pill-list price-navigation">${groups.map((g) => html`<li><a href="#${g.id}">${g.group}</a></li>`)}<li><a href="#insured">건강보험 적용 항목</a></li></ul></nav>
+    ${groups.map((g) => html`<section class="reveal" id="${g.id}">
       <span class="fragment-alias" id="${encodeURIComponent(g.group)}" aria-hidden="true"></span><span class="fragment-alias" id="${g.group}" aria-hidden="true"></span>
       <h2 class="h3">${g.group}</h2>
       ${g.desc ? html`<p class="hint" style="margin:0 0 12px">${g.desc}</p>` : ''}

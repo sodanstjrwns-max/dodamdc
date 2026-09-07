@@ -15,6 +15,7 @@ import { treatments, getTreatment } from '../data/treatments'
 import { doctors } from '../data/doctors'
 import { formData, slugify, fmtDate, stripTags, esc } from '../lib/util'
 import { alertBox } from '../lib/ui'
+import { loadFeeGroupsForAdmin } from '../lib/fees'
 
 const admin = new Hono<Env>()
 
@@ -310,6 +311,123 @@ admin.get('/stats', async (c) => {
   <div class="admin-cards">${ents.map((e: any) => html`<div class="admin-card"><span class="n">${e.n}</span><span class="l">${e.entity_type || 'page'}</span></div>`)}</div>
   <div class="grid-2" style="margin-top:24px"><section><h2 class="h3">일별</h2><table class="admin-table"><thead><tr><th>날짜</th><th>방문</th><th>봇</th></tr></thead><tbody>${daily.map((d: any) => html`<tr><td>${d.d}</td><td>${d.human}</td><td class="hint">${d.bot}</td></tr>`)}</tbody></table></section>
   <section><h2 class="h3">인기 페이지</h2><table class="admin-table"><thead><tr><th>경로</th><th>조회</th></tr></thead><tbody>${top.map((r: any) => html`<tr><td><a href="${r.path}" target="_blank">${r.path}</a></td><td>${r.n}</td></tr>`)}</tbody></table></section></div>`, 'stats')
+})
+
+// ── 비급여 수가 (원장 편집 + 항목별 공개/비공개) ─────────
+admin.get('/fees', async (c) => {
+  const groups = await loadFeeGroupsForAdmin(c.env.DB)
+  const body = html`<p class="hint">진료비를 직접 수정하고 항목별로 <strong>공개/비공개</strong>를 정할 수 있습니다. 비공개 항목은 공개 페이지(<a href="/pricing" target="_blank">/pricing</a>)에서 숨겨지고, 이 화면에서는 계속 편집됩니다. 금액을 비우면 공개 페이지에 '상담 후 안내'로 표시됩니다. 저장 전에는 반영되지 않습니다.</p>
+  <div id="f-groups"></div>
+  <div class="admin-toolbar" style="margin-top:12px"><button type="button" id="f-addgroup" class="btn btn-outline btn-sm">+ 분류(그룹) 추가</button></div>
+  <div class="admin-toolbar" style="margin-top:20px;align-items:center;gap:14px"><button type="button" id="f-save" class="btn btn-primary" data-loading="저장 중…">저장</button><a href="/pricing" target="_blank" class="btn btn-outline">공개 페이지 미리보기 ↗</a><span id="f-status" class="hint"></span></div>
+  <script>
+  (function(){
+    var GROUPS = ${raw(JSON.stringify(groups).replace(/</g, '\\u003c'))};
+    var wrap = document.getElementById('f-groups');
+    function q(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+    function rnd(){ return 'grp-'+Math.random().toString(36).slice(2,8); }
+    function itemRow(it){
+      var tr = document.createElement('tr');
+      if(it.is_published===0) tr.style.opacity='0.5';
+      tr.innerHTML =
+        '<td><input type="text" data-k="name" value="'+q(it.name)+'" placeholder="항목명" style="width:100%"></td>'+
+        '<td><input type="text" inputmode="numeric" data-k="price" value="'+(it.price==null?'':q(it.price))+'" placeholder="숫자(비우면 상담 후 안내)" style="width:130px"></td>'+
+        '<td><input type="text" data-k="unit" value="'+q(it.unit)+'" placeholder="단위" style="width:80px"></td>'+
+        '<td><input type="text" data-k="note" value="'+q(it.note)+'" placeholder="비고" style="width:100%"></td>'+
+        '<td style="text-align:center"><label class="check small" style="justify-content:center"><input type="checkbox" data-k="pub" '+(it.is_published===0?'':'checked')+'> 공개</label></td>'+
+        '<td><button type="button" class="btn btn-danger btn-sm rowdel">삭제</button></td>';
+      tr.querySelector('[data-k=pub]').addEventListener('change', function(e){ tr.style.opacity = e.target.checked ? '' : '0.5'; });
+      tr.querySelector('.rowdel').addEventListener('click', function(){ tr.remove(); });
+      return tr;
+    }
+    function groupBlock(g){
+      var box = document.createElement('section'); box.className='admin-form'; box.style.marginBottom='22px';
+      box.setAttribute('data-gid', g.id || rnd());
+      box.innerHTML =
+        '<div class="form-row"><div class="field"><label>분류명</label><input data-k="group" type="text" value="'+q(g.group)+'" placeholder="예: 임플란트"></div>'+
+        '<div class="field"><label>분류 설명 (선택)</label><input data-k="desc" type="text" value="'+q(g.desc)+'" placeholder="이 그룹 상단에 표시되는 안내문"></div>'+
+        '<div class="field" style="flex:0 0 auto;align-self:flex-end"><button type="button" class="btn btn-outline btn-sm grpdel">그룹 삭제</button></div></div>'+
+        '<div class="table-wrap"><table class="admin-table"><thead><tr><th>항목</th><th>금액(원)</th><th>단위</th><th>비고</th><th style="text-align:center">공개</th><th></th></tr></thead><tbody></tbody></table></div>'+
+        '<div class="admin-toolbar" style="margin-top:8px"><button type="button" class="btn btn-outline btn-sm addrow">+ 항목 추가</button></div>';
+      var tb = box.querySelector('tbody');
+      (g.items||[]).forEach(function(it){ tb.appendChild(itemRow(it)); });
+      box.querySelector('.addrow').addEventListener('click', function(){ tb.appendChild(itemRow({name:'',price:null,unit:'',note:'',is_published:1})); });
+      box.querySelector('.grpdel').addEventListener('click', function(){ if(confirm('이 분류 전체를 삭제할까요?')) box.remove(); });
+      return box;
+    }
+    (GROUPS||[]).forEach(function(g){ wrap.appendChild(groupBlock(g)); });
+    document.getElementById('f-addgroup').addEventListener('click', function(){ wrap.appendChild(groupBlock({id:rnd(),group:'새 분류',desc:'',items:[]})); });
+    function collect(){
+      var groups=[];
+      wrap.querySelectorAll('section[data-gid]').forEach(function(box){
+        var group = box.querySelector('[data-k=group]').value.trim();
+        var desc = box.querySelector('[data-k=desc]').value.trim();
+        var items=[];
+        box.querySelectorAll('tbody tr').forEach(function(tr){
+          var name = tr.querySelector('[data-k=name]').value.trim();
+          if(!name) return;
+          items.push({
+            name: name,
+            price: tr.querySelector('[data-k=price]').value.trim(),
+            unit: tr.querySelector('[data-k=unit]').value.trim(),
+            note: tr.querySelector('[data-k=note]').value.trim(),
+            is_published: tr.querySelector('[data-k=pub]').checked ? 1 : 0
+          });
+        });
+        if(group && items.length) groups.push({ id: box.getAttribute('data-gid'), group:group, desc:desc, items:items });
+      });
+      return { groups: groups };
+    }
+    document.getElementById('f-save').addEventListener('click', async function(){
+      var btn=this, st=document.getElementById('f-status');
+      var token=(document.querySelector('meta[name=csrf-token]')||{}).content||'';
+      btn.disabled=true; st.textContent='저장 중…';
+      try{
+        var r = await fetch('/admin/api/fees',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':token},body:JSON.stringify(collect())});
+        var j = await r.json().catch(function(){return {}});
+        st.textContent = (r.ok && j.ok) ? ('✓ 저장되었습니다 ('+j.count+'개 항목) · 공개 페이지에 즉시 반영') : ('✗ '+(j.error||('저장 실패 ('+r.status+')')));
+      }catch(e){ st.textContent='✗ 네트워크 오류'; }
+      btn.disabled=false;
+    });
+  })();
+  </script>`
+  return shell(c, '비급여 수가', body, 'fees')
+})
+
+// 저장 — 전체 교체(delete-all + insert) 단일 트랜잭션(batch)
+admin.post('/api/fees', async (c) => {
+  if (!c.env.DB) return c.json({ error: 'DB 를 사용할 수 없습니다.' }, 503)
+  let body: any
+  try { body = await c.req.json() } catch { return c.json({ error: '잘못된 요청입니다.' }, 400) }
+  const groups = Array.isArray(body?.groups) ? body.groups : []
+  const ins = c.env.DB.prepare(
+    'INSERT INTO fees (group_id, group_name, group_desc, name, price, unit, note, is_published, sort_group, sort_order) VALUES (?,?,?,?,?,?,?,?,?,?)',
+  )
+  const stmts: any[] = [c.env.DB.prepare('DELETE FROM fees')]
+  groups.forEach((g: any, gi: number) => {
+    const gname = String(g?.group ?? '').trim()
+    if (!gname) return
+    const gid = (String(g?.id ?? '').trim() || `grp-${gi}`).slice(0, 80)
+    const gdesc = g?.desc ? String(g.desc).trim() : null
+    const items = Array.isArray(g?.items) ? g.items : []
+    items.forEach((it: any, ii: number) => {
+      const name = String(it?.name ?? '').trim()
+      if (!name) return
+      const digits = String(it?.price ?? '').replace(/[^0-9]/g, '')
+      const price = digits ? parseInt(digits, 10) : null
+      const unit = it?.unit ? String(it.unit).trim() : null
+      const note = it?.note ? String(it.note).trim() : null
+      const pub = it?.is_published === 0 || it?.is_published === false ? 0 : 1
+      stmts.push(ins.bind(gid, gname, gdesc, name, price, unit, note, pub, gi, ii))
+    })
+  })
+  try {
+    await c.env.DB.batch(stmts)
+    return c.json({ ok: true, count: stmts.length - 1 })
+  } catch (e: any) {
+    console.error('save fees error', e)
+    return c.json({ error: '저장에 실패했습니다.' }, 500)
+  }
 })
 
 export default admin
