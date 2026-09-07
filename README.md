@@ -5,14 +5,27 @@
 - **목표**: 자연치아 보존 철학을 담은 브랜드 홈페이지, 환자 중심 진료 안내, 홈페이지 예약 응대 관리.
 - **스택**: Hono + TypeScript + Cloudflare Pages/Workers + D1 + R2. Vanilla JS, GSAP/ScrollTrigger, Three.js WebGL.
 - **경로 / 브랜치**: `/home/user/webapp` / `main`
-- **최근 작업**: 2026-09-07 예약 응대·보안 보강 후, 업로드 이미지의 정확한 공개 참조 검사·운영 전용 검색 정책·직원 게시 안내 보강.
+- **최근 작업**: 2026-09-07 사용자가 선택한 기존 Cloudflare 계정에 운영 배포 완료. 예약 응대·보안·이미지 정책 소스 `637bbdf` 반영.
 - **미리보기**: https://3000-im9044c37cori5huz389s-c81df28e.sandbox.novita.ai/
-- **관리자 진입**: https://3000-im9044c37cori5huz389s-c81df28e.sandbox.novita.ai/admin/login
-- **첫 방문**: https://3000-im9044c37cori5huz389s-c81df28e.sandbox.novita.ai/first-visit
-- **기존 운영 주소**: https://seoul-dodam-dental.pages.dev
-- **운영 반영: 미배포.** 운영 D1/R2·도메인·검색 등록 미변경. migration 0002와 0003은 로컬에만 적용했습니다.
+- **운영 관리자**: https://seoul-dodam-dental.pages.dev/admin/login
+- **운영 첫 방문**: https://seoul-dodam-dental.pages.dev/first-visit
+- **운영 주소**: https://seoul-dodam-dental.pages.dev
+- **이번 배포 URL**: https://6c4eab5e.seoul-dodam-dental.pages.dev (별도 검색 제외)
+- **운영 반영: 배포 완료.** 기존 Pages 프로젝트 `seoul-dodam-dental`의 `main`을 업데이트했습니다. 운영 D1 migration 0002/0003 적용 완료. 기존 DB/R2 연결과 secret은 유지했으며 커스텀 도메인·검색 서비스 등록은 변경하지 않았습니다.
 - 실제 환자 파기, 미리보기 DB의 테스트 직원/환자 생성, 외부 예약·전화·카카오·메일 발송은 실행하지 않았습니다. 보안 테스트는 별도 폐기 가능한 D1/R2를 사용합니다.
-- 미리보기는 임시 서비스입니다. 운영 배포를 요청하면 사용자 Cloudflare와 Genspark Hosted 중 경로를 먼저 선택해야 합니다. Hosted 접근 규칙/신원 연동은 설정하지 않았으며, 현재 권한은 애플리케이션 내부 RBAC입니다.
+- 배포 경로는 사용자가 선택한 **본인 Cloudflare 계정(BYOK)** 입니다. Hosted 접근 규칙/신원 연동은 설정하지 않았으며, 현재 권한은 애플리케이션 내부 RBAC입니다. 샌드박스 미리보기와 운영 DB는 서로 별개입니다.
+
+## 운영 배포 기록 (2026-09-07)
+- 배포 시각: 약 16:32 KST. 운영 앱 소스 commit `637bbdf`, 배포 식별자 `6c4eab5e`. 이 이후 README만 변경한 문서 commit은 운영 앱 재배포가 아닙니다.
+- 배포 전 운영 D1 SQL export와 Time Travel 복구 지점을 확보했습니다. SQL은 개인정보를 포함할 수 있어 `.artifacts/dodam-production-predeploy-2026-09-07.sql`에 권한 0600으로 저장하고 Git/일반 코드 백업에서 제외했습니다. 복구 지점은 `.artifacts/production-recovery-point-2026-09-07.json`에 기록했습니다.
+- 기존 회원·예약·업로드 메타데이터·게시물의 건수를 마이그레이션 전후/배포 후 대조하여 유지됨을 확인했습니다. 개인정보 원문을 검증 결과나 Git에 기록하지 않았습니다. 테스트 직원·회원·예약 생성, 기존 환자 삭제, R2 변경은 실행하지 않았습니다.
+- 운영 secret `ADMIN_PASSWORD`, `SESSION_SECRET`, `SITE_URL`, `NOTIFICATION_EMAIL`이 배포 후에도 유지됩니다. 값 자체를 로그/문서에 기록하거나 개발용 값으로 덮어쓰지 않았습니다.
+- `RESEND_API_KEY`와 Google OAuth credentials는 운영에 설정돼 있지 않습니다. 자동 메일 알림·Google 로그인은 현재 활성화되지 않았고 실제 발송/인증 테스트도 하지 않았습니다. 새 접수는 관리자 업무판에서 확인하세요.
+- 실주소 검사 25항목: 주요 페이지/정적 자산 HTTP 200, 관리자 비로그인 302, canonical/검색 제외 분리, 정상 CSRF를 가진 빈 예약 폼의 입력 검증, 외부 origin 변경 요청 403. 빈 폼은 저장하지 않았습니다.
+- 운영 홈을 Chromium 1440/390px에서 확인: H1 1개·표시 정상, 가로 넘침 0, 공식 네이버 링크 존재, 페이지 JavaScript 오류 없음. 테스트 분석 요청은 차단했고 실제 외부 예약/전화/카카오 동작은 실행하지 않았습니다.
+- 운영 직원 계정은 배포 검증 시 0개입니다. 기존 관리자 비밀번호로 첫 개인 관리책임자 계정을 만든 후 업무판을 사용해야 합니다. 기존 구형 세션은 재로그인이 필요합니다.
+- 이전 Pages 배포는 `41f295a0-af00-45dd-b586-16cb59c53689`입니다. 복구 시 코드 rollback을 먼저 검토하고, 전체 DB 복원은 이후 접수 손실 위험을 확인한 책임자 승인 없이는 실행하지 마세요. 이번 migration은 추가형이며 DB 복원/rollback 훈련을 실행한 것은 아닙니다.
+- 실주소 검증 기록: `.artifacts/production-release-audit-2026-09-07.json`. 모든 민감한 백업·원본 키 inventory는 비공개/Git 제외입니다.
 
 ## 승인된 디자인·자료와 보존한 기능
 신청서 XLSX의 서울도담치과/한휘림 원장 행 및 회신 PDF에 근거합니다. 원문은 비공개 `.artifacts/`에 보관하며 Git/공개 자산에 넣지 않습니다.
@@ -112,7 +125,7 @@
 - 허용 키는 cases/before, cases/after, columns, notices, uploads 하위 영문·숫자·밑줄·하이픈 단일 파일명과 jpg/jpeg/png/webp/gif 확장자입니다. 중첩 폴더·이름 중간의 점·SVG·미지원/없는 Content-Type은 임의로 허용하지 않고 차단합니다.
 - 지원하는 MIME의 대소문자 차이와 과거 파라미터(예: `IMAGE/PNG`, `image/jpeg; charset=binary`)는 안전한 기본 image Content-Type으로 정규화합니다. 미지원/미지정 형식을 확장자로 추정해 열어주지 않습니다.
 - 과거 일반 img 태그의 작은따옴표·따옴표 생략·태그 대문자는 격리 fixture에서 검사했습니다. 키 일부를 HTML entity로 인코딩한 과거 본문은 후보 조회에서 제외될 수 있어 검토 후 정상 CMS 저장이 필요합니다. 새 CMS 저장은 sanitizer가 경로를 정규화합니다.
-- **운영 자산 전수 검증은 미실행**입니다. 로컬 업로드/게시물 파일 참조가 0건이므로 운영 호환성을 입증할 수 없습니다. 배포 전 비공개 inventory로 원래 키·R2 객체 존재·Content-Type·참조 슬롯·환자 동의/메타데이터를 대조하고, 불일치를 확인한 뒤 개별 수정해야 합니다. 이번에 R2 객체를 자동 변경/삭제하거나 허용 경로를 넓히지 않았습니다.
+- 배포 전 운영 게시물 5건과 등록된 업로드 키를 비공개 조회했습니다. 공개 게시물의 업로드 파일 참조는 없었으며 본문 sanitizer 결과도 기존 내용과 같았습니다. 지원하지 않는 미참조 업로드 키 1건은 발견했지만 삭제/변경하지 않았습니다. R2 bucket 통계는 0개 객체였으며 원본 이미지 단위의 동의/메타데이터 전수 검수를 대신하지 않습니다. 이후 업로드와 별도 원본은 운영자가 검토해야 합니다.
 - 관리자 설정은 허용 키만 저장하며 GA4 ID·연락처·URL 등을 검증하고 잘못된 과거 값도 읽기에서 제외합니다. GA4는 `/admin`, `/auth`, `/reservation`에서 로딩하지 않습니다.
 - 일반 `staff_audit` 보유기간 정리, 보안 알림/모니터링, 복구 자동화는 미구현입니다. 최근 작업 화면은 30개만 표시하지만 나머지 행을 자동 파기하지 않습니다.
 
@@ -218,11 +231,11 @@ npm run test:kinetic
 - 결과 파일: `.artifacts/security-audit.json`, `journey-audit.json`, `seo-audit.json`, `mobile-audit.json`, `design-smoke-results.json`, `kinetic-smoke-results.json`, fixture 캡처. 비공개·Git 제외.
 - 이 검사는 전체 CRUD·실기기·부하/운영 가용성·독립 침투검사·법적 적합성을 보증하지 않습니다. 외부 인증/발송/예약 완료는 테스트하지 않았습니다.
 
-## 운영 전 인수 체크리스트·미구현
+## 배포 후 인수 체크리스트·미구현
 1. 병원 책임자의 의료 표현·수가 포함/과세·환자 동의·개인정보 보유/파기 정책 검수. 실제 검토 이후에만 의료 reviewer/날짜 갱신.
 2. 직원 계정 발급, 역할 배정, 퇴사 비활성화, 마지막 owner 복구, 외부 이메일/백업 파기, 감사 로그 보유기간의 책임자와 절차 확정.
 3. 실제 운영 R2 키/객체 존재/MIME/게시 참조의 비공개 inventory 대조. 구현한 공개 CMS 검색 허용·임상 이미지 검색 제외·전체 업로드 no-store 정책의 병원 승인, 이미지 원본 환자 동의·비식별화·메타데이터 점검. 새 파일로 재업로드한 동일 사진의 자동 식별은 미구현입니다.
-4. 사용자가 배포 경로를 선택한 후에만 운영 migration 0002/0003·secrets·HTTPS SITE_URL을 적용하고 실제 origin과 세션/CSRF를 확인. 구형 세션은 재로그인이 필요합니다. 현재 운영 반영은 하지 않았습니다.
+4. BYOK 운영 배포와 migration 0002/0003, 기존 secret 유지, 실주소 origin/CSRF 검증은 완료했습니다. 첫 관리책임자 계정 생성·역할 발급과 기존 회원의 재로그인은 운영자가 진행해야 합니다. 실제 예약 생성/응대/메일의 종단 간 업무 수용 검사는 별도 승인 후 진행합니다.
 5. 백업 복구 훈련·모니터링·장애 알림·MFA·비밀번호 복구·일반 감사 로그 자동 정리는 별도 개발 범위입니다. 코드 백업은 운영 D1/R2 데이터 복구 체계를 대체하지 않습니다.
 6. 실제 Safari/iOS/Android·저속 네트워크·부하·독립 보안 검사, OAuth/Resend와 발신 도메인 검증. 로컬 Wrangler 재시작 이력은 운영 가용성 검증과 별개입니다.
 7. Search Console·네이버 소유권/사이트맵, 실제 도메인 구조화 데이터·PageSpeed/Core Web Vitals 검증. 지역 페이지는 유입/중복 데이터를 보고 조정합니다.
