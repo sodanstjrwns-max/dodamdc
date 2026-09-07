@@ -5,6 +5,7 @@
 - **목표**: 자연치아 보존 철학을 담은 브랜드 홈페이지, 환자 중심 진료 안내, 홈페이지 예약 응대 관리.
 - **스택**: Hono + TypeScript + Cloudflare Pages/Workers + D1 + R2. Vanilla JS, GSAP/ScrollTrigger, Three.js WebGL.
 - **경로 / 브랜치**: `/home/user/webapp` / `main`
+- **GitHub**: https://github.com/sodanstjrwns-max/dodamdc (`main`, 공개 저장소). 코드·마이그레이션·테스트·배포 기록만 관리하며 `.dev.vars`, `.env*`, `.artifacts/`의 운영 DB 백업과 비공개 원본은 제외합니다.
 - **최근 작업**: 2026-09-07 디자인 제안 1~6 전체 반영 — 차분한 히어로, CTA 위계, 압축된 읽기 동선, 원장 중심 편집, 실제 사진 표시 톤/크롭, 공통 궤도·모션. **사용자 승인 후 최신 디자인 운영 배포 완료.**
 - **현재 운영 소스**: `619e80e` / 배포 `2be6ab04`. 모바일 스크린샷 피드백 수정분까지 운영 반영했습니다. 이전 디자인 배포는 `d62ed212`이며 이번에도 DB migration·예약 데이터·secret 변경이 없습니다.
 - **최신 디자인 미리보기**: https://3000-im9044c37cori5huz389s-c81df28e.sandbox.novita.ai/?v=16
