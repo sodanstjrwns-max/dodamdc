@@ -2,11 +2,11 @@ import { Hono } from 'hono'
 import { html, raw } from 'hono/html'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
-import { articleLd, truncate, webpageSpeakableLd } from '../lib/seo'
+import { articleLd, truncate, physicianLd, isoDate } from '../lib/seo'
 import { treatments, getTreatment } from '../data/treatments'
 import { doctors, getDoctor } from '../data/doctors'
 import { autoLink } from '../data/encyclopedia'
-import { pageHero, ctaStrip, safeHtml, paginate, alertBox } from '../lib/ui'
+import { pageHero, ctaStrip, articleHtml, imageAttrs, paginate, alertBox } from '../lib/ui'
 import { fmtDate, trackView, stripTags, formData, isEmail, normPhone } from '../lib/util'
 
 const content = new Hono<Env>()
@@ -51,7 +51,7 @@ const caseCard = (k: any) => html`<a href="/cases/gallery/${k.slug}" class="case
 content.get('/cases/gallery', async (c) => {
   const clinic = c.get('clinic') as any
   const tx = c.req.query('treatment') || '', dr = c.req.query('doctor') || ''
-  const page = Math.max(1, Number(c.req.query('page')) || 1)
+  const page = Math.min(10000, Math.max(1, Math.floor(Number(c.req.query('page')) || 1)))
   const where = ['published=1']; const args: any[] = []
   if (tx) { where.push('treatment_slug=?'); args.push(tx) }
   if (dr) { where.push('doctor_slug=?'); args.push(dr) }
@@ -61,12 +61,13 @@ content.get('/cases/gallery', async (c) => {
   const base = `/cases/gallery${tx ? `?treatment=${tx}` : dr ? `?doctor=${dr}` : ''}`
   const body = html`${pageHero({ eyebrow: '치료 전후', title: html`사진으로 보는<br>치료 과정`, lead: '치료 전 사진은 누구나, 치료 후 사진은 회원만 볼 수 있습니다(의료법). 모든 사례는 환자분 동의를 받아 개인정보를 제외하고 게시합니다.', crumbs: [{ name: '홈', href: '/' }, { name: '치료 전후', href: '/cases/gallery' }] })}
 <section class="section"><div class="container">
+  <h2 class="sr-only">진료별 게시물 목록</h2>
   <nav class="faq-filter reveal in" aria-label="진료별 보기"><a href="/cases/gallery" class="${!tx ? 'active' : ''}">전체</a>${treatments.map((t) => html`<a href="/cases/gallery?treatment=${t.slug}" class="${tx === t.slug ? 'active' : ''}">${t.name}</a>`)}</nav>
   ${rows.length && !c.get('user') ? html`<div class="locked-box reveal in"><p><strong>치료 후 사진은 회원에게만 공개됩니다.</strong> 회원가입 후 로그인하면 전후 비교 슬라이더를 볼 수 있습니다.</p><div class="hero-actions"><a href="/auth/login?next=${encodeURIComponent(c.req.path + (tx ? '?treatment=' + tx : ''))}" class="btn btn-primary btn-sm">로그인</a><a href="/auth/register?next=${encodeURIComponent(c.req.path)}" class="btn btn-outline btn-sm">회원가입</a></div></div>` : ''}
   ${rows.length ? html`<div class="case-grid">${rows.map(caseCard)}</div>${paginate(base, page, total, PER)}` : html`<section class="empty-content"><p class="edition-label">CARE, WITH YOUR CONSENT</p><h2>공개된 치료 사례를 준비하고 있습니다.</h2><p>환자분의 동의를 받은 사례만 게시합니다.<br>궁금한 치료의 과정과 주의사항은 진료 안내에서 먼저 확인하실 수 있습니다.</p><a href="/treatments" class="editorial-link">진료 안내 살펴보기 <span aria-hidden="true">↗</span></a></section>`}
 </div></section>
 ${ctaStrip(clinic)}`
-  return c.html(Layout(c, { title: tx ? `${getTreatment(tx)?.name || ''} 치료 전후` : '치료 전후 사진', description: '서울도담치과 치료 전후 사진. 생활치수치료·잇몸치료·임플란트·충치치료 사례. 치료 후 사진은 의료법에 따라 회원에게만 공개됩니다.', path: '/cases/gallery', noindex: page > 1, crumbs: [{ name: '홈', href: '/' }, { name: '치료 전후', href: '/cases/gallery' }] }, body))
+  return c.html(Layout(c, { title: tx ? `${getTreatment(tx)?.name || ''} 치료 전후` : '치료 전후 사진', description: '서울도담치과 치료 전후 사진. 생활치수치료·잇몸치료·임플란트·충치치료 사례. 치료 후 사진은 의료법에 따라 회원에게만 공개됩니다.', path: '/cases/gallery', noindex: !!tx || !!dr || (page > 1 && !rows.length), crumbs: [{ name: '홈', href: '/' }, { name: '치료 전후', href: '/cases/gallery' }] }, body))
 })
 
 content.get('/cases/gallery/:slug', async (c) => {
@@ -109,7 +110,7 @@ ${ctaStrip(clinic)}`
 content.get('/column', async (c) => {
   const clinic = c.get('clinic') as any
   const tx = c.req.query('treatment') || ''
-  const page = Math.max(1, Number(c.req.query('page')) || 1)
+  const page = Math.min(10000, Math.max(1, Math.floor(Number(c.req.query('page')) || 1)))
   const w = tx ? 'published=1 AND treatment_slug=?' : 'published=1'; const args = tx ? [tx] : []
   const total = (await c.env.DB.prepare(`SELECT COUNT(*) n FROM columns WHERE ${w}`).bind(...args).first<any>())?.n || 0
   const rows = (await c.env.DB.prepare(`SELECT slug,title,excerpt,thumbnail,author_slug,treatment_slug,published_at,views FROM columns WHERE ${w} ORDER BY published_at DESC LIMIT ? OFFSET ?`).bind(...args, PER, (page - 1) * PER).all<any>()).results || []
@@ -117,20 +118,21 @@ content.get('/column', async (c) => {
   const card = (p: any) => html`<a href="/column/${p.slug}" class="post-card reveal">${p.thumbnail ? html`<div class="post-thumb"><img src="/files/${p.thumbnail}" alt="" width="640" height="400" loading="lazy" decoding="async"></div>` : ''}<div class="post-body"><p class="post-meta">${fmtDate(p.published_at)} · ${getDoctor(p.author_slug)?.name || ''} 원장${p.treatment_slug ? ` · ${getTreatment(p.treatment_slug)?.name || ''}` : ''}</p><h3>${p.title}</h3><p>${p.excerpt || ''}</p></div></a>`
   const body = html`${pageHero({ eyebrow: '원장 칼럼', title: html`진료실에서<br>못 다한 이야기`, lead: '상담 시간에 다 설명하지 못한 것들을 글로 남깁니다. 광고가 아니라 설명입니다.', crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }] })}
 <section class="section"><div class="container">
+  <h2 class="sr-only">진료별 게시물 목록</h2>
   <nav class="faq-filter reveal in" aria-label="진료별 보기"><a href="/column" class="${!tx ? 'active' : ''}">전체</a>${treatments.map((t) => html`<a href="/column?treatment=${t.slug}" class="${tx === t.slug ? 'active' : ''}">${t.name}</a>`)}</nav>
   ${first ? html`<a href="/column/${first.slug}" class="post-featured reveal">${first.thumbnail ? html`<div class="post-thumb"><img src="/files/${first.thumbnail}" alt="" width="960" height="600" decoding="async"></div>` : ''}<div class="post-body"><p class="post-meta">${fmtDate(first.published_at)} · ${getDoctor(first.author_slug)?.name || ''} 원장</p><h2 class="h2">${first.title}</h2><p class="lead">${first.excerpt || ''}</p><span class="link-arrow">읽기</span></div></a>` : ''}
   ${rest.length ? html`<div class="post-grid">${rest.map(card)}</div>` : ''}
   ${!rows.length ? html`<section class="empty-content"><p class="edition-label">DODAM JOURNAL</p><h2>차근차근, 진료 이야기를 채워갑니다.</h2><p>이 분류에 아직 게시된 칼럼이 없습니다.<br>먼저 진료 안내에서 치아 건강에 필요한 정보를 살펴보세요.</p><a href="/treatments" class="editorial-link">진료 이야기 읽기 <span aria-hidden="true">↗</span></a></section>` : ''}
   ${paginate(`/column${tx ? `?treatment=${tx}` : ''}`, page, total, PER)}
 </div></section>`
-  return c.html(Layout(c, { title: '원장 칼럼', description: '서울도담치과 한휘림 원장이 진료실에서 못 다한 이야기를 씁니다. 생활치수치료, 신경치료, 잇몸관리, 임플란트, 사랑니에 대한 솔직한 설명.', path: '/column', noindex: page > 1 || !!tx, crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }] }, body))
+  return c.html(Layout(c, { title: '원장 칼럼', description: '서울도담치과 한휘림 원장이 진료실에서 못 다한 이야기를 씁니다. 생활치수치료, 신경치료, 잇몸관리, 임플란트, 사랑니에 대한 솔직한 설명.', path: '/column', noindex: !!tx || (page > 1 && !rows.length), crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }] }, body))
 })
 
 content.get('/column/rss.xml', async (c) => {
   const clinic = c.get('clinic') as any, siteUrl = c.get('siteUrl')
   const rows = (await c.env.DB.prepare('SELECT slug,title,excerpt,published_at FROM columns WHERE published=1 ORDER BY published_at DESC LIMIT 30').all<any>()).results || []
   const x = (s: string) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  const xml = `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>${x(clinic.shortName)} 원장 칼럼</title><link>${siteUrl}/column</link><description>${x(clinic.mission)}</description><language>ko</language>${rows.map((r: any) => `<item><title>${x(r.title)}</title><link>${siteUrl}/column/${r.slug}</link><guid>${siteUrl}/column/${r.slug}</guid><pubDate>${new Date(r.published_at.replace(' ', 'T') + 'Z').toUTCString()}</pubDate><description>${x(r.excerpt)}</description></item>`).join('')}</channel></rss>`
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>${x(clinic.shortName)} 원장 칼럼</title><link>${siteUrl}/column</link><description>${x(clinic.mission)}</description><language>ko</language>${rows.map((r: any) => `<item><title>${x(r.title)}</title><link>${siteUrl}/column/${r.slug}</link><guid>${siteUrl}/column/${r.slug}</guid><pubDate>${new Date(isoDate(r.published_at) || r.published_at).toUTCString()}</pubDate><description>${x(r.excerpt)}</description></item>`).join('')}</channel></rss>`
   return c.body(xml, 200, { 'content-type': 'application/rss+xml; charset=utf-8', 'cache-control': 'public, max-age=3600' })
 })
 
@@ -148,10 +150,10 @@ content.get('/column/:slug', async (c) => {
     ${t ? html`<a href="/treatments/${t.slug}" class="tag green">${t.name}</a>` : ''}
     <h1 class="h1">${p.title}</h1>
     ${p.excerpt ? html`<p class="lead">${p.excerpt}</p>` : ''}
-    <div class="article-author"><img src="${d.photoAvatar}" alt="${d.photoAlt}" width="48" height="48"><div><strong><a href="/doctors/${d.slug}">${d.name} ${d.title}</a></strong><br><small>${d.specialty} · <time datetime="${p.published_at}">${fmtDate(p.published_at)}</time>${p.updated_at && p.updated_at.slice(0, 10) !== p.published_at.slice(0, 10) ? ` (수정 ${fmtDate(p.updated_at)})` : ''}</small></div><button type="button" class="btn btn-outline btn-sm" data-share>공유</button></div>
+    <div class="article-author"><img src="${d.photoAvatar}" alt="${d.photoAlt}" ${imageAttrs(d.photoAvatar, '48px', 48, 48)}><div><strong><a href="/doctors/${d.slug}">${d.name} ${d.title}</a></strong><br><small>${d.specialty} · <time datetime="${isoDate(p.published_at)}">${fmtDate(p.published_at)}</time>${p.updated_at && p.updated_at.slice(0, 10) !== p.published_at.slice(0, 10) ? ` (수정 ${fmtDate(p.updated_at)})` : ''}</small></div><button type="button" class="btn btn-outline btn-sm" data-share>공유</button></div>
   </header>
   ${p.thumbnail ? html`<figure class="article-hero-img"><img src="/files/${p.thumbnail}" alt="" width="1200" height="700" fetchpriority="high" decoding="async"></figure>` : ''}
-  <div class="article-body prose">${raw(autoLink(String(safeHtml(p.content_html)), { exclude: t ? [t.slug] : [], max: 10 }))}</div>
+  <div class="article-body prose">${raw(autoLink(String(articleHtml(p.content_html)), { exclude: t ? [t.slug] : [], max: 10 }))}</div>
   <footer class="article-foot">
     ${tags.length ? html`<ul class="pill-list">${tags.map((s: string) => html`<li>#${s}</li>`)}</ul>` : ''}
     ${t ? html`<div class="summary-box"><h3>이 글과 관련된 진료</h3><p>${t.short}</p><a href="/treatments/${t.slug}" class="link-arrow">${t.name} 안내 보기</a></div>` : ''}
@@ -160,19 +162,19 @@ content.get('/column/:slug', async (c) => {
   </footer>
 </article>
 ${ctaStrip(clinic)}`
-  return c.html(Layout(c, { title: p.meta_title || p.title, description: p.meta_description || truncate(p.excerpt || stripTags(p.content_html)), path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, type: 'article', publishedAt: p.published_at, modifiedAt: p.updated_at, jsonld: [articleLd({ title: p.title, description: p.meta_description || p.excerpt || '', path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, author: `${d.name}`, authorPath: `/doctors/${d.slug}`, publishedAt: p.published_at, modifiedAt: p.updated_at }, clinic, siteUrl), webpageSpeakableLd(`/column/${p.slug}`, siteUrl, p.title)], crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }, { name: p.title, href: `/column/${p.slug}` }] }, body))
+  return c.html(Layout(c, { title: p.meta_title || p.title, description: p.meta_description || truncate(p.excerpt || stripTags(p.content_html)), path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, type: 'article', reviewer: d, publishedAt: p.published_at, modifiedAt: p.updated_at, jsonld: [physicianLd(d, clinic, siteUrl), articleLd({ title: p.title, description: p.meta_description || p.excerpt || '', path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, author: `${d.name}`, authorPath: `/doctors/${d.slug}`, publishedAt: p.published_at, modifiedAt: p.updated_at }, clinic, siteUrl)], crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }, { name: p.title, href: `/column/${p.slug}` }] }, body))
 })
 
 // ── 공지사항 ─────────────────────────────────────────────
 content.get('/notice', async (c) => {
-  const page = Math.max(1, Number(c.req.query('page')) || 1)
+  const page = Math.min(10000, Math.max(1, Math.floor(Number(c.req.query('page')) || 1)))
   const total = (await c.env.DB.prepare('SELECT COUNT(*) n FROM notices WHERE published=1').first<any>())?.n || 0
   const rows = (await c.env.DB.prepare('SELECT id,title,pinned,image,created_at FROM notices WHERE published=1 ORDER BY pinned DESC, created_at DESC LIMIT ? OFFSET ?').bind(20, (page - 1) * 20).all<any>()).results || []
   const body = html`${pageHero({ eyebrow: '공지사항', title: '병원 소식', lead: '휴진 안내, 진료시간 변경 등 병원 소식을 알려드립니다.', crumbs: [{ name: '홈', href: '/' }, { name: '공지사항', href: '/notice' }] })}
 <section class="section"><div class="container container-narrow">
   ${rows.length ? html`<ul class="notice-list reveal in">${rows.map((n: any) => html`<li class="notice-row ${n.pinned ? 'pinned' : ''}">${n.pinned ? html`<span class="tag">공지</span>` : ''}<a href="/notice/${n.id}">${n.title}</a><span class="date">${fmtDate(n.created_at)}</span></li>`)}</ul>${paginate('/notice', page, total, 20)}` : html`<section class="empty-content"><p class="edition-label">CLINIC NEWS</p><h2>현재 등록된 공지가 없습니다.</h2><p>진료시간과 내원 안내는 아래에서 확인해 주세요.<br>방문 전 궁금한 점은 전화로 문의하실 수 있습니다.</p><a href="/hours" class="editorial-link">진료시간 확인하기 <span aria-hidden="true">↗</span></a></section>`}
 </div></section>`
-  return c.html(Layout(c, { title: '공지사항', description: '서울도담치과 공지사항. 휴진 안내, 진료시간 변경, 병원 소식.', path: '/notice', noindex: page > 1, crumbs: [{ name: '홈', href: '/' }, { name: '공지사항', href: '/notice' }] }, body))
+  return c.html(Layout(c, { title: '공지사항', description: '서울도담치과 공지사항. 휴진 안내, 진료시간 변경, 병원 소식.', path: '/notice', noindex: page > 1 && !rows.length, crumbs: [{ name: '홈', href: '/' }, { name: '공지사항', href: '/notice' }] }, body))
 })
 
 content.get('/notice/:id', async (c) => {
@@ -180,9 +182,9 @@ content.get('/notice/:id', async (c) => {
   if (!n) return c.notFound()
   await trackView(c, 'notice', n.id, 'notices')
   const body = html`<article class="container container-narrow article">
-  <header class="article-head"><nav class="crumbs" aria-label="현재 위치"><ol><li><a href="/">홈</a></li><li><a href="/notice">공지사항</a></li><li aria-current="page">${n.title}</li></ol></nav>${n.pinned ? html`<span class="tag">대표 공지</span>` : ''}<h1 class="h1">${n.title}</h1><p class="post-meta"><time datetime="${n.created_at}">${fmtDate(n.created_at)}</time></p></header>
+  <header class="article-head"><nav class="crumbs" aria-label="현재 위치"><ol><li><a href="/">홈</a></li><li><a href="/notice">공지사항</a></li><li aria-current="page">${n.title}</li></ol></nav>${n.pinned ? html`<span class="tag">대표 공지</span>` : ''}<h1 class="h1">${n.title}</h1><p class="post-meta"><time datetime="${isoDate(n.created_at)}">${fmtDate(n.created_at)}</time></p></header>
   ${n.image ? html`<figure class="article-hero-img"><img src="/files/${n.image}" alt="" width="1200" height="700" decoding="async"></figure>` : ''}
-  <div class="article-body prose">${safeHtml(n.content_html)}</div>
+  <div class="article-body prose">${articleHtml(n.content_html)}</div>
   <footer class="article-foot"><a href="/notice" class="link-arrow">목록으로</a></footer>
 </article>`
   return c.html(Layout(c, { title: n.title, description: truncate(stripTags(n.content_html)), path: `/notice/${n.id}`, image: n.image ? `/files/${n.image}` : undefined, type: 'article', crumbs: [{ name: '홈', href: '/' }, { name: '공지사항', href: '/notice' }, { name: n.title, href: `/notice/${n.id}` }] }, body))

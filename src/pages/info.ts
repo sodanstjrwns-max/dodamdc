@@ -2,7 +2,8 @@ import { html, raw } from 'hono/html'
 import type { Context } from 'hono'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
-import { faqLd, definedTermLd, truncate, webpageSpeakableLd } from '../lib/seo'
+import { faqLd, definedTermLd, physicianLd, truncate } from '../lib/seo'
+import { doctors } from '../data/doctors'
 import { treatments, getTreatment } from '../data/treatments'
 import { terms, termsByCategory, CATEGORIES, getTerm, initial, autoLink, type Term } from '../data/encyclopedia'
 import { pricing, insuredItems, pricingUpdatedAt, won } from '../data/pricing'
@@ -41,7 +42,7 @@ ${pageHero({ eyebrow: '자주 묻는 질문', title: html`궁금한 점,<br>먼�
   </div>
 </section>
 ${ctaStrip(clinic, { title: '답을 못 찾으셨나요?', sub: `전화 ${clinic.phone} 또는 카카오톡 채널로 물어보세요. 진료 중에는 회신이 늦을 수 있습니다.` })}`
-  return c.html(Layout(c, { title: '자주 묻는 질문 (FAQ)', description: `서울도담치과 FAQ ${all.length}문항. 진료시간·주차·비용부터 신경치료·임플란트·잇몸치료·사랑니까지 한휘림 원장이 직접 답합니다.`, path: '/faq', jsonld: [faqLd(all)], crumbs: [{ name: '홈', href: '/' }, { name: 'FAQ', href: '/faq' }] }, body))
+  return c.html(Layout(c, { title: '자주 묻는 질문 (FAQ)', description: `서울도담치과 FAQ ${all.length}문항. 진료시간·주차·비용부터 신경치료·임플란트·잇몸치료·사랑니까지 한휘림 원장이 직접 답합니다.`, path: '/faq', jsonld: [faqLd(generalFaqs, `${c.get('siteUrl')}/faq`)], crumbs: [{ name: '홈', href: '/' }, { name: 'FAQ', href: '/faq' }] }, body))
 }
 
 // ── 백과사전 ─────────────────────────────────────────────
@@ -83,7 +84,7 @@ ${pageHero({ eyebrow: `치과 백과사전 · ${t.category}`, title: html`${t.te
     <div class="side-card side-cta"><p class="side-title">상담</p><p class="side-phone"><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></p><a href="/reservation" class="btn btn-primary btn-block">진료 예약</a></div>
   </aside>
 </div>`
-  return c.html(Layout(c, { title: `${t.term}(${t.en}) 뜻 — 치과 백과사전`, description: truncate(`${t.term}(${t.en}): ${t.def}`), path: `/encyclopedia/${t.slug}`, type: 'article', jsonld: [definedTermLd(t, siteUrl), webpageSpeakableLd(`/encyclopedia/${t.slug}`, siteUrl, t.term)], crumbs: [{ name: '홈', href: '/' }, { name: '치과 백과사전', href: '/encyclopedia' }, { name: t.term, href: `/encyclopedia/${t.slug}` }] }, body))
+  return c.html(Layout(c, { title: `${t.term}(${t.en}) 뜻 — 치과 백과사전`, description: truncate(`${t.term}(${t.en}): ${t.def}`), path: `/encyclopedia/${t.slug}`, type: 'article', reviewer: doctors[0], jsonld: [definedTermLd(t, siteUrl), physicianLd(doctors[0], clinic, siteUrl)], crumbs: [{ name: '홈', href: '/' }, { name: '치과 백과사전', href: '/encyclopedia' }, { name: t.term, href: `/encyclopedia/${t.slug}` }] }, body))
 }
 
 // ── 오시는 길 / 진료시간 ────────────────────────────────
@@ -106,6 +107,7 @@ ${pageHero({ eyebrow: '오시는 길', title: html`화서역에서 걸어서,<br
       <a href="https://map.kakao.com/link/search/${q}" target="_blank" rel="noopener" class="btn btn-outline">카카오맵으로 열기</a>
       <a href="https://www.google.com/maps/dir/?api=1&destination=${clinic.geo.lat},${clinic.geo.lng}" target="_blank" rel="noopener" class="btn btn-outline">구글 길찾기</a>
     </div>
+    <h2 class="sr-only">오시는 길과 내원 정보</h2>
     <div class="info-grid stagger" style="margin-top:40px">
       <div class="info-card"><h3>주소</h3><p>${clinic.address}</p><p class="hint">우편번호 ${clinic.postalCode} · ${clinic.directions.landmark}</p></div>
       <div class="info-card"><h3>지하철</h3><p>${clinic.directions.subway}</p><p class="hint">화서역 출구에서 화양로 방향으로 걸어오시면 신우상가가 보입니다.</p></div>
@@ -131,6 +133,7 @@ export function hoursPage(c: Context<Env>) {
 ${pageHero({ eyebrow: '진료시간', title: html`화요일은 밤 8시 반까지,<br>수요일은 점심 없이`, lead: '직장인과 학생분들이 시간을 맞추기 어렵다는 말씀을 듣고 정한 시간표입니다. 공휴일은 휴진합니다.', crumbs: [{ name: '홈', href: '/' }, { name: '진료시간', href: '/hours' }] })}
 <section class="section">
   <div class="container container-narrow">
+    <h2 class="sr-only">요일별 진료시간과 방문 안내</h2>
     <div class="info-card reveal in">${hoursTable(clinic)}<p class="hint">${clinic.hoursNote} 마지막 접수는 마감 30분 전입니다.</p></div>
     <div class="grid-2 stagger" style="margin-top:28px">
       <div class="card card-body"><h3>야간진료 이용 안내</h3><p>화요일 20:00까지 접수하시면 진료가 가능합니다. 예약 환자분 우선이므로 미리 전화나 온라인 예약을 권장드립니다.</p></div>
@@ -154,7 +157,7 @@ ${pageHero({ eyebrow: '비급여 진료비 고지', title: html`치료 전에 �
     ${pricing.map((g) => html`<section class="reveal" id="${encodeURIComponent(g.group)}">
       <h2 class="h3">${g.group}</h2>
       ${g.desc ? html`<p class="hint" style="margin:0 0 12px">${g.desc}</p>` : ''}
-      <div class="table-wrap"><table class="price-table"><thead><tr><th>항목</th><th>단위</th><th>금액</th><th>비고</th></tr></thead><tbody>
+      <div class="table-wrap" role="region" aria-label="${g.group} 진료비 표, 작은 화면에서는 좌우로 이동할 수 있습니다" tabindex="0"><table class="price-table"><thead><tr><th>항목</th><th>단위</th><th>금액</th><th>비고</th></tr></thead><tbody>
         ${g.items.map((it) => html`<tr><td>${it.name}</td><td>${it.unit || ''}</td><td class="price">${it.price == null ? '상담 후 안내' : won(it.price)}</td><td class="note">${it.note || ''}</td></tr>`)}
       </tbody></table></div>
     </section>`)}
@@ -198,7 +201,7 @@ ${pageHero({ eyebrow: `${p.areaFull} · ${t.category}`, title: html`${p.areaName
   </aside>
 </div>
 ${ctaStrip(clinic, { title: `${p.areaName}에서 가까운 ${t.name} 상담` })}`
-  return c.html(Layout(c, { title: `${p.areaName} ${t.name} — ${p.areaFull} 인근 치과`, description: truncate(`${p.areaFull}에서 ${t.name}을 찾으신다면 수원 화서동 서울도담치과. ${t.short} 통합치의학과 전문의 진료, 화요일 야간진료. ${clinic.phone}`), path: `/area/${p.slug}`, image: t.heroImage, jsonld: [faqLd(t.faqs.slice(0, 6)), webpageSpeakableLd(`/area/${p.slug}`, siteUrl, `${p.areaName} ${t.name}`)], crumbs: [{ name: '홈', href: '/' }, { name: t.name, href: `/treatments/${t.slug}` }, { name: p.areaName, href: `/area/${p.slug}` }] }, body))
+  return c.html(Layout(c, { title: `${p.areaName} ${t.name} — ${p.areaFull} 인근 치과`, description: truncate(`${p.areaFull}에서 ${t.name}을 찾으신다면 수원 화서동 서울도담치과. ${t.short} 통합치의학과 전문의 진료, 화요일 야간진료. ${clinic.phone}`), path: `/area/${p.slug}`, image: t.heroImage, jsonld: [], crumbs: [{ name: '홈', href: '/' }, { name: t.name, href: `/treatments/${t.slug}` }, { name: p.areaName, href: `/area/${p.slug}` }] }, body))
 }
 
 export function areaIndex(c: Context<Env>) {
@@ -260,7 +263,7 @@ export function sitemapHtml(c: Context<Env>) {
     ['회원', [['/auth/login', '로그인'], ['/auth/register', '회원가입'], ['/privacy', '개인정보 처리방침'], ['/terms', '이용약관']]],
   ]
   const body = html`${pageHero({ eyebrow: '사이트맵', title: '전체 페이지', crumbs: [{ name: '홈', href: '/' }, { name: '사이트맵', href: '/sitemap' }] })}
-<section class="section"><div class="container grid-3 stagger">${groups.map(([g, links]) => html`<div class="card card-body"><h3>${g}</h3><ul class="side-links">${links.map(([h, n]) => html`<li><a href="${h}">${n}</a></li>`)}</ul></div>`)}</div></section>`
+<section class="section"><div class="container grid-3 stagger">${groups.map(([g, links]) => html`<div class="card card-body"><h2 class="h3">${g}</h2><ul class="side-links">${links.map(([h, n]) => html`<li><a href="${h}">${n}</a></li>`)}</ul></div>`)}</div></section>`
   return c.html(Layout(c, { title: '사이트맵', description: '서울도담치과 홈페이지 전체 페이지 목록.', path: '/sitemap' }, body))
 }
 

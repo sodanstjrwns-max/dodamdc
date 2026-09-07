@@ -3,6 +3,12 @@ import type { HtmlEscapedString } from 'hono/utils/html'
 import type { FAQ } from '../data/treatments'
 import type { Crumb } from './seo'
 import { esc } from './util'
+import { imageManifest } from '../data/image-manifest'
+
+export function imageAttrs(src: string, sizes = '(max-width: 760px) calc(100vw - 44px), (max-width: 1000px) 50vw, 600px', width = 960, height = 640) {
+  const asset = imageManifest[src]
+  return html`width="${asset?.width || width}" height="${asset?.height || height}" ${asset ? html`srcset="${asset.srcset}" sizes="${sizes}"` : ''}`
+}
 
 export type H = HtmlEscapedString | Promise<HtmlEscapedString>
 
@@ -21,7 +27,7 @@ export function pageHero(o: { eyebrow?: string; title: string | H; lead?: string
       ${o.lead ? html`<p class="lead reveal in">${o.lead}</p>` : ''}
       ${o.actions ? html`<div class="hero-actions reveal in">${o.actions}</div>` : ''}
     </div>
-    ${o.image ? html`<figure class="page-hero-img reveal-scale in"><img src="${o.image}" alt="${o.imageAlt || ''}" width="960" height="640" fetchpriority="high" decoding="async"><figcaption class="page-image-label">SEOUL DODAM · CARE IN DETAIL</figcaption></figure>` : ''}
+    ${o.image ? html`<figure class="page-hero-img reveal-scale in"><img src="${o.image}" alt="${o.imageAlt || ''}" ${imageAttrs(o.image)} fetchpriority="high" decoding="async"><figcaption class="page-image-label">SEOUL DODAM · CARE IN DETAIL</figcaption></figure>` : ''}
   </div>
 </section>`
 }
@@ -58,6 +64,11 @@ export function ctaStrip(clinic: any, o: { title?: string; sub?: string } = {}) 
 
 /** 리뷰 카운트 문구 — 의료광고법: 정확한 표기 고정 */
 export const reviewLine = (clinic: any) => `${clinic.reviews.source} ${Number(clinic.reviews.count).toLocaleString('ko-KR')}개 (${clinic.reviews.asOf} 기준)`
+
+/** The page title owns H1; editor body headings start at H2 without changing stored text. */
+export function articleHtml(s: string) {
+  return safeHtml(String(s || '').replace(/<(\/?)(h1)(?=[\s>])/gi, '<$1h2'))
+}
 
 /** 안전한 raw HTML (관리자 작성 콘텐츠용 — 스크립트 제거) */
 export function safeHtml(s: string) {

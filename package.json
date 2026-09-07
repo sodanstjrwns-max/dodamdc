@@ -3,10 +3,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:experience && vite build",
+    "build": "node scripts/build-image-manifest.mjs && npm run build:experience && vite build",
     "build:experience": "rm -rf public/static/experience && esbuild src/client/experience.ts --bundle --splitting --format=esm --target=es2020 --minify --outdir=public/static/experience --entry-names=main --chunk-names=[name]-[hash] --legal-comments=linked",
     "test:design": "node scripts/design-smoke.mjs",
     "test:kinetic": "node scripts/kinetic-smoke.mjs",
+    "test:seo": "node scripts/seo-smoke.mjs",
+    "test:mobile": "node scripts/mobile-smoke.mjs",
     "typecheck": "tsc --noEmit",
     "preview": "wrangler pages dev",
     "deploy": "npm run build && wrangler pages deploy dist",

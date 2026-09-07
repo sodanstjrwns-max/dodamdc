@@ -2,10 +2,10 @@ import { html } from 'hono/html'
 import type { Context } from 'hono'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
-import { physicianLd, webpageSpeakableLd } from '../lib/seo'
+import { physicianLd } from '../lib/seo'
 import { doctors, getDoctor, type Doctor } from '../data/doctors'
 import { getTreatment } from '../data/treatments'
-import { pageHero, ctaStrip, reviewLine } from '../lib/ui'
+import { imageAttrs, pageHero, ctaStrip, reviewLine } from '../lib/ui'
 
 // ── 의료진 ───────────────────────────────────────────────
 export function doctorsIndex(c: Context<Env>) {
@@ -15,7 +15,7 @@ ${pageHero({ eyebrow: '의료진', title: html`한 명의 원장이<br>처음부
 <section class="section">
   <div class="container">
     ${doctors.map((d) => html`<article class="doctor-band reveal">
-      <div class="doctor-band-img"><img src="/static/img/dr-han-hwirim-standing-v2.webp" alt="${d.photoAlt}" width="720" height="900" loading="lazy" decoding="async"><p class="doctor-band-caption">${d.name} ${d.title} · ${d.specialty}</p></div>
+      <div class="doctor-band-img"><img src="/static/img/dr-han-hwirim-standing-v2.webp" alt="${d.photoAlt}" ${imageAttrs(`/static/img/dr-han-hwirim-standing-v2.webp`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1000px) 50vw, 600px', 720, 900)} loading="lazy" decoding="async"><p class="doctor-band-caption">${d.name} ${d.title} · ${d.specialty}</p></div>
       <div class="doctor-band-text">
         <p class="eyebrow">${d.title}</p>
         <h2 class="h2">${d.name} <small class="specialty">${d.nameEn}</small></h2>
@@ -50,7 +50,7 @@ export async function doctorDetail(c: Context<Env>, d: Doctor) {
       <blockquote class="quote reveal in">${d.quote}</blockquote>
       <div class="hero-actions reveal in"><a href="/reservation" class="btn btn-primary">진료 예약</a><a href="#philosophy" class="btn btn-outline">진료 철학</a></div>
     </div>
-    <div class="doctor-hero-img reveal-scale in"><img src="/static/img/dr-han-hwirim-standing-v2.webp" alt="${d.photoAlt}" width="720" height="900" fetchpriority="high" decoding="async"></div>
+    <div class="doctor-hero-img reveal-scale in"><img src="/static/img/dr-han-hwirim-standing-v2.webp" alt="${d.photoAlt}" ${imageAttrs(`/static/img/dr-han-hwirim-standing-v2.webp`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1000px) 50vw, 600px', 720, 900)} fetchpriority="high" decoding="async"></div>
   </div>
 </section>
 
@@ -63,7 +63,7 @@ export async function doctorDetail(c: Context<Env>, d: Doctor) {
 
 <section class="section section-bg" id="story">
   <div class="container split">
-    <div class="split-img reveal-left"><img src="/static/img/dr-han-hwirim-standing-v2.webp" alt="진료실에 서 있는 한휘림 원장" width="960" height="720" loading="lazy" decoding="async"></div>
+    <div class="split-img reveal-left"><img src="/static/img/dr-han-hwirim-standing-v2.webp" alt="진료실에 서 있는 한휘림 원장" ${imageAttrs(`/static/img/dr-han-hwirim-standing-v2.webp`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1000px) 50vw, 600px', 960, 720)} loading="lazy" decoding="async"></div>
     <div class="story reveal-right">
       <p class="eyebrow">원장 이야기</p>
       ${d.story.map((s) => html`<div class="story-item"><h3>${s.heading}</h3><p>${s.body}</p></div>`)}
@@ -93,7 +93,7 @@ export async function doctorDetail(c: Context<Env>, d: Doctor) {
 
 ${cases.length || columns.length ? html`<section class="section" id="doctor-content">
   <div class="container grid-2">
-    ${cases.length ? html`<div class="reveal"><h2 class="h3">치료 전후</h2><div class="case-grid">${cases.map((k) => html`<a href="/cases/gallery/${k.slug}" class="case-card"><div class="case-thumb">${k.intra_before || k.pano_before ? html`<img src="/files/${k.intra_before || k.pano_before}" alt="${k.title} 치료 전" width="480" height="320" loading="lazy">` : ''}</div><div class="case-body"><h3>${k.title}</h3><p class="case-meta">${[k.age_group, k.gender].filter(Boolean).join(' · ')}</p></div></a>`)}</div><p><a href="/cases/gallery?doctor=${d.slug}" class="link-arrow">전체 보기</a></p></div>` : ''}
+    ${cases.length ? html`<div class="reveal"><h2 class="h3">치료 전후</h2><div class="case-grid">${cases.map((k) => html`<a href="/cases/gallery/${k.slug}" class="case-card"><div class="case-thumb">${k.intra_before || k.pano_before ? html`<img src="/files/${k.intra_before || k.pano_before}" alt="${k.title} 치료 전" ${imageAttrs(`/files/${k.intra_before || k.pano_before}`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1000px) 50vw, 600px', 480, 320)} loading="lazy">` : ''}</div><div class="case-body"><h3>${k.title}</h3><p class="case-meta">${[k.age_group, k.gender].filter(Boolean).join(' · ')}</p></div></a>`)}</div><p><a href="/cases/gallery?doctor=${d.slug}" class="link-arrow">전체 보기</a></p></div>` : ''}
     ${columns.length ? html`<div class="reveal"><h2 class="h3">원장 칼럼</h2><ul class="notice-list">${columns.map((p) => html`<li class="notice-row"><a href="/column/${p.slug}">${p.title}</a></li>`)}</ul><p><a href="/column" class="link-arrow">칼럼 전체</a></p></div>` : ''}
   </div>
 </section>` : ''}
@@ -105,7 +105,7 @@ ${ctaStrip(clinic, { title: `${d.name} 원장에게 직접 진료받기`, sub: `
     path: `/doctors/${d.slug}`,
     image: d.photo,
     type: 'profile',
-    jsonld: [physicianLd(d, clinic, siteUrl), webpageSpeakableLd(`/doctors/${d.slug}`, siteUrl, `${d.name} ${d.title}`)],
+    jsonld: [physicianLd(d, clinic, siteUrl)],
     crumbs: [{ name: '홈', href: '/' }, { name: '의료진', href: '/doctors' }, { name: `${d.name} ${d.title}`, href: `/doctors/${d.slug}` }],
   }, body))
 }
@@ -125,7 +125,7 @@ export function missionPage(c: Context<Env>) {
 <section class="mission-poster" aria-labelledby="mission-title"><div class="container">
   <nav class="crumbs" aria-label="현재 위치"><ol><li><a href="/">홈</a></li><li aria-current="page">도담의 철학</li></ol></nav>
   <p class="edition-label">THE DODAM PHILOSOPHY</p>
-  <div class="mission-poster-grid"><h1 id="mission-title">한 번 손대기 전에,<br><em>한 번 더</em><br>생각합니다.</h1><div class="mission-poster-aside"><p>치료의 크기보다 중요한 건<br>당신에게 꼭 필요한 치료인지.<br>그 질문을 잊지 않는 치과가 되겠습니다.</p><img src="/static/img/suwon-dodam-dental-reception-desk-v2.webp" alt="서울도담치과 접수 공간" width="1619" height="971" fetchpriority="high"></div></div>
+  <div class="mission-poster-grid"><h1 id="mission-title">한 번 손대기 전에,<br><em>한 번 더</em><br>생각합니다.</h1><div class="mission-poster-aside"><p>치료의 크기보다 중요한 건<br>당신에게 꼭 필요한 치료인지.<br>그 질문을 잊지 않는 치과가 되겠습니다.</p><img src="/static/img/suwon-dodam-dental-reception-desk-v2.webp" alt="서울도담치과 접수 공간" ${imageAttrs(`/static/img/suwon-dodam-dental-reception-desk-v2.webp`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1000px) 50vw, 600px', 1619, 971)} fetchpriority="high"></div></div>
   <p class="mission-poster-bottom">Less intervention. More consideration.</p>
 </div></section>
 <section class="section">
@@ -141,7 +141,7 @@ export function missionPage(c: Context<Env>) {
 </section>
 <section class="section" id="history">
   <div class="container split rev">
-    <div class="split-img reveal-right"><img src="/static/img/suwon-dodam-dental-building-exterior.webp" alt="서울도담치과가 위치한 신우상가 외관" width="960" height="720" loading="lazy" decoding="async"></div>
+    <div class="split-img reveal-right"><img src="/static/img/suwon-dodam-dental-building-exterior.webp" alt="서울도담치과가 위치한 신우상가 외관" ${imageAttrs(`/static/img/suwon-dodam-dental-building-exterior.webp`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1000px) 50vw, 600px', 960, 720)} loading="lazy" decoding="async"></div>
     <div class="reveal-left">
       <p class="eyebrow">병원 연혁</p>
       <h2 class="h2">화서동에서 이어온 시간</h2>
@@ -212,13 +212,13 @@ ${pageHero({ eyebrow: '장비 · 감염관리 · 둘러보기', title: html`눈�
 ${cats.map((cat) => html`<section class="section ${cat === '무통' || cat === '감염관리' ? 'section-bg' : ''}" id="equip-${cat}">
   <div class="container">
     <div class="section-head reveal"><p class="eyebrow">${cat}</p><h2 class="h2">${{ 진단: '보이는 만큼 정확해집니다', 무통: '아픈 지점을 하나씩 없앱니다', 신경치료: '신경치료를 제대로 하기 위한 장비', 보존: '자연치아를 남기는 재료', 진료: '진료 장비', 감염관리: '기본을 지키는 감염관리' }[cat] || cat}</h2></div>
-    <div class="equip-grid stagger">${equipment.filter((e) => e.cat === cat).map((e) => html`<article class="equip"><div class="equip-img"><img src="/static/img/${e.img}.webp" alt="${e.name}" width="640" height="480" loading="lazy" decoding="async"></div><div class="equip-body"><span class="tag gray">${e.cat}</span><h3>${e.name}</h3><p>${e.d}</p></div></article>`)}</div>
+    <div class="equip-grid stagger">${equipment.filter((e) => e.cat === cat).map((e) => html`<article class="equip"><div class="equip-img"><img src="/static/img/${e.img}.webp" alt="${e.name}" ${imageAttrs(`/static/img/${e.img}.webp`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1000px) 50vw, 600px', 640, 480)} loading="lazy" decoding="async"></div><div class="equip-body"><span class="tag gray">${e.cat}</span><h3>${e.name}</h3><p>${e.d}</p></div></article>`)}</div>
   </div>
 </section>`)}
 <section class="section" id="gallery">
   <div class="container">
     <div class="section-head reveal"><p class="eyebrow">둘러보기</p><h2 class="h2">병원 공간</h2></div>
-    <div class="gallery-grid stagger">${gallery.map(([img, alt, col, row]) => html`<figure style="grid-column:span ${col};grid-row:span ${row}"><img src="/static/img/${img}.webp" alt="${alt} — 서울도담치과" width="960" height="640" loading="lazy" decoding="async"><figcaption>${alt}</figcaption></figure>`)}</div>
+    <div class="gallery-grid stagger">${gallery.map(([img, alt, col, row]) => html`<figure style="grid-column:span ${col};grid-row:span ${row}"><img src="/static/img/${img}.webp" alt="${alt} — 서울도담치과" ${imageAttrs(`/static/img/${img}.webp`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1000px) 50vw, 600px', 960, 640)} loading="lazy" decoding="async"><figcaption>${alt}</figcaption></figure>`)}</div>
   </div>
 </section>
 ${ctaStrip(clinic, { title: '직접 보시면 더 잘 아실 수 있습니다' })}`

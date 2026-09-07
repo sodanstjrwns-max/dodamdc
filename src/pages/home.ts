@@ -2,10 +2,10 @@ import { html } from 'hono/html'
 import type { Context } from 'hono'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
-import { dentistLd, webpageSpeakableLd, faqLd } from '../lib/seo'
+import { faqLd } from '../lib/seo'
 import { coreTreatments, otherTreatments } from '../data/treatments'
 import { doctors } from '../data/doctors'
-import { faqList } from '../lib/ui'
+import { faqList, imageAttrs } from '../lib/ui'
 import { fmtDate } from '../lib/util'
 
 type Post = { slug: string; title: string; excerpt: string; thumbnail: string | null; published_at: string }
@@ -50,10 +50,11 @@ export async function homePage(c: Context<Env>) {
       <div class="floating-note note-preserve"><span class="note-symbol" aria-hidden="true">+</span><span>PRESERVE<br><strong>본래의 가치를 지키다</strong></span></div>
       <div class="floating-note note-care"><i aria-hidden="true"></i><span>CARE, NOT JUST CURE.</span></div>
       <div class="model-controls" hidden><button type="button" id="model-rotate-left" aria-label="입체 치아 모형 왼쪽으로 회전">←</button><p><span class="model-desktop-hint">드래그해서 돌려보세요</span><span class="model-mobile-hint">좌우 버튼으로 돌려보세요</span><small>브랜드 그래픽 · 실제 해부 모형이 아닙니다</small></p><button type="button" id="model-rotate-right" aria-label="입체 치아 모형 오른쪽으로 회전">→</button></div>
+      <button type="button" id="model-enable" class="btn btn-outline btn-sm model-enable" hidden>입체 모형 켜기</button>
       <span class="tooth-ground-label" aria-hidden="true">THE DODAM WAY</span>
     </div>
   </div>
-  <div class="kinetic-hero-bottom"><a href="#dodam-philosophy" class="kinetic-scroll"><span class="scroll-disc">↓</span><span>SCROLL INTO DODAM</span></a><a href="/doctors/${dr.slug}" class="hero-doctor-chip"><img src="${dr.photoAvatar}" alt="" width="52" height="52"><span><small>통합치의학과 전문의</small>${dr.name} 대표원장 직접 진료</span>${arrow}</a><button type="button" class="motion-toggle" id="motion-toggle" aria-pressed="false" aria-label="애니메이션 일시정지" hidden><span class="motion-icon" aria-hidden="true">Ⅱ</span><span class="motion-toggle-label">모션 켜짐</span></button></div>
+  <div class="kinetic-hero-bottom"><a href="#dodam-philosophy" class="kinetic-scroll"><span class="scroll-disc">↓</span><span>SCROLL INTO DODAM</span></a><a href="/doctors/${dr.slug}" class="hero-doctor-chip"><img src="${dr.photoAvatar}" alt="" ${imageAttrs(`${dr.photoAvatar}`, '52px', 52, 52)}><span><small>통합치의학과 전문의</small>${dr.name} 대표원장 직접 진료</span>${arrow}</a><button type="button" class="motion-toggle" id="motion-toggle" aria-pressed="false" aria-label="애니메이션 일시정지" hidden><span class="motion-icon" aria-hidden="true">Ⅱ</span><span class="motion-toggle-label">모션 켜짐</span></button></div>
 </section>
 <div class="brand-ticker" aria-hidden="true"><div class="brand-ticker-track">${Array.from({length:4},()=>html`<span>KEEP YOUR OWN</span><i>+</i><span>자연치아를 지키는 다른 생각</span><i>+</i>`)}</div></div>
 
@@ -82,7 +83,7 @@ export async function homePage(c: Context<Env>) {
     </div>
     ${coreTreatments.map((t, i) => html`<article class="care-panel" id="care-panel-${i}" aria-labelledby="care-tab-${i}">
       <div class="care-panel-copy"><p class="care-english">${care[i].en}</p><h3>${care[i].title}</h3><p class="care-description">${care[i].text}</p><ul class="care-chips">${care[i].chips.map(x => html`<li>${x}</li>`)}</ul><a href="/treatments/${t.slug}" class="editorial-link">${t.name} 알아보기 <span>${arrow}</span></a><p class="care-disclaimer">개인의 구강 상태에 따라 적합한 치료 방법과 결과는 달라질 수 있습니다.</p></div>
-      <figure class="care-panel-photo"><img src="/static/img/${care[i].image}.webp" alt="${care[i].caption}" width="800" height="600" loading="lazy" decoding="async"><figcaption><span>IN OUR CLINIC</span>${care[i].caption}</figcaption><span class="care-photo-number" aria-hidden="true">0${i + 1}</span></figure>
+      <figure class="care-panel-photo"><img src="/static/img/${care[i].image}.webp" alt="${care[i].caption}" ${imageAttrs(`/static/img/${care[i].image}.webp`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1000px) 50vw, 600px', 800, 600)} loading="lazy" decoding="async"><figcaption><span>IN OUR CLINIC</span>${care[i].caption}</figcaption><span class="care-photo-number" aria-hidden="true">0${i + 1}</span></figure>
     </article>`)}
     <div class="treatment-directory"><p>일상의 작은 불편까지,<br><strong>도담에서 함께.</strong></p><div>${otherTreatments.map(t => html`<a href="/treatments/${t.slug}">${t.name}<span aria-hidden="true">↗</span></a>`)}</div></div>
   </div>
@@ -90,7 +91,7 @@ export async function homePage(c: Context<Env>) {
 
 <section class="doctor-editorial" id="doctor-story" aria-labelledby="doctor-title">
   <div class="container doctor-editorial-grid">
-    <figure class="doctor-editorial-photo reveal"><img src="${dr.photo}" alt="진료복을 입고 편안하게 미소 짓는 한휘림 대표원장" width="1200" height="1500" loading="lazy" decoding="async"><figcaption><span>HAN HWI-RIM</span>통합치의학과 전문의</figcaption></figure>
+    <figure class="doctor-editorial-photo reveal"><img src="${dr.photo}" alt="진료복을 입고 편안하게 미소 짓는 한휘림 대표원장" ${imageAttrs(`${dr.photo}`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1000px) 50vw, 600px', 1200, 1500)} loading="lazy" decoding="async"><figcaption><span>HAN HWI-RIM</span>통합치의학과 전문의</figcaption></figure>
     <div class="doctor-editorial-copy reveal"><p class="edition-label">03 / MEET YOUR DENTIST</p><p class="doctor-pretitle">통증에 예민한 치과의사라서</p><h2 id="doctor-title">치료의 두려움도,<br>먼저 이해합니다.</h2><p class="doctor-story-copy">“제가 받기 싫은 치료는<br>환자분께도 하지 않습니다.”</p><p class="doctor-story-description">치료가 무서운 마음을 알기에, 작은 불편도 그냥 넘기지 않습니다. 충분한 설명과 세심한 배려로 진료의 처음부터 끝까지 함께하겠습니다.</p><div class="doctor-signoff"><strong>${dr.name}</strong><span>${dr.title} / ${dr.specialty}</span></div><ul class="doctor-credentials">${dr.license.map(x=>html`<li>${x}</li>`)}<li>단국대학교 치과대학 졸업</li></ul><a href="/doctors/${dr.slug}" class="editorial-link">한휘림 원장의 이야기 <span>${arrow}</span></a></div>
   </div>
 </section>
@@ -100,9 +101,9 @@ export async function homePage(c: Context<Env>) {
     <div class="section-kicker"><span>04 / THE SPACE & CARE</span><span>보이지 않는 곳까지 세심하게</span></div>
     <div class="section-heading-row reveal"><h2 id="space-title" class="display-heading">편안한 공간,<br>흔들림 없는 기본.</h2><div><p>들어서는 순간의 편안함부터<br>진료 직전 새로 개봉하는 기구까지.<br>작은 부분에도 진료의 마음을 담습니다.</p><a href="/floor-guide" class="text-link">공간과 감염관리 살펴보기 ${arrow}</a></div></div>
     <div class="space-experience" id="space-experience"><div class="space-viewport" id="space-viewport" tabindex="0" aria-label="병원 공간 사진. 좌우 버튼 또는 가로 스크롤로 둘러보세요"><div class="space-track">
-      <figure class="space-slide"><img src="/static/img/suwon-dodam-dental-waiting-lounge-v2.webp" alt="서울도담치과의 우드톤 대기 공간" width="1600" height="1100" loading="lazy" decoding="async"><figcaption><span>01 / WELCOME</span><strong>처음의 긴장이,<br>편안함으로.</strong><p>편안하게 기다리는 실제 대기 공간</p></figcaption></figure>
-      <figure class="space-slide"><img src="/static/img/suwon-dodam-dental-treatment-room-v2.webp" alt="서울도담치과의 자연광이 들어오는 진료실" width="1600" height="1100" loading="lazy" decoding="async"><figcaption><span>02 / FOCUS</span><strong>오늘의 진료에,<br>오롯이 집중.</strong><p>자연광이 들어오는 진료 공간</p></figcaption></figure>
-      <figure class="space-slide"><img src="/static/img/suwon-dodam-dental-sterilization-room-v2.webp" alt="서울도담치과의 기구 준비 및 소독 공간" width="1600" height="1100" loading="lazy" decoding="async"><figcaption><span>03 / THE BASICS</span><strong>보이지 않는 곳도,<br>보이는 것처럼.</strong><p>기구 세척과 멸균을 위한 독립 소독 공간</p></figcaption></figure>
+      <figure class="space-slide"><img src="/static/img/suwon-dodam-dental-waiting-lounge-v2.webp" alt="서울도담치과의 우드톤 대기 공간" ${imageAttrs(`/static/img/suwon-dodam-dental-waiting-lounge-v2.webp`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1320px) 72vw, 950px', 1600, 1100)} loading="lazy" decoding="async"><figcaption><span>01 / WELCOME</span><strong>처음의 긴장이,<br>편안함으로.</strong><p>편안하게 기다리는 실제 대기 공간</p></figcaption></figure>
+      <figure class="space-slide"><img src="/static/img/suwon-dodam-dental-treatment-room-v2.webp" alt="서울도담치과의 자연광이 들어오는 진료실" ${imageAttrs(`/static/img/suwon-dodam-dental-treatment-room-v2.webp`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1320px) 72vw, 950px', 1600, 1100)} loading="lazy" decoding="async"><figcaption><span>02 / FOCUS</span><strong>오늘의 진료에,<br>오롯이 집중.</strong><p>자연광이 들어오는 진료 공간</p></figcaption></figure>
+      <figure class="space-slide"><img src="/static/img/suwon-dodam-dental-sterilization-room-v2.webp" alt="서울도담치과의 기구 준비 및 소독 공간" ${imageAttrs(`/static/img/suwon-dodam-dental-sterilization-room-v2.webp`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1320px) 72vw, 950px', 1600, 1100)} loading="lazy" decoding="async"><figcaption><span>03 / THE BASICS</span><strong>보이지 않는 곳도,<br>보이는 것처럼.</strong><p>기구 세척과 멸균을 위한 독립 소독 공간</p></figcaption></figure>
     </div></div><div class="space-controls"><span><b id="space-current">01</b> / 03</span><div class="space-progress" aria-hidden="true"><i></i></div><div><button type="button" id="space-prev" aria-label="이전 공간 사진">←</button><button type="button" id="space-next" aria-label="다음 공간 사진">→</button></div></div></div>
     <div class="care-standards stagger"><a href="/floor-guide#equip-진단"><span>01</span><h3>진단부터 차근차근</h3><p>저선량 CT · 큐레이 진단</p>${arrow}</a><a href="/floor-guide#equip-무통"><span>02</span><h3>작은 통증도 세심하게</h3><p>마취액 워머 · 전동 마취기</p>${arrow}</a><a href="/floor-guide#sterilization"><span>03</span><h3>보이지 않는 기본까지</h3><p>Class B 멸균 · 기구별 밀봉</p>${arrow}</a></div>
   </div>
@@ -121,6 +122,6 @@ export async function homePage(c: Context<Env>) {
     title: `${clinic.shortName} | 내 치아를 위한 조금 다른 생각, 도담`,
     description: `수원 화서동 서울도담치과. 통합치의학과 전문의 한휘림 대표원장이 충분히 설명하고 필요한 만큼 치료합니다. MTA 생활치수치료·잇몸치료·임플란트. 화요일 야간진료 20:30. ${clinic.phone}`,
     path: '/', bodyClass: 'home-page kinetic-home', image: dr.photo,
-    jsonld: [dentistLd(clinic, siteUrl), webpageSpeakableLd('/', siteUrl, clinic.name), faqLd(faqs)],
+    jsonld: [faqLd(faqs)],
   }, body))
 }

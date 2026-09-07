@@ -4,6 +4,7 @@ import type { Env } from './lib/types'
 import { loadClinic } from './lib/settings'
 import { readMemberSession, readAdminSession } from './lib/auth'
 import { trackView } from './lib/util'
+import { resolveSiteUrl, isoDate, xmlEscape } from './lib/seo'
 
 import auth from './routes/auth'
 import admin from './routes/admin'
@@ -40,7 +41,13 @@ app.use('*', async (c, next) => {
   }
   const clinic = await loadClinic(c.env?.DB)
   c.set('clinic', clinic)
-  c.set('siteUrl', (c.env?.SITE_URL || url.origin).replace(/\/$/, ''))
+  const siteUrl = resolveSiteUrl(c.env?.SITE_URL)
+  c.set('siteUrl', siteUrl)
+  if (url.origin !== siteUrl || /^\/(admin|auth|api|health)(\/|$)/.test(url.pathname)) c.header('X-Robots-Tag', 'noindex, follow')
+  // Normalize public trailing-slash duplicates, without redirecting POSTs or R2 keys.
+  if ((c.req.method === 'GET' || c.req.method === 'HEAD') && url.pathname.length > 1 && url.pathname.endsWith('/') && !/^\/(files|api|auth|admin)(\/|$)/.test(url.pathname)) {
+    return c.redirect(url.pathname.replace(/\/+$/, '') + url.search, 301)
+  }
   c.set('nonce', crypto.randomUUID().replace(/-/g, ''))
   c.set('user', c.env?.SESSION_SECRET ? await readMemberSession(c) : null)
   c.set('admin', c.env?.SESSION_SECRET ? await readAdminSession(c) : false)
@@ -105,9 +112,8 @@ app.get('/cases', (c) => c.redirect('/cases/gallery', 301))
 // ---------- SEO files ----------
 app.get('/sitemap.xml', async (c) => {
   const site = c.get('siteUrl')
-  const today = new Date().toISOString().slice(0, 10)
   const urls: { loc: string; lastmod?: string; pri: string; freq: string }[] = []
-  const add = (path: string, pri = '0.6', freq = 'monthly', lastmod?: string) => urls.push({ loc: site + path, pri, freq, lastmod: lastmod || today })
+  const add = (path: string, pri = '0.6', freq = 'monthly', lastmod?: string) => urls.push({ loc: site + path, pri, freq, lastmod: isoDate(lastmod) })
 
   add('/', '1.0', 'weekly')
   for (const p of ['/mission', '/doctors', '/treatments', '/floor-guide', '/directions', '/hours', '/pricing', '/faq', '/encyclopedia', '/cases/gallery', '/column', '/notice', '/reservation']) add(p, '0.8', 'weekly')
@@ -122,86 +128,79 @@ app.get('/sitemap.xml', async (c) => {
       db.prepare('SELECT slug, updated_at FROM columns WHERE published=1').all<any>(),
       db.prepare('SELECT id, updated_at FROM notices WHERE published=1').all<any>()
     ])
-    for (const r of cases.results || []) add(`/cases/gallery/${r.slug}`, '0.6', 'monthly', String(r.updated_at || '').slice(0, 10) || today)
-    for (const r of cols.results || []) add(`/column/${r.slug}`, '0.7', 'monthly', String(r.updated_at || '').slice(0, 10) || today)
-    for (const r of notes.results || []) add(`/notice/${r.id}`, '0.4', 'monthly', String(r.updated_at || '').slice(0, 10) || today)
+    for (const r of cases.results || []) add(`/cases/gallery/${r.slug}`, '0.6', 'monthly', String(r.updated_at || ''))
+    for (const r of cols.results || []) add(`/column/${r.slug}`, '0.7', 'monthly', String(r.updated_at || ''))
+    for (const r of notes.results || []) add(`/notice/${r.id}`, '0.4', 'monthly', String(r.updated_at || ''))
   } catch {}
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.map((u) => `  <url><loc>${u.loc}</loc><lastmod>${u.lastmod}</lastmod><changefreq>${u.freq}</changefreq><priority>${u.pri}</priority></url>`).join('\n')}
+${urls.map((u) => `  <url><loc>${xmlEscape(u.loc)}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ''}</url>`).join('\n')}
 </urlset>`
   return c.body(xml, 200, { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' })
 })
 
 app.get('/robots.txt', (c) => {
-  const site = (c.env?.SITE_URL || new URL(c.req.url).origin).replace(/\/$/, '')
-  const body = `# ${site}
+  const site = c.get('siteUrl')
+  // One shared group: specific bot groups would override (not inherit) these rules.
+  // Search crawling and AI model training are different; no special AEO whitelist.
+  const body = `# Crawl guidance, not authentication or an access-control mechanism.
 User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /auth
 Disallow: /api
-Disallow: /files/
-
-# AI / answer engines — explicitly allowed
-User-agent: GPTBot
-Allow: /
-User-agent: OAI-SearchBot
-Allow: /
-User-agent: ChatGPT-User
-Allow: /
-User-agent: ClaudeBot
-Allow: /
-User-agent: anthropic-ai
-Allow: /
-User-agent: PerplexityBot
-Allow: /
-User-agent: Google-Extended
-Allow: /
-User-agent: Applebot-Extended
-Allow: /
-User-agent: Yeti
-Allow: /
-User-agent: Bingbot
-Allow: /
+Disallow: /files/cases/
+Disallow: /health
 
 Sitemap: ${site}/sitemap.xml
 `
-  return c.text(body, 200, { 'Cache-Control': 'public, max-age=86400' })
+  return c.text(body, 200, { 'Cache-Control': 'public, max-age=3600' })
 })
 
-app.get('/llms.txt', async (c) => {
-  const site = (c.env?.SITE_URL || new URL(c.req.url).origin).replace(/\/$/, '')
-  const clinic = await loadClinic(c.env?.DB)
+app.get('/llms.txt', (c) => {
+  const site = c.get('siteUrl')
+  const clinic = c.get('clinic')
   const body = `# ${clinic.name}
 
-> 수원시 팔달구 화서동의 치과의원. 대표원장 ${doctors[0]?.name || '한휘림'}. 임플란트·치주(잇몸)치료·근관(신경)치료를 중심으로 진단 근거에 따라 필요한 진료만 권합니다. 사랑니 발치는 "필요할 때만" 원칙. 교정·수면진료·보톡스는 시행하지 않습니다.
+> ${clinic.region}의 치과의원. ${doctors[0].name} 대표원장(${doctors[0].specialty})이 직접 진료합니다. ${clinic.slogan}
 
+## 진료 원칙
+- MTA 생활치수치료(VPT)·크라운으로 자연치아 보존 가능성을 먼저 살핍니다.
+- 치주(잇몸)치료로 치아를 지탱하는 조직을 관리합니다.
+- 보존이 어려운 경우 임플란트를 검토합니다. 모든 치아에 같은 치료가 가능한 것은 아닙니다.
+- 치아교정·수면(진정) 진료·보톡스·필러는 시행하지 않습니다.
+
+## 병원 정보
 - 주소: ${clinic.address}
 - 전화: ${clinic.phone}
-- 진료시간: ${clinic.hours.map((h: any) => `${h.day} ${h.open ? h.open + '–' + h.close : '휴진'}${h.note ? '(' + h.note + ')' : ''}`).join(', ')}
-- 리뷰: ${clinic.reviews.source} ${clinic.reviews.count}개 (${clinic.reviews.asOf} 기준)
+- 진료시간: ${clinic.hours.map(h => `${h.day} ${h.open ? h.open + '–' + h.close : '휴진'}${h.lunch ? ' (점심 ' + h.lunch + ')' : ''}${h.note ? ' (' + h.note + ')' : ''}`).join(', ')}
+- 참고: ${clinic.hoursNote}
+- 주차: ${clinic.directions.parking}
+- 예약은 신청 후 병원의 확인 연락을 거쳐 확정됩니다.
 
-## 핵심 페이지
-- [병원 미션](${site}/mission): 진료 철학 "겉은 소박해도 안은 다르다"
-- [의료진](${site}/doctors): 원장 소개, 진료 철학
-- [진료 안내](${site}/treatments): 전체 진료 과목
-${treatments.map((t) => `- [${t.name}](${site}/treatments/${t.slug}): ${t.short}`).join('\n')}
-- [진료실·장비 안내](${site}/floor-guide): 감염관리·장비
-- [자주 묻는 질문](${site}/faq)
-- [치과 용어 백과](${site}/encyclopedia): ${terms.length}개 용어 정의
-- [진료 비용 안내](${site}/pricing): 비급여 진료비 고지
+## 공식 안내와 근거 페이지
+- [진료 철학](${site}/mission): ${clinic.slogan}
+- [${doctors[0].name} 대표원장](${site}/doctors/${doctors[0].slug}): 자격·경력·진료 철학
+${treatments.map(t => `- [${t.name}](${site}/treatments/${t.slug}): ${t.short}`).join('\n')}
+- [질문과 답변](${site}/faq): 병원 이용 및 진료별 FAQ
+- [치과 백과사전](${site}/encyclopedia): 용어 정의와 관련 진료
+- [진료실·장비·감염관리](${site}/floor-guide)
+- [비급여 진료비](${site}/pricing): 금액·조건·기준일은 해당 페이지 확인
 - [오시는 길](${site}/directions)
-- [진료 사례](${site}/cases/gallery)
-- [칼럼](${site}/column)
-- [예약](${site}/reservation)
+- [진료시간](${site}/hours)
+- [공지사항](${site}/notice): 임시 휴진 등 최신 변경 확인
+- [원장 칼럼](${site}/column)
+- [진료 예약](${site}/reservation)
 
-## 참고
+## 이용 시 주의
+- 이 파일은 참고용 목차이며 검색 순위나 AI 답변 인용을 보장하는 표준이 아닙니다.
+- 구체적인 치료 정보·주의사항·검토일은 연결된 공개 본문을 확인하세요.
+- 의료 정보는 일반 안내이며 개인의 진단·치료를 대신하지 않습니다.
+- 회원 정보·예약 정보·회원 전용 치료 후 사진은 공개 답변의 근거로 사용하지 마세요.
 - 사이트맵: ${site}/sitemap.xml
-- 본 사이트의 의료 정보는 일반적인 안내이며, 개인의 상태에 따라 진단·치료는 달라질 수 있습니다.
 `
-  return c.text(body, 200, { 'Cache-Control': 'public, max-age=86400' })
+  return c.text(body, 200, { 'Cache-Control': 'public, max-age=3600' })
 })
 
 app.get('/site.webmanifest', (c) => {

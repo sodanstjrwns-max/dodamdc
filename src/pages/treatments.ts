@@ -2,11 +2,11 @@ import { html, raw } from 'hono/html'
 import type { Context } from 'hono'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
-import { procedureLd, faqLd, truncate } from '../lib/seo'
+import { procedureLd, faqLd, physicianLd, truncate } from '../lib/seo'
 import { treatments, coreTreatments, otherTreatments, getTreatment, type Treatment } from '../data/treatments'
 import { doctors } from '../data/doctors'
 import { autoLink, termsForTreatment } from '../data/encyclopedia'
-import { pageHero, faqList, ctaStrip } from '../lib/ui'
+import { imageAttrs, pageHero, faqList, ctaStrip } from '../lib/ui'
 import { esc, fmtDate } from '../lib/util'
 
 const sid = (i: number) => `sec-${i + 1}`
@@ -43,7 +43,7 @@ ${pageHero({
       ${coreTreatments.map((t, i) => html`<a href="/treatments/${t.slug}" class="treatment-chapter reveal">
         <span class="chapter-number">0${i + 1}</span>
         <div class="chapter-copy"><p class="edition-label">${['PRESERVE', 'PROTECT', 'RESTORE'][i]} / ${t.category}</p><h2>${t.name}</h2><p>${t.heroTitle}</p><span class="link-arrow">진료 이야기 읽기</span></div>
-        ${t.heroImage ? html`<figure><img src="${t.heroImage}" alt="${treatmentPhotoAlts[t.slug] || t.name}" width="640" height="420" loading="lazy" decoding="async"></figure>` : ''}
+        ${t.heroImage ? html`<figure><img src="${t.heroImage}" alt="${treatmentPhotoAlts[t.slug] || t.name}" ${imageAttrs(`${t.heroImage}`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1000px) 50vw, 600px', 640, 420)} loading="lazy" decoding="async"></figure>` : ''}
       </a>`)}
     </div>
   </div>
@@ -98,7 +98,8 @@ ${pageHero({
 <div class="container tx-layout">
   <article class="tx-body">
     <section class="summary-box reveal" id="summary" aria-labelledby="summary-h">
-      <h2 id="summary-h">${t.name}, 결론부터</h2>
+      <h2 id="summary-h">${t.name}, 어떤 진료인가요?</h2>
+      <p class="treatment-answer">${t.short}</p>
       <ul>${t.summary.map((s) => html`<li>${s}</li>`)}</ul>
     </section>
 
@@ -131,7 +132,7 @@ ${pageHero({
     ${cases.length ? html`<section id="cases" class="reveal">
       <h2 class="h3">${t.name} 치료 전후</h2>
       <div class="case-grid">${cases.map((k) => html`<a href="/cases/gallery/${k.slug}" class="case-card">
-        <div class="case-thumb">${k.pano_before || k.intra_before ? html`<img src="/files/${k.intra_before || k.pano_before}" alt="${k.title} 치료 전" width="480" height="320" loading="lazy">` : html`<span class="lock">치료 전 사진</span>`}</div>
+        <div class="case-thumb">${k.pano_before || k.intra_before ? html`<img src="/files/${k.intra_before || k.pano_before}" alt="${k.title} 치료 전" ${imageAttrs(`/files/${k.intra_before || k.pano_before}`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1000px) 50vw, 600px', 480, 320)} loading="lazy">` : html`<span class="lock">치료 전 사진</span>`}</div>
         <div class="case-body"><h3>${k.title}</h3><p class="case-meta">${[k.age_group, k.gender, k.duration].filter(Boolean).join(' · ')}</p></div></a>`)}</div>
       <p><a href="/cases/gallery?treatment=${t.slug}" class="link-arrow">전체 보기</a></p>
     </section>` : ''}
@@ -146,7 +147,7 @@ ${pageHero({
       <ul class="notice-list">${columns.map((p) => html`<li class="notice-row"><a href="/column/${p.slug}">${p.title}</a><span class="date">${fmtDate(p.published_at)}</span></li>`)}</ul>
     </section>` : ''}
 
-    <p class="reviewed">이 페이지는 ${dr.name} ${dr.title}(${dr.specialty})이 검토했습니다. 최종 검토 ${t.reviewedAt}. 의료광고법에 따라 치료 효과를 보장하거나 비교·과장하는 표현을 사용하지 않습니다.</p>
+    <p class="reviewed">이 페이지는 <a href="/doctors/${dr.slug}">${dr.name} ${dr.title}</a>(${dr.specialty})이 검토했습니다. 최종 검토 <time datetime="${t.reviewedAt}">${t.reviewedAt}</time>. 의료광고법에 따라 치료 효과를 보장하거나 비교·과장하는 표현을 사용하지 않습니다.</p>
   </article>
 
   <aside class="tx-side">
@@ -160,7 +161,7 @@ ${pageHero({
       <a href="#faq">자주 묻는 질문</a>
     </nav>
     <div class="side-card side-doctor">
-      <img src="${dr.photoAvatar}" alt="${dr.photoAlt}" width="96" height="96" loading="lazy">
+      <img src="${dr.photoAvatar}" alt="${dr.photoAlt}" ${imageAttrs(`${dr.photoAvatar}`, '96px', 96, 96)} loading="lazy">
       <p class="side-title">담당 의료진</p>
       <p><strong>${dr.name} ${dr.title}</strong><br><small>${dr.specialty}</small></p>
       <a href="/doctors/${dr.slug}" class="link-arrow">소개 보기</a>
@@ -178,12 +179,13 @@ ${pageHero({
 ${ctaStrip(clinic, { title: `${t.name}, 필요한지부터 함께 확인해 드립니다` })}`
 
   return c.html(Layout(c, {
-    title: `${t.name} — ${t.heroTitle}`,
+    title: `${t.name} | 과정·주의사항·FAQ — 수원 화서동`,
     description: truncate(`수원 화서동 서울도담치과 ${t.name}. ${t.short} ${t.heroLead}`),
     path: `/treatments/${t.slug}`,
     image: t.heroImage,
-    type: 'article',
-    jsonld: [procedureLd(t, clinic, siteUrl), faqLd(t.faqs)],
+    type: 'article', reviewer: dr, reviewedAt: t.reviewedAt,
+    imageAlt: treatmentPhotoAlts[t.slug],
+    jsonld: [procedureLd(t, clinic, siteUrl), physicianLd(dr, clinic, siteUrl), faqLd(t.faqs, `${siteUrl}/treatments/${t.slug}`)],
     crumbs: [{ name: '홈', href: '/' }, { name: '진료 안내', href: '/treatments' }, { name: t.name, href: `/treatments/${t.slug}` }],
   }, body))
 }

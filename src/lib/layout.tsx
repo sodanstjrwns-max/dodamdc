@@ -1,9 +1,10 @@
 import { html, raw } from 'hono/html'
 import type { Context } from 'hono'
 import type { Env } from './types'
-import { fullTitle, absUrl, breadcrumbLd, type PageMeta } from './seo'
+import { fullTitle, absUrl, breadcrumbLd, canonicalPath, dentistLd, websiteLd, webpageLd, isoDate, type PageMeta } from './seo'
 import { coreTreatments, otherTreatments } from '../data/treatments'
 import { doctors } from '../data/doctors'
+import { imageManifest } from '../data/image-manifest'
 
 const escAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
@@ -11,11 +12,19 @@ export function Layout(c: Context<Env>, meta: PageMeta, body: any) {
   const clinic = c.get('clinic') as any
   const siteUrl = c.get('siteUrl')
   const user = c.get('user')
-  const title = fullTitle(meta.title, clinic)
-  const url = absUrl(siteUrl, meta.path)
-  const image = absUrl(siteUrl, meta.image || '/static/img/suwon-dodam-dental-reception-desk-v2.webp')
-  const lds = [...(meta.jsonld || [])]
-  if (meta.crumbs && meta.crumbs.length > 1) lds.push(breadcrumbLd(meta.crumbs, siteUrl))
+  const path = canonicalPath(meta.path, c.req.url)
+  const title = fullTitle(meta.title, clinic) + (new URL('https://canonical.invalid' + path).searchParams.has('page') ? ` · ${new URL(c.req.url).searchParams.get('page')}페이지` : '')
+  const url = absUrl(siteUrl, path)
+  const imagePath = meta.image || '/static/img/suwon-dodam-dental-reception-desk-v2.webp'
+  const image = absUrl(siteUrl, imagePath)
+  const imageSize = imageManifest[imagePath]
+  const preview = new URL(c.req.url).origin !== siteUrl
+  const noindex = preview || meta.noindex || c.req.method !== 'GET' || (meta.path === '/reservation' && c.req.query('ok') === '1')
+  c.header('X-Robots-Tag', noindex ? 'noindex, follow' : 'index, follow')
+  // Personalized headers/forms must never enter a shared HTML cache.
+  c.header('Cache-Control', 'private, no-store')
+  const lds = [dentistLd(clinic, siteUrl), websiteLd(clinic, siteUrl), webpageLd(meta, siteUrl, path), ...(meta.jsonld || [])]
+  if (meta.crumbs && meta.crumbs.length > 1) lds.push(breadcrumbLd(meta.crumbs, siteUrl, path))
   const hoursToday = (() => {
     const d = ['일', '월', '화', '수', '목', '금', '토'][new Date(Date.now() + 9 * 3600e3).getUTCDay()]
     const h = clinic.hours.find((x: any) => x.day === d)
@@ -30,7 +39,7 @@ export function Layout(c: Context<Env>, meta: PageMeta, body: any) {
 <title>${title}</title>
 <meta name="description" content="${meta.description}">
 <link rel="canonical" href="${url}">
-${meta.noindex ? raw('<meta name="robots" content="noindex, nofollow">') : raw('<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">')}
+${noindex ? raw('<meta name="robots" content="noindex, follow">') : raw('<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">')}
 <meta property="og:type" content="${meta.type || 'website'}">
 <meta property="og:site_name" content="${clinic.name}">
 <meta property="og:locale" content="ko_KR">
@@ -38,11 +47,16 @@ ${meta.noindex ? raw('<meta name="robots" content="noindex, nofollow">') : raw('
 <meta property="og:description" content="${meta.description}">
 <meta property="og:url" content="${url}">
 <meta property="og:image" content="${image}">
-<meta property="og:image:width" content="1200"><meta property="og:image:height" content="800">
+<meta property="og:image:alt" content="${meta.imageAlt || meta.title}">
+${imageSize ? html`<meta property="og:image:width" content="${imageSize.width}"><meta property="og:image:height" content="${imageSize.height}">` : ''}
+${isoDate(meta.publishedAt) ? html`<meta property="article:published_time" content="${isoDate(meta.publishedAt)}">` : ''}
+${isoDate(meta.modifiedAt) ? html`<meta property="article:modified_time" content="${isoDate(meta.modifiedAt)}">` : ''}
+${meta.reviewer ? html`<meta name="author" content="${meta.reviewer.name}">` : ''}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${title}">
 <meta name="twitter:description" content="${meta.description}">
 <meta name="twitter:image" content="${image}">
+<meta name="twitter:image:alt" content="${meta.imageAlt || meta.title}">
 ${clinic.gsc ? raw(`<meta name="google-site-verification" content="${escAttr(clinic.gsc)}">`) : ''}
 ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escAttr(clinic.naverVerify)}">`) : ''}
 <meta name="theme-color" content="${clinic.brand.primary}">
@@ -51,9 +65,10 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="icon" href="/favicon.png" type="image/png"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">
-<link rel="preload" href="/static/fonts/WantedSansVariable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/WantedSansCore-v1.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/fonts/wanted-subsets.css?v=1">
 <link rel="stylesheet" href="/static/style.css?v=8">
-<link rel="stylesheet" href="/static/kinetic.css?v=10">
+<link rel="stylesheet" href="/static/kinetic.css?v=11">
 <link rel="alternate" type="application/rss+xml" title="${clinic.shortName} 원장 칼럼" href="/column/rss.xml">
 ${lds.map((l) => raw(`<script type="application/ld+json">${JSON.stringify(l).replace(/</g, '\\u003c')}</script>`))}
 ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?id=${escAttr(clinic.ga4)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${escAttr(clinic.ga4)}',{anonymize_ip:true});</script>`) : ''}
@@ -233,7 +248,7 @@ ${clinic.ga4 ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?
 </div>
 
 <script src="/static/app.js?v=10" defer></script>
-<script type="module" src="/static/experience/main.js?v=8"></script>
+<script type="module" src="/static/experience/main.js?v=11"></script>
 </body>
 </html>`
 }

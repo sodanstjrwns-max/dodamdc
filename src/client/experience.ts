@@ -8,6 +8,9 @@ const desktop = matchMedia('(min-width: 1001px)')
 const finePointer = matchMedia('(hover: hover) and (pointer: fine)')
 const all = <T extends Element = HTMLElement>(selector: string) => Array.from(document.querySelectorAll<T>(selector))
 const body = document.body
+const connection = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection
+const constrainedConnection = connection?.saveData || /^(slow-)?2g$/.test(connection?.effectiveType || '')
+const modelEnable = document.querySelector<HTMLButtonElement>('#model-enable')
 const motionButton = document.querySelector<HTMLButtonElement>('#motion-toggle')
 let paused = reducedMotion.matches
 let scene: ToothScene | null = null
@@ -100,7 +103,7 @@ function setupMotion() {
   motionContext = gsap.context(() => {
     setupGallery()
     if (paused) return
-    if (document.querySelector('.kinetic-hero')) {
+    if (desktop.matches && document.querySelector('.kinetic-hero')) {
       gsap.from('.headline-line > span', { yPercent: 115, rotate: 3, duration: 1.15, stagger: 0.12, ease: 'expo.out', clearProps: 'transform' })
       gsap.from('.kinetic-hero-top, .kinetic-eyebrow, .hero-copy-bottom', { opacity: 0, y: 15, duration: 0.8, delay: 0.25, stagger: 0.1, clearProps: 'opacity,transform' })
       gsap.from('.tooth-experience', { opacity: 0, scale: 0.8, duration: 1.5, ease: 'expo.out', clearProps: 'opacity,transform' })
@@ -116,6 +119,8 @@ function setupMotion() {
       }
     }
     all<HTMLElement>('.display-heading, .doctor-editorial-copy h2, .page-hero .h1, .mission-poster h1').forEach(heading => {
+      // Keep initial mobile text paint visible; animate only later sections.
+      if (!desktop.matches && heading.getBoundingClientRect().top < innerHeight) return
       gsap.from(heading, { clipPath: 'inset(0 0 100% 0)', y: 22, duration: 0.95, ease: 'expo.out', clearProps: 'clipPath,transform', scrollTrigger: { trigger: heading, start: 'top 92%', once: true } })
     })
     const photo = document.querySelector('.doctor-editorial-photo img')
@@ -131,20 +136,29 @@ async function loadSculpture() {
   const host = document.querySelector<HTMLElement>('#tooth-render')
   if (!host) return
   sceneRequested = true
+  if (modelEnable) { modelEnable.disabled = true; modelEnable.textContent = '입체 모형 불러오는 중…' }
   try {
     const module = await import('./tooth-scene')
     scene = module.createToothScene(host, paused)
   } catch {
     host.dataset.render = 'fallback'
   }
+  if (modelEnable) {
+    if (scene) modelEnable.hidden = true
+    else modelEnable.textContent = '기본 그래픽 사용 중'
+  }
 }
 
 // Native scrolling is retained: no wheel interception or forced scroll smoothing.
 setupMotion()
 if (document.querySelector('#tooth-render')) {
-  if ('requestIdleCallback' in window) window.requestIdleCallback(() => { void loadSculpture() }, { timeout: 900 })
-  else setTimeout(() => { void loadSculpture() }, 100)
+  if (constrainedConnection) {
+    document.querySelector<HTMLElement>('#tooth-render')!.dataset.render = 'fallback'
+    if (modelEnable) modelEnable.hidden = false
+  } else if ('requestIdleCallback' in window) window.requestIdleCallback(() => { void loadSculpture() }, { timeout: 1200 })
+  else setTimeout(() => { void loadSculpture() }, 300)
 }
+modelEnable?.addEventListener('click', () => { void loadSculpture() })
 motionButton?.addEventListener('click', () => { paused = !paused; setupMotion() })
 reducedMotion.addEventListener('change', event => { paused = event.matches; setupMotion() })
 desktop.addEventListener('change', () => setupMotion())

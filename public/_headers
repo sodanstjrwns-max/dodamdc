@@ -1,6 +1,26 @@
 /static/*
-  Cache-Control: public, max-age=31536000, immutable
   X-Content-Type-Options: nosniff
+
+/static/img/*
+  Cache-Control: public, max-age=604800
+
+/static/fonts/*.woff2
+  Cache-Control: public, max-age=31536000, immutable
+
+/static/fonts/wanted-subsets.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/static/experience/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/static/style.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/static/kinetic.css
+  Cache-Control: public, max-age=0, must-revalidate
+
+/static/app.js
+  Cache-Control: public, max-age=0, must-revalidate
 
 /favicon*.png
   Cache-Control: public, max-age=604800
