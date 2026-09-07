@@ -3,6 +3,7 @@ import type { HtmlEscapedString } from 'hono/utils/html'
 import type { FAQ } from '../data/treatments'
 import type { Crumb } from './seo'
 import { esc } from './util'
+import { sanitizeArticle } from './content-safety'
 import { imageManifest } from '../data/image-manifest'
 import { getNaverBookingUrl, type Clinic } from '../data/clinic'
 
@@ -81,13 +82,7 @@ export function articleHtml(s: string) {
 
 /** 안전한 raw HTML (관리자 작성 콘텐츠용 — 스크립트 제거) */
 export function safeHtml(s: string) {
-  const cleaned = String(s || '')
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
-    .replace(/\son\w+="[^"]*"/gi, '')
-    .replace(/\son\w+='[^']*'/gi, '')
-    .replace(/javascript:/gi, '')
-  return raw(cleaned)
+  return raw(sanitizeArticle(s))
 }
 
 export const img = (src: string, alt: string, w = 800, h = 600, cls = '', lazy = true) =>

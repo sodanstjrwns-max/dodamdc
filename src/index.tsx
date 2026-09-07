@@ -4,6 +4,7 @@ import type { Env } from './lib/types'
 import { loadClinic } from './lib/settings'
 import { readMemberSession, readAdminSession } from './lib/auth'
 import { trackView } from './lib/util'
+import { requestSecurity, requestLimit } from './lib/security'
 import { resolveSiteUrl, isoDate, xmlEscape } from './lib/seo'
 import { getNaverBookingUrl } from './data/clinic'
 
@@ -36,6 +37,8 @@ app.use('*', secureHeaders({
   referrerPolicy: 'strict-origin-when-cross-origin'
 }))
 
+app.use('*', requestLimit)
+app.use('*', requestSecurity)
 app.use('*', async (c, next) => {
   const url = new URL(c.req.url)
   // static assets skip DB work
@@ -53,7 +56,9 @@ app.use('*', async (c, next) => {
   }
   c.set('nonce', crypto.randomUUID().replace(/-/g, ''))
   c.set('user', c.env?.SESSION_SECRET ? await readMemberSession(c) : null)
-  c.set('admin', c.env?.SESSION_SECRET ? await readAdminSession(c) : false)
+  const staff = c.env?.SESSION_SECRET ? await readAdminSession(c) : null
+  c.set('staff', staff)
+  c.set('admin', !!staff)
   await next()
   // page view tracking for public HTML GET responses
   if (c.req.method === 'GET' && c.res.status === 200 && (c.res.headers.get('content-type') || '').includes('text/html')

@@ -3,8 +3,14 @@ import { eventLabels, locationLabels, cleanupConversions } from '../lib/conversi
 import type { Context } from 'hono'
 import { html, raw } from 'hono/html'
 import type { Env } from '../lib/types'
-import { setAdminSession, clearAdminSession } from '../lib/auth'
-import { EDITABLE_KEYS, getPath, saveSettings, invalidateClinicCache } from '../lib/settings'
+import { setAdminSession, clearAdminSession, verifyPassword } from '../lib/auth'
+import { shell } from '../lib/admin-ui'
+import { canAccessStaff, loginBudget, auditStatement } from '../lib/security'
+import { sanitizeArticle, checkedImage } from '../lib/content-safety'
+import staffRoutes from './staff'
+import reservationDesk from './reservation-desk'
+import privacyOps from './privacy-ops'
+import { EDITABLE_KEYS, getPath, saveSettings, invalidateClinicCache, validSetting } from '../lib/settings'
 import { treatments, getTreatment } from '../data/treatments'
 import { doctors } from '../data/doctors'
 import { formData, slugify, fmtDate, stripTags, esc } from '../lib/util'
@@ -12,47 +18,59 @@ import { alertBox } from '../lib/ui'
 
 const admin = new Hono<Env>()
 
-// ── 공통 레이아웃 (관리자 전용, noindex) ─────────────────
-function shell(c: any, title: string, body: any, active = '') {
-  const clinic = c.get('clinic') as any
-  const nav = [['/admin', '대시보드', 'dash'], ['/admin/cases', '치료 전후', 'cases'], ['/admin/columns', '원장 칼럼', 'columns'], ['/admin/notices', '공지사항', 'notices'], ['/admin/reservations', '예약', 'reservations'], ['/admin/members', '회원', 'members'], ['/admin/settings', '기본정보', 'settings'], ['/admin/stats', '조회 통계', 'stats']]
-  return c.html(html`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${title} · 관리자 · ${clinic.shortName}</title>
-<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"><link rel="stylesheet" href="/static/style.css?v=4"><link rel="icon" href="/favicon.png"></head>
-<body class="admin"><div class="admin-wrap">
-<aside class="admin-side"><a href="/admin" class="admin-logo"><img src="/static/img/logo-mark.png" alt="" width="28" height="28"> 관리자</a>
-<nav><ul>${nav.map(([h, n, k]) => html`<li><a href="${h}" class="${active === k ? 'active' : ''}">${n}</a></li>`)}</ul></nav>
-<div class="admin-side-foot"><a href="/" target="_blank">사이트 보기 ↗</a><form method="post" action="/admin/logout"><button type="submit" class="btn btn-ghost btn-sm">로그아웃</button></form></div></aside>
-<main class="admin-main"><h1 class="h2">${title}</h1>${body}</main></div>
-<script src="/static/admin.js?v=4" defer></script></body></html>`)
-}
-
 // ── 로그인 ───────────────────────────────────────────────
-admin.get('/login', (c) => {
+admin.get('/login', async (c) => {
+  const bootstrap = (await c.env.DB.prepare('SELECT COUNT(*) n FROM staff').first<any>())?.n === 0
   if (c.get('admin')) return c.redirect('/admin')
   const clinic = c.get('clinic') as any
   return c.html(html`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>관리자 로그인 · ${clinic.shortName}</title><link rel="stylesheet" href="/static/style.css?v=4"></head>
 <body class="admin-login"><div class="form-card"><img src="/static/img/logo-wide.png" alt="${clinic.name}" width="176" height="44" style="margin-bottom:20px">
-${c.req.query('e') ? alertBox('비밀번호가 올바르지 않습니다.') : ''}
-<form method="post" action="/admin/login" class="form"><div class="field"><label for="pw">관리자 비밀번호</label><input id="pw" name="password" type="password" required autofocus autocomplete="current-password"></div><button type="submit" class="btn btn-primary btn-block">로그인</button></form>
+${c.req.query('e') ? alertBox('로그인 정보를 확인해 주세요.') : ''}${c.req.query('created') ? alertBox('계정을 만들었습니다. 개인 ID로 로그인하세요.', 'ok') : ''}<p>${bootstrap ? '최초 계정 설정용 로그인입니다. 기존 관리자 비밀번호로 책임자 계정을 먼저 만들어 주세요.' : '직원별로 발급된 ID와 비밀번호로 로그인해 주세요.'}</p>
+<form method="post" action="/admin/login" class="form">${bootstrap ? '' : html`<div class="field"><label for="login">로그인 ID</label><input id="login" name="login" required autocomplete="username" maxlength="40"></div>`}<div class="field"><label for="pw">관리자 비밀번호</label><input id="pw" name="password" type="password" required autofocus autocomplete="current-password"></div><button type="submit" class="btn btn-primary btn-block">로그인</button></form>
 <p class="form-foot"><a href="/">← 사이트로</a></p></div></body></html>`)
 })
 admin.post('/login', async (c) => {
   const f = await formData(c)
-  if (!c.env.ADMIN_PASSWORD || String(f.password) !== c.env.ADMIN_PASSWORD) return c.redirect('/admin/login?e=1')
-  await setAdminSession(c)
-  return c.redirect('/admin')
+  const login = String(f.login || '').trim().toLowerCase(), password = String(f.password || '')
+  if (!(await loginBudget(c, 'staff-login', login || 'bootstrap'))) return c.text('로그인 시도가 많습니다. 잠시 후 다시 시도해 주세요.', 429)
+  const count = (await c.env.DB.prepare('SELECT COUNT(*) n FROM staff').first<any>())?.n
+  if (count === 0) {
+    if (!c.env.ADMIN_PASSWORD || password !== c.env.ADMIN_PASSWORD) return c.redirect('/admin/login?e=1')
+    await setAdminSession(c, { id:null, login:'bootstrap', name:'최초 설정', role:'owner', version:0, bootstrap:true })
+    return c.redirect('/admin/staff')
+  }
+  const row = await c.env.DB.prepare('SELECT * FROM staff WHERE login=? AND active=1').bind(login).first<any>()
+  if (!row || !(await verifyPassword(password, row.password_hash))) return c.redirect('/admin/login?e=1')
+  await setAdminSession(c, { id:row.id, login:row.login, name:row.name, role:row.role, version:row.session_version })
+  await auditStatement(c.env.DB,row.id,'staff.login',row.id).run()
+  return c.redirect(row.role === 'reception' ? '/admin/reservations' : row.role === 'editor' ? '/admin/columns' : '/admin')
 })
-admin.post('/logout', (c) => { clearAdminSession(c); return c.redirect('/admin/login') })
+admin.post('/logout', async (c) => {
+  const actor=c.get('staff')
+  if(actor?.id) await c.env.DB.batch([c.env.DB.prepare('UPDATE staff SET session_version=session_version+1 WHERE id=?').bind(actor.id),auditStatement(c.env.DB,actor.id,'staff.logout',actor.id)])
+  clearAdminSession(c); return c.redirect('/admin/login')
+})
 
 // 인증 가드
 admin.use('/*', async (c, next) => {
   if (c.req.path === '/admin/login') return next()
   if (!c.get('admin')) return c.req.method === 'GET' ? c.redirect('/admin/login') : c.text('Unauthorized', 401)
+  if (!canAccessStaff(c.get('staff'), c.req.path)) return c.text('이 작업에 접근할 권한이 없습니다.', 403)
   await next()
+  if (c.req.method === 'POST' && ([302,303].includes(c.res.status) || (c.req.path === '/admin/api/upload' && c.res.status === 200)) && !/^\/admin\/(staff|reservations|privacy)/.test(c.req.path)) {
+    await auditStatement(c.env.DB,c.get('staff')?.id || null,'admin.change',null,{route:c.req.path}).run()
+  }
 })
+admin.route('/', staffRoutes)
+admin.route('/', reservationDesk)
+admin.route('/', privacyOps)
 
 // ── 대시보드 ─────────────────────────────────────────────
 admin.get('/', async (c) => {
+  const principal=c.get('staff')!
+  if(principal.bootstrap) return c.redirect('/admin/staff')
+  if(principal.role==='reception') return c.redirect('/admin/reservations')
+  if(principal.role==='editor') return c.redirect('/admin/columns')
   const db = c.env.DB
   const q = async (sql: string) => (await db.prepare(sql).first<any>())?.n ?? 0
   const [members, cases, columns, notices, pending, views7] = await Promise.all([
@@ -70,21 +88,20 @@ admin.get('/', async (c) => {
     <a href="/admin/stats" class="admin-card"><span class="n">${views7}</span><span class="l">7일 조회 (봇 제외)</span></a>
   </div>
   <div class="grid-2" style="margin-top:28px">
-    <section><h2 class="h3">최근 예약</h2><table class="admin-table"><thead><tr><th>이름</th><th>연락처</th><th>진료</th><th>희망일</th><th>상태</th></tr></thead><tbody>${recent.map((r: any) => html`<tr><td><a href="/admin/reservations#r${r.id}">${r.name}</a></td><td>${r.phone}</td><td>${r.treatment || '-'}</td><td>${r.preferred_date || '-'}</td><td><span class="badge-${r.status === 'pending' ? 'new' : r.status === 'cancelled' ? 'off' : 'on'}">${r.status}</span></td></tr>`)}</tbody></table></section>
+    <section><h2 class="h3">최근 예약</h2><table class="admin-table"><thead><tr><th>이름</th><th>연락처</th><th>진료</th><th>희망일</th><th>상태</th></tr></thead><tbody>${recent.map((r: any) => html`<tr><td><a href="/admin/reservations/${r.id}">${r.name}</a></td><td>${r.phone}</td><td>${r.treatment || '-'}</td><td>${r.preferred_date || '-'}</td><td><span class="badge-${r.status === 'pending' ? 'new' : r.status === 'cancelled' ? 'off' : 'on'}">${r.status}</span></td></tr>`)}</tbody></table></section>
     <section><h2 class="h3">30일 인기 페이지</h2><table class="admin-table"><thead><tr><th>경로</th><th>조회</th></tr></thead><tbody>${top.map((r: any) => html`<tr><td><a href="${r.path}" target="_blank">${r.path}</a></td><td>${r.n}</td></tr>`)}</tbody></table></section>
   </div>`
   return shell(c, '대시보드', body, 'dash')
 })
 
 // ── 업로드 (R2) ──────────────────────────────────────────
-const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-async function putFile(c: any, file: File, prefix: string) {
-  if (!ALLOWED.includes(file.type)) throw new Error('이미지 파일(jpg/png/webp/gif)만 업로드할 수 있습니다.')
-  if (file.size > 8 * 1024 * 1024) throw new Error('8MB 이하 파일만 업로드할 수 있습니다.')
-  const ext = file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1]
-  const key = `${prefix}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`
-  await c.env.R2.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } })
-  await c.env.DB.prepare('INSERT OR REPLACE INTO uploads (key, filename, content_type, size) VALUES (?,?,?,?)').bind(key, file.name, file.type, file.size).run()
+async function putFile(c: Context<Env>, file: File, prefix: string) {
+  if (!['cases/before','cases/after','columns','notices','uploads'].includes(prefix)) throw new Error('허용하지 않는 업로드 위치입니다.')
+  const { bytes, type, ext } = await checkedImage(file)
+  const key = `${prefix}/${Date.now()}-${crypto.randomUUID()}.${ext}`
+  await c.env.R2.put(key, bytes, { httpMetadata: { contentType:type } })
+  try { await c.env.DB.prepare('INSERT INTO uploads (key,filename,content_type,size) VALUES (?,?,?,?)').bind(key, key.split('/').pop(), type, file.size).run() }
+  catch (error) { await c.env.R2.delete(key); throw error }
   return key
 }
 admin.post('/api/upload', async (c) => {
@@ -92,7 +109,7 @@ admin.post('/api/upload', async (c) => {
     const fd = await c.req.formData()
     const file = fd.get('file')
     if (!(file instanceof File)) return c.json({ error: '파일이 없습니다' }, 400)
-    const key = await putFile(c, file, String(fd.get('prefix') || 'uploads').replace(/[^a-z0-9/_-]/gi, ''))
+    const key = await putFile(c, file, String(fd.get('prefix') || 'uploads'))
     return c.json({ key, url: `/files/${key}` })
   } catch (e: any) { return c.json({ error: e.message }, 400) }
 })
@@ -143,7 +160,7 @@ async function saveCase(c: Context<Env>, id?: number) {
     const f = fd.get(`${s}_file`)
     if (f instanceof File && f.size) photos[s] = await putFile(c, f, s.endsWith('after') ? 'cases/after' : 'cases/before')
     else if (fd.get(`${s}_clear`)) photos[s] = null
-    else photos[s] = cur?.[s] || g(s) || null
+    else photos[s] = cur?.[s] || null
   }
   const title = g('title'); if (!title) throw new Error('제목을 입력해 주세요.')
   const slug = g('slug') ? slugify(g('slug')) : (id && cur?.slug) ? cur.slug : `${g('treatment_slug') || 'case'}-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${crypto.randomUUID().slice(0, 4)}`
@@ -166,7 +183,7 @@ function columnForm(c: any, p: any = {}, err?: string) {
       ${[['h2', 'H2'], ['h3', 'H3'], ['p', '본문'], ['bold', 'B'], ['italic', 'I'], ['ul', '• 목록'], ['ol', '1. 목록'], ['quote', '인용'], ['link', '링크'], ['image', '이미지'], ['hr', '구분선'], ['clear', '서식 지우기']].map(([k, l]) => html`<button type="button" data-cmd="${k}">${l}</button>`)}
       <span class="editor-hint">이미지는 드래그하거나 붙여넣기(Ctrl+V)로도 넣을 수 있습니다</span>
     </div>
-    <div class="editor" id="editor" contenteditable="true" data-upload="/admin/api/upload" data-prefix="columns">${raw(p.content_html || '<p></p>')}</div>
+    <div class="editor" id="editor" contenteditable="true" data-upload="/admin/api/upload" data-prefix="columns">${raw(sanitizeArticle(p.content_html || '<p></p>'))}</div>
     <textarea name="content_html" id="content_html" hidden>${p.content_html || ''}</textarea>
   </div>
   <div class="form-row">
@@ -193,9 +210,10 @@ admin.get('/columns/:id', async (c) => { const p = await c.env.DB.prepare('SELEC
 async function saveColumn(c: Context<Env>, id?: number) {
   const fd = await c.req.formData(); const g = (k: string) => String(fd.get(k) || '').trim()
   const cur = id ? await c.env.DB.prepare('SELECT * FROM columns WHERE id=?').bind(id).first<any>() : {}
-  const title = g('title'); const content = g('content_html')
+  if (g('content_html').length > 200000) throw new Error('본문이 너무 깁니다.')
+  const title = g('title'); const content = sanitizeArticle(g('content_html'))
   if (!title || stripTags(content).length < 20) throw new Error('제목과 본문(20자 이상)을 입력해 주세요.')
-  let thumb = cur?.thumbnail || g('thumbnail') || null
+  let thumb = cur?.thumbnail || null
   const tf = fd.get('thumbnail_file'); if (tf instanceof File && tf.size) thumb = await putFile(c, tf, 'columns'); else if (fd.get('thumbnail_clear')) thumb = null
   const slug = g('slug') ? slugify(g('slug')) : (id && cur?.slug) ? cur.slug : (/^[\x00-\x7F]+$/.test(title) ? slugify(title) : `column-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${crypto.randomUUID().slice(0, 4)}`)
   const pub = g('published_at') ? g('published_at').replace('T', ' ') + ':00' : cur?.published_at || new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 19).replace('T', ' ')
@@ -212,7 +230,7 @@ admin.post('/columns/:id/delete', async (c) => { await c.env.DB.prepare('DELETE 
 function noticeForm(c: any, n: any = {}, err?: string) {
   const body = html`${alertBox(err)}<form method="post" enctype="multipart/form-data" class="admin-form" data-once>
   <div class="field"><label>제목 *</label><input name="title" required value="${n.title || ''}"></div>
-  <div class="field"><label>내용 *</label><div class="editor-toolbar">${[['h3', 'H3'], ['p', '본문'], ['bold', 'B'], ['ul', '• 목록'], ['link', '링크'], ['image', '이미지']].map(([k, l]) => html`<button type="button" data-cmd="${k}">${l}</button>`)}</div><div class="editor" id="editor" contenteditable="true" data-upload="/admin/api/upload" data-prefix="notices">${raw(n.content_html || '<p></p>')}</div><textarea name="content_html" id="content_html" hidden>${n.content_html || ''}</textarea></div>
+  <div class="field"><label>내용 *</label><div class="editor-toolbar">${[['h3', 'H3'], ['p', '본문'], ['bold', 'B'], ['ul', '• 목록'], ['link', '링크'], ['image', '이미지']].map(([k, l]) => html`<button type="button" data-cmd="${k}">${l}</button>`)}</div><div class="editor" id="editor" contenteditable="true" data-upload="/admin/api/upload" data-prefix="notices">${raw(sanitizeArticle(n.content_html || '<p></p>'))}</div><textarea name="content_html" id="content_html" hidden>${n.content_html || ''}</textarea></div>
   <div class="field"><label>이미지 (선택)</label><div class="upload-slot ${n.image ? 'has' : ''}">${n.image ? html`<img src="/files/${n.image}" alt="" width="240" height="160">` : html`<span class="upload-empty">클릭 또는 드래그</span>`}<input type="file" name="image_file" accept="image/*"><input type="hidden" name="image" value="${n.image || ''}"><label class="check small"><input type="checkbox" name="image_clear" value="1"> 삭제</label></div></div>
   <label class="check"><input type="checkbox" name="pinned" value="1" ${n.pinned ? 'checked' : ''}> 대표 공지 (홈 상단 노출)</label>
   <label class="check"><input type="checkbox" name="published" value="1" ${n.published === 0 ? '' : 'checked'}> 공개</label>
@@ -230,11 +248,12 @@ async function saveNotice(c: Context<Env>, id?: number) {
   const fd = await c.req.formData(); const g = (k: string) => String(fd.get(k) || '').trim()
   const cur = id ? await c.env.DB.prepare('SELECT * FROM notices WHERE id=?').bind(id).first<any>() : {}
   if (!g('title') || !stripTags(g('content_html'))) throw new Error('제목과 내용을 입력해 주세요.')
-  let img = cur?.image || g('image') || null
+  let img = cur?.image || null
   const f = fd.get('image_file'); if (f instanceof File && f.size) img = await putFile(c, f, 'notices'); else if (fd.get('image_clear')) img = null
   const pinned = fd.get('pinned') ? 1 : 0
   if (pinned) await c.env.DB.prepare('UPDATE notices SET pinned=0').run()
-  const vals = [g('title'), g('content_html'), img, pinned, fd.get('published') ? 1 : 0]
+  if (g('content_html').length > 200000) throw new Error('본문이 너무 깁니다.')
+  const vals = [g('title'), sanitizeArticle(g('content_html')), img, pinned, fd.get('published') ? 1 : 0]
   if (id) await c.env.DB.prepare('UPDATE notices SET title=?,content_html=?,image=?,pinned=?,published=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(...vals, id).run()
   else await c.env.DB.prepare('INSERT INTO notices (title,content_html,image,pinned,published) VALUES (?,?,?,?,?)').bind(...vals).run()
 }
@@ -242,24 +261,14 @@ admin.post('/notices/new', async (c) => { try { await saveNotice(c); return c.re
 admin.post('/notices/:id', async (c) => { const id = Number(c.req.param('id')); try { await saveNotice(c, id); return c.redirect('/admin/notices') } catch (e: any) { return noticeForm(c, await c.env.DB.prepare('SELECT * FROM notices WHERE id=?').bind(id).first(), e.message) } })
 admin.post('/notices/:id/delete', async (c) => { await c.env.DB.prepare('DELETE FROM notices WHERE id=?').bind(c.req.param('id')).run(); return c.redirect('/admin/notices') })
 
-// ── 예약 ─────────────────────────────────────────────────
-admin.get('/reservations', async (c) => {
-  const st = c.req.query('status') || ''
-  const rows = (await c.env.DB.prepare(`SELECT * FROM reservations ${st ? 'WHERE status=?' : ''} ORDER BY created_at DESC LIMIT 200`).bind(...(st ? [st] : [])).all<any>()).results || []
-  const statuses = [['', '전체'], ['pending', '대기'], ['confirmed', '확정'], ['done', '완료'], ['cancelled', '취소']]
-  return shell(c, '예약 관리', html`<nav class="faq-filter">${statuses.map(([k, l]) => html`<a href="/admin/reservations${k ? `?status=${k}` : ''}" class="${st === k ? 'active' : ''}">${l}</a>`)}</nav>
-  <table class="admin-table"><thead><tr><th>접수</th><th>이름</th><th>연락처</th><th>진료</th><th>희망 일시</th><th>내용</th><th>상태</th></tr></thead><tbody>${rows.map((r: any) => html`<tr id="r${r.id}"><td>${fmtDate(r.created_at)}</td><td>${r.name}${r.user_id ? html` <span class="badge-on">회원</span>` : ''}</td><td><a href="tel:${r.phone}">${r.phone}</a>${r.email ? html`<br><small>${r.email}</small>` : ''}</td><td>${r.treatment || '-'}</td><td>${r.preferred_date || '-'}<br><small>${r.preferred_time || ''}</small></td><td class="cell-msg">${r.message || ''}</td><td><form method="post" action="/admin/reservations/${r.id}" class="inline"><select name="status" onchange="this.form.submit()">${['pending', 'confirmed', 'done', 'cancelled'].map((s) => html`<option value="${s}" ${r.status === s ? 'selected' : ''}>${{ pending: '대기', confirmed: '확정', done: '완료', cancelled: '취소' }[s]}</option>`)}</select></form></td></tr>`)}</tbody></table>${!rows.length ? html`<p class="hint">예약이 없습니다.</p>` : ''}`, 'reservations')
-})
-admin.post('/reservations/:id', async (c) => { const f = await formData(c); if (['pending', 'confirmed', 'done', 'cancelled'].includes(f.status)) await c.env.DB.prepare('UPDATE reservations SET status=? WHERE id=?').bind(f.status, c.req.param('id')).run(); return c.redirect('/admin/reservations') })
-
 // ── 회원 ─────────────────────────────────────────────────
 admin.get('/members', async (c) => {
   const q = (c.req.query('q') || '').trim()
   const rows = (await c.env.DB.prepare(`SELECT id,email,name,phone,provider,agree_marketing,role,last_login_at,created_at FROM users ${q ? 'WHERE email LIKE ? OR name LIKE ? OR phone LIKE ?' : ''} ORDER BY created_at DESC LIMIT 300`).bind(...(q ? [`%${q}%`, `%${q}%`, `%${q}%`] : [])).all<any>()).results || []
   return shell(c, '회원 관리', html`<form class="admin-toolbar" method="get"><input name="q" value="${q}" placeholder="이름·이메일·전화 검색"><button class="btn btn-outline btn-sm">검색</button><span class="hint">${rows.length}명</span></form>
-  <table class="admin-table"><thead><tr><th>가입</th><th>이름</th><th>이메일</th><th>전화</th><th>가입 경로</th><th>마케팅</th><th>최근 로그인</th><th></th></tr></thead><tbody>${rows.map((u: any) => html`<tr><td>${fmtDate(u.created_at)}</td><td>${u.name}${u.role === 'admin' ? ' 👑' : ''}</td><td>${u.email}</td><td>${u.phone || '-'}</td><td>${u.provider}</td><td>${u.agree_marketing ? html`<span class="badge-on">동의</span>` : html`<span class="badge-off">-</span>`}</td><td>${fmtDate(u.last_login_at)}</td><td><form method="post" action="/admin/members/${u.id}/delete" class="inline" onsubmit="return confirm('${esc(u.email)} 회원을 삭제할까요?')"><button class="btn btn-danger btn-sm">삭제</button></form></td></tr>`)}</tbody></table>`, 'members')
+  <table class="admin-table"><thead><tr><th>가입</th><th>이름</th><th>이메일</th><th>전화</th><th>가입 경로</th><th>마케팅</th><th>최근 로그인</th><th></th></tr></thead><tbody>${rows.map((u: any) => html`<tr><td>${fmtDate(u.created_at)}</td><td>${u.name}${u.role === 'admin' ? ' 👑' : ''}</td><td>${u.email}</td><td>${u.phone || '-'}</td><td>${u.provider}</td><td>${u.agree_marketing ? html`<span class="badge-on">동의</span>` : html`<span class="badge-off">-</span>`}</td><td>${fmtDate(u.last_login_at)}</td><td><form method="post" action="/admin/members/${u.id}/delete" class="inline" onsubmit="return confirm('이 회원 계정을 삭제할까요?')"><button class="btn btn-danger btn-sm">삭제</button></form></td></tr>`)}</tbody></table>`, 'members')
 })
-admin.post('/members/:id/delete', async (c) => { await c.env.DB.prepare('DELETE FROM users WHERE id=?').bind(c.req.param('id')).run(); return c.redirect('/admin/members') })
+admin.post('/members/:id/delete', async (c) => { await c.env.DB.batch([c.env.DB.prepare('UPDATE reservations SET user_id=NULL WHERE user_id=?').bind(c.req.param('id')),c.env.DB.prepare('DELETE FROM users WHERE id=?').bind(c.req.param('id'))]); return c.redirect('/admin/members') })
 
 // ── 기본정보 (한 곳 수정 → 전체 반영) ────────────────────
 admin.get('/settings', async (c) => {
@@ -273,6 +282,7 @@ admin.post('/settings', async (c) => {
   const f = await formData(c)
   const entries: Record<string, string> = {}
   for (const k of EDITABLE_KEYS) if (k.key in f) entries[k.key] = String(f[k.key] ?? '')
+  if (Object.entries(entries).some(([key,value]) => !validSetting(key,value))) return c.text('설정값 형식을 확인해 주세요. 주소는 http/https, 분석 ID는 정식 ID만 허용합니다.',400)
   await saveSettings(c.env.DB, entries)
   invalidateClinicCache()
   return c.redirect('/admin/settings?saved=1')

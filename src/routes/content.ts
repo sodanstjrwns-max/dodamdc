@@ -1,4 +1,6 @@
 import { Hono } from 'hono'
+import { safeFileKey } from '../lib/content-safety'
+import { canAccessStaff } from '../lib/security'
 import { conversionScope, conversionStatement, cleanupConversions } from '../lib/conversions'
 import { html, raw } from 'hono/html'
 import type { Env } from '../lib/types'
@@ -17,16 +19,31 @@ const PER = 12
 // ── 파일 서빙 (R2) — 치료 후 사진은 로그인 필요 ──────────
 content.get('/files/:key{.+}', async (c) => {
   const key = c.req.param('key')
-  const isAfter = key.startsWith('cases/after/') || /_after\.[a-z0-9]+$/i.test(key)
-  if (isAfter && !c.get('user') && !c.get('admin')) return c.text('로그인이 필요합니다', 401)
+  const reviewer = canAccessStaff(c.get('staff'), '/admin/cases') && !c.get('staff')?.bootstrap
+  const namedAfter = key.startsWith('cases/after/') || /_after\.[a-z0-9]+$/i.test(key)
+  if (namedAfter && !c.get('user') && !reviewer) return c.text('로그인이 필요합니다', 401)
+  if (!safeFileKey(key)) return c.notFound()
+  const refs = (await c.env.DB.prepare('SELECT published,CASE WHEN intra_after=? OR pano_after=? THEN 1 ELSE 0 END is_after FROM cases WHERE intra_before=? OR pano_before=? OR intra_after=? OR pano_after=?').bind(key,key,key,key,key,key).all<any>()).results || []
+  const isAfter = namedAfter || refs.some(r => r.is_after)
+  if (isAfter && !c.get('user') && !reviewer) return c.text('로그인이 필요합니다', 401)
+  if (!reviewer) {
+    let published = refs.some(r => r.published === 1)
+    if (!key.startsWith('cases/') && !isAfter && !refs.length) {
+      const column = await c.env.DB.prepare('SELECT id FROM columns WHERE published=1 AND (thumbnail=? OR instr(content_html,?)>0) LIMIT 1').bind(key, '/files/'+key).first()
+      const notice = await c.env.DB.prepare('SELECT id FROM notices WHERE published=1 AND (image=? OR instr(content_html,?)>0) LIMIT 1').bind(key, '/files/'+key).first()
+      published = !!column || !!notice
+    }
+    if (!published) return c.notFound()
+  }
   const obj = await c.env.R2.get(key)
   if (!obj) return c.notFound()
-  const h = new Headers()
-  obj.writeHttpMetadata(h)
-  h.set('etag', obj.httpEtag)
-  h.set('cache-control', isAfter ? 'private, max-age=600' : 'public, max-age=31536000, immutable')
-  if (isAfter) h.set('x-robots-tag', 'noindex, noimageindex')
-  return new Response(obj.body, { headers: h })
+  const type = obj.httpMetadata?.contentType || ''
+  if (!['image/jpeg','image/png','image/webp','image/gif'].includes(type)) return c.notFound()
+  return new Response(obj.body, { headers: {
+    'Content-Type': type, 'Cache-Control': 'private, no-store', 'X-Content-Type-Options':'nosniff',
+    'Content-Disposition': 'inline', 'Cross-Origin-Resource-Policy':'same-origin',
+    'X-Robots-Tag': isAfter ? 'noindex, noimageindex' : 'noindex', 'Referrer-Policy':'no-referrer',
+  } })
 })
 
 // ── 지역 자동완성 API ────────────────────────────────────
@@ -61,7 +78,7 @@ content.get('/cases/gallery', async (c) => {
   const total = (await c.env.DB.prepare(`SELECT COUNT(*) n FROM cases WHERE ${w}`).bind(...args).first<any>())?.n || 0
   const rows = (await c.env.DB.prepare(`SELECT slug,title,treatment_slug,age_group,gender,region,duration,intra_before,pano_before FROM cases WHERE ${w} ORDER BY created_at DESC LIMIT ? OFFSET ?`).bind(...args, PER, (page - 1) * PER).all<any>()).results || []
   const base = `/cases/gallery${tx ? `?treatment=${tx}` : dr ? `?doctor=${dr}` : ''}`
-  const body = html`${pageHero({ eyebrow: '치료 전후', title: html`사진으로 보는<br>치료 과정`, lead: '치료 전 사진은 누구나, 치료 후 사진은 회원만 볼 수 있습니다(의료법). 모든 사례는 환자분 동의를 받아 개인정보를 제외하고 게시합니다.', crumbs: [{ name: '홈', href: '/' }, { name: '치료 전후', href: '/cases/gallery' }] })}
+  const body = html`${pageHero({ eyebrow: '치료 전후', title: html`사진으로 보는<br>치료 과정`, lead: '공개된 사례의 치료 전 사진은 누구나, 치료 후 사진은 병원 정책에 따라 회원에게 제공합니다. 모든 사례는 환자분 동의를 받아 개인정보를 제외하고 게시합니다.', crumbs: [{ name: '홈', href: '/' }, { name: '치료 전후', href: '/cases/gallery' }] })}
 <section class="section"><div class="container">
   <h2 class="sr-only">진료별 게시물 목록</h2>
   <nav class="faq-filter reveal in" aria-label="진료별 보기"><a href="/cases/gallery" class="${!tx ? 'active' : ''}">전체</a>${treatments.map((t) => html`<a href="/cases/gallery?treatment=${t.slug}" class="${tx === t.slug ? 'active' : ''}">${t.name}</a>`)}</nav>
@@ -69,7 +86,7 @@ content.get('/cases/gallery', async (c) => {
   ${rows.length ? html`<div class="case-grid">${rows.map(caseCard)}</div>${paginate(base, page, total, PER)}` : html`<section class="empty-content"><p class="edition-label">CARE, WITH YOUR CONSENT</p><h2>공개된 치료 사례를 준비하고 있습니다.</h2><p>환자분의 동의를 받은 사례만 게시합니다.<br>궁금한 치료의 과정과 주의사항은 진료 안내에서 먼저 확인하실 수 있습니다.</p><a href="/treatments" class="editorial-link">진료 안내 살펴보기 <span aria-hidden="true">↗</span></a></section>`}
 </div></section>
 ${ctaStrip(clinic)}`
-  return c.html(Layout(c, { title: tx ? `${getTreatment(tx)?.name || ''} 치료 전후` : '치료 전후 사진', description: '서울도담치과 치료 전후 사진. 생활치수치료·잇몸치료·임플란트·충치치료 사례. 치료 후 사진은 의료법에 따라 회원에게만 공개됩니다.', path: '/cases/gallery', noindex: !!tx || !!dr || (page > 1 && !rows.length), crumbs: [{ name: '홈', href: '/' }, { name: '치료 전후', href: '/cases/gallery' }] }, body))
+  return c.html(Layout(c, { title: tx ? `${getTreatment(tx)?.name || ''} 치료 전후` : '치료 전후 사진', description: '서울도담치과 치료 전후 사진. 생활치수치료·잇몸치료·임플란트·충치치료 사례. 치료 후 사진은 병원의 공개 정책에 따라 회원에게 제공합니다.', path: '/cases/gallery', noindex: !!tx || !!dr || (page > 1 && !rows.length), crumbs: [{ name: '홈', href: '/' }, { name: '치료 전후', href: '/cases/gallery' }] }, body))
 })
 
 content.get('/cases/gallery/:slug', async (c) => {
@@ -82,7 +99,7 @@ content.get('/cases/gallery/:slug', async (c) => {
   const t = getTreatment(k.treatment_slug), d = getDoctor(k.doctor_slug) || doctors[0]
   const pair = (label: string, before?: string, after?: string) => {
     if (!before && !after) return ''
-    if (!user) return html`<figure class="reveal"><figcaption class="h3">${label}</figcaption>${before ? html`<img src="/files/${before}" alt="${k.title} ${label} 치료 전" width="960" height="640" class="case-single" loading="lazy">` : ''}<div class="locked-box"><p><strong>치료 후 사진은 회원 로그인 후 볼 수 있습니다.</strong> 의료법에 따라 치료 결과 사진은 비회원에게 공개하지 않습니다.</p><div class="hero-actions"><a href="/auth/login?next=${encodeURIComponent(c.req.path)}" class="btn btn-primary btn-sm">로그인</a><a href="/auth/register?next=${encodeURIComponent(c.req.path)}" class="btn btn-outline btn-sm">회원가입</a></div></div></figure>`
+    if (!user) return html`<figure class="reveal"><figcaption class="h3">${label}</figcaption>${before ? html`<img src="/files/${before}" alt="${k.title} ${label} 치료 전" width="960" height="640" class="case-single" loading="lazy">` : ''}<div class="locked-box"><p><strong>치료 후 사진은 회원 로그인 후 볼 수 있습니다.</strong> 사진 게시에는 환자 동의와 별도의 적법성 검토가 필요합니다.</p><div class="hero-actions"><a href="/auth/login?next=${encodeURIComponent(c.req.path)}" class="btn btn-primary btn-sm">로그인</a><a href="/auth/register?next=${encodeURIComponent(c.req.path)}" class="btn btn-outline btn-sm">회원가입</a></div></div></figure>`
     if (before && after) return html`<figure class="reveal"><figcaption class="h3">${label} <small class="hint">슬라이더를 좌우로 움직여 비교하세요</small></figcaption><div class="ba"><img src="/files/${before}" alt="${k.title} ${label} 치료 전" width="960" height="640"><img src="/files/${after}" alt="${k.title} ${label} 치료 후" width="960" height="640" class="after"><span class="ba-label l">BEFORE</span><span class="ba-label r">AFTER</span><span class="ba-handle" aria-hidden="true"></span><input type="range" min="0" max="100" value="50" aria-label="${label} 전후 비교"></div></figure>`
     return html`<figure class="reveal"><figcaption class="h3">${label} (${before ? '치료 전' : '치료 후'})</figcaption><img src="/files/${before || after}" alt="${k.title} ${label}" width="960" height="640" class="case-single" loading="lazy"></figure>`
   }
@@ -233,7 +250,7 @@ content.get('/reservation', (c) => reservationForm(c, { ok: c.req.query('ok') ==
 content.post('/reservation', async (c) => {
   const f = await formData(c)
   const name = String(f.name || '').trim(), phone = normPhone(String(f.phone || '')), email = String(f.email || '').trim().toLowerCase()
-  if (!name || phone.replace(/\D/g, '').length < 9) return reservationForm(c, { error: '이름과 연락처를 확인해 주세요.', v: f })
+  if (!name || name.length > 40 || email.length > 254 || phone.replace(/\D/g, '').length < 9 || phone.replace(/\D/g, '').length > 11) return reservationForm(c, { error: '이름과 연락처를 확인해 주세요.', v: f })
   if (email && !isEmail(email)) return reservationForm(c, { error: '이메일 형식을 확인해 주세요.', v: f })
   if (!f.agree) return reservationForm(c, { error: '개인정보 수집·이용 동의가 필요합니다.', v: f })
   // 간단 스팸 방지: 동일 번호 10분 내 3회 이상

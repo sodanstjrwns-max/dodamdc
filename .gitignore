@@ -11,6 +11,8 @@ logs/
 .DS_Store
 .artifacts/
 public/static/experience/
+public/static/admin-sanitizer.js
+public/static/admin-sanitizer.js.LEGAL.txt
 .env.*
 .dev.vars.*
 playwright-report/

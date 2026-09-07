@@ -16,6 +16,12 @@ const origin = 'https://preview.example'
 const checks = []
 async function request(path, init = {}, host = origin) {
   const jobs = []
+  if (init.method === 'POST' && path !== '/api/conversions') {
+    const protection = await request('/reservation', { headers: { cookie: init.headers?.cookie || '' } }, host)
+    const token = (await protection.text()).match(/name="_csrf" value="([^"]+)"/)?.[1]
+    const seed = protection.headers.getSetCookie().find(v => v.startsWith('dd_csrf='))?.split(';')[0]
+    init = { ...init, headers: { ...init.headers, 'x-csrf-token': token, cookie: [init.headers?.cookie, seed].filter(Boolean).join('; ') } }
+  }
   const response = await app.fetch(new Request(host + path, { ...init, headers: { 'user-agent': ua, ...init.headers } }), env, { waitUntil(p) { jobs.push(p) }, passThroughOnException() {} })
   await Promise.all(jobs)
   return response
@@ -30,7 +36,7 @@ async function post(payload, headers = {}, host = origin) {
 const total = async event => (await db.prepare('SELECT COALESCE(SUM(count),0) n FROM conversion_daily WHERE event=?').bind(event).first()).n
 let browser
 try {
-  for (const file of ['migrations/0001_initial_schema.sql', 'migrations/0002_conversion_aggregates.sql']) {
+  for (const file of ['migrations/0001_initial_schema.sql', 'migrations/0002_conversion_aggregates.sql', 'migrations/0003_staff_reservation_security.sql']) {
     const sql = (await readFile(file, 'utf8')).replace(/--[^\n]*/g, '')
     await db.batch(sql.split(';').map(s => s.trim()).filter(Boolean).map(s => db.prepare(s)))
   }
@@ -104,7 +110,12 @@ try {
   assert.equal(await db.prepare("SELECT * FROM conversion_receipts WHERE receipt='expired'").first(), null)
   assert.equal((await request('/admin/stats')).status, 302)
   const login = await request('/admin/login', { method: 'POST', headers: { origin, 'content-type': 'application/x-www-form-urlencoded' }, body: 'password=test-only-password' })
-  const cookie = login.headers.get('set-cookie')?.split(';')[0]
+  const bootstrapCookie = login.headers.getSetCookie().find(v => v.startsWith('dd_admin='))?.split(';')[0]
+  assert.ok(bootstrapCookie)
+  assert.equal((await request('/admin/stats', { headers: { cookie: bootstrapCookie } })).status, 403)
+  await request('/admin/staff', { method: 'POST', headers: { origin, cookie: bootstrapCookie, 'content-type': 'application/x-www-form-urlencoded' }, body: 'login=owner&name=FixtureOwner&password=fixture-owner-password' })
+  const ownerLogin = await request('/admin/login', { method: 'POST', headers: { origin, 'content-type': 'application/x-www-form-urlencoded' }, body: 'login=owner&password=fixture-owner-password' })
+  const cookie = ownerLogin.headers.getSetCookie().find(v => v.startsWith('dd_admin='))?.split(';')[0]
   assert.ok(cookie)
   const stats = await request('/admin/stats?scope=preview', { headers: { cookie } })
   assert.equal(stats.status, 200)

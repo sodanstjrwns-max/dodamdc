@@ -27,6 +27,20 @@ export const EDITABLE_KEYS: { key: string; label: string; type?: 'text' | 'texta
   { key: 'naverVerify', label: '네이버 서치어드바이저 인증 content' },
 ]
 
+export function validSetting(key: string, value: string): boolean {
+  if (!EDITABLE_KEYS.some(k => k.key === key) || value.length > 3000) return false
+  if (!value) return true
+  if (key === 'ga4') return /^G-[A-Z0-9]{4,20}$/.test(value)
+  if (key === 'gsc' || key === 'naverVerify') return /^[A-Za-z0-9_-]{8,256}$/.test(value)
+  if (key === 'reviews.count') return /^\d{1,8}$/.test(value)
+  if (key === 'phone') return /^[+\d() -]{8,30}$/.test(value)
+  if (key === 'email') return /^[^\s@<>"']+@[^\s@<>"']+\.[^\s@<>"']+$/.test(value)
+  if (key.startsWith('channels.')) {
+    try { const url = new URL(value); return ['https:','http:'].includes(url.protocol) && !url.username && !url.password && !/[\u0000-\u0020\\\\]/.test(value) } catch { return false }
+  }
+  return true
+}
+
 function setPath(obj: any, path: string, value: any) {
   const parts = path.split('.')
   let cur = obj
@@ -50,7 +64,7 @@ export async function loadClinic(db: D1Database | undefined): Promise<Clinic & {
   if (cache && Date.now() - cache.at < 30_000) return cache.clinic as any
   try {
     const { results } = await db.prepare('SELECT key, value FROM site_settings').all<{ key: string; value: string }>()
-    for (const r of results || []) if (r.value !== null && r.value !== '') setPath(base, r.key, r.value)
+    for (const r of results || []) if (r.value !== null && r.value !== '' && validSetting(r.key, r.value)) setPath(base, r.key, r.value)
   } catch {
     /* 테이블 없을 수 있음 (마이그레이션 전) */
   }
@@ -63,6 +77,7 @@ export function invalidateClinicCache() {
 }
 
 export async function saveSettings(db: D1Database, entries: Record<string, string>) {
+  if (Object.entries(entries).some(([k,v]) => !validSetting(k,v))) throw new Error('Invalid setting')
   const stmts = Object.entries(entries).map(([k, v]) =>
     db.prepare('INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=CURRENT_TIMESTAMP').bind(k, v),
   )

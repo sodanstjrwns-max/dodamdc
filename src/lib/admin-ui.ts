@@ -1,0 +1,10 @@
+import { html } from 'hono/html'
+import type { Context } from 'hono'
+import type { Env } from './types'
+import { canAccessStaff } from './security'
+export function shell(c: Context<Env>, title: string, body: any, active = '') {
+  const clinic = c.get('clinic'), staff = c.get('staff')
+  const nav = [['/admin','대시보드','dash'],['/admin/reservations','예약 응대','reservations'],['/admin/cases','치료 전후','cases'],['/admin/columns','원장 칼럼','columns'],['/admin/notices','공지사항','notices'],['/admin/members','회원','members'],['/admin/settings','기본정보','settings'],['/admin/stats','조회·전환 통계','stats'],['/admin/staff','직원·권한','staff'],['/admin/privacy','보유기간·파기','privacy']].filter(([path]) => canAccessStaff(staff, path))
+  return c.html(html`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${title} · 관리자 · ${clinic.shortName}</title><link rel="stylesheet" href="/static/fonts/wanted-subsets.css?v=2"><link rel="stylesheet" href="/static/style.css?v=8"><link rel="stylesheet" href="/static/admin-workflow.css?v=1"><link rel="icon" href="/favicon.png"></head>
+  <body class="admin"><div class="admin-wrap"><aside class="admin-side"><a href="/admin" class="admin-logo">도담 · 운영실</a><p class="staff-session">${staff?.name} · ${{owner:'관리책임자',reception:'예약 담당',editor:'콘텐츠 담당'}[staff?.role || 'owner']}</p><nav aria-label="운영 메뉴"><ul>${nav.map(([h,n,k]) => html`<li><a href="${h}" class="${active === k ? 'active' : ''}" ${active === k ? 'aria-current=page' : ''}>${n}</a></li>`)}</ul></nav><div class="admin-side-foot"><a href="/" target="_blank" rel="noopener noreferrer">사이트 보기 ↗</a><form method="post" action="/admin/logout"><button type="submit" class="btn btn-outline btn-sm">로그아웃</button></form></div></aside><main class="admin-main"><p class="workspace-label">DODAM / CLINIC OPERATIONS</p><h1 class="h2">${title}</h1>${body}</main></div><script src="/static/admin-sanitizer.js?v=1" defer></script><script src="/static/admin.js?v=5" defer></script></body></html>`)
+}

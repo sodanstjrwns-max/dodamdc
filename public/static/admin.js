@@ -9,7 +9,8 @@
     var fd = new FormData();
     fd.append('file', file);
     fd.append('prefix', prefix || 'uploads');
-    return fetch(url, { method: 'POST', body: fd, credentials: 'same-origin' })
+    var csrf = $('meta[name="csrf-token"]');
+    return fetch(url, { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'X-CSRF-Token': csrf ? csrf.content : '' } })
       .then(function (r) { return r.json().then(function (js) { if (!r.ok || js.error) throw new Error(js.error || '업로드 실패'); return js; }); });
   }
   function toast(msg, isErr) {
@@ -39,7 +40,9 @@
       hidden.value = clean(editor.innerHTML);
     }
     function clean(h) {
-      // 불필요한 style/class 제거, 빈 태그 정리
+      if (!window.AdminSanitizer) { var text = document.createElement('span'); text.textContent = h; return text.innerHTML; }
+      h = window.AdminSanitizer.clean(h);
+      // Keep only safe, simple editor formatting.
       return h
         .replace(/\s(style|class|dir|data-[\w-]+)="[^"]*"/gi, function (m, a) { return /^data-(key|src)$/i.test(a) ? m : ''; })
         .replace(/<span>([\s\S]*?)<\/span>/gi, '$1')
@@ -64,6 +67,7 @@
       editor.focus(); sync();
     }
     function insertHtml(h) {
+      h = clean(h);
       editor.focus();
       if (!document.execCommand('insertHTML', false, h)) {
         editor.insertAdjacentHTML('beforeend', h);
@@ -78,13 +82,12 @@
       Array.prototype.forEach.call(files, function (f) {
         if (!/^image\//.test(f.type)) return;
         if (f.size > 8 * 1024 * 1024) { toast('8MB 이하 이미지만 올릴 수 있습니다', true); return; }
-        var ph = '<p class="uploading">이미지 업로드 중…</p>';
-        insertHtml(ph);
+        var ph = document.createElement('p'); ph.className = 'uploading'; ph.textContent = '이미지 업로드 중…'; editor.appendChild(ph);
         upload(uploadUrl, prefix, f).then(function (js) {
-          var p = $('.uploading', editor); if (p) p.remove();
+          ph.remove();
           insertImage(js); toast('이미지가 추가되었습니다');
         }).catch(function (err) {
-          var p = $('.uploading', editor); if (p) p.remove();
+          ph.remove();
           toast(err.message, true);
         });
       });
@@ -108,6 +111,7 @@
             var text = sel && sel.toString();
             var url = prompt('링크 주소 (사이트 내부 링크는 /treatments/implant 처럼 입력)', 'https://');
             if (!url || url === 'https://') return;
+            try { if (!['https:', 'http:', 'mailto:', 'tel:'].includes(new URL(url, location.origin).protocol)) throw new Error(); } catch (_) { toast('안전한 링크 주소를 입력해 주세요.', true); return; }
             if (text) exec('createLink', url);
             else insertHtml('<a href="' + url.replace(/"/g, '&quot;') + '">' + url.replace(/</g, '&lt;') + '</a>');
             // 외부 링크는 새 창
@@ -134,9 +138,10 @@
       editor.addEventListener(ev, function () { editor.classList.remove('dragover'); });
     });
     editor.addEventListener('drop', function (e) {
-      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
-        e.preventDefault(); uploadAndInsert(e.dataTransfer.files);
-      }
+      e.preventDefault();
+      if (!e.dataTransfer) return;
+      if (e.dataTransfer.files && e.dataTransfer.files.length) uploadAndInsert(e.dataTransfer.files);
+      else { var incoming = e.dataTransfer.getData('text/html'); if (incoming) insertHtml(incoming); else { var span = document.createElement('span'); span.textContent = e.dataTransfer.getData('text/plain'); insertHtml(span.innerHTML); } }
     });
     // 붙여넣기: 이미지 → 업로드, 텍스트 → 서식 제거 후 삽입
     editor.addEventListener('paste', function (e) {
@@ -147,7 +152,7 @@
       var text = cd.getData('text/plain');
       if (htmlData) {
         e.preventDefault();
-        var tmp = document.createElement('div'); tmp.innerHTML = htmlData;
+        var tmp = document.createElement('div'); tmp.innerHTML = clean(htmlData);
         $$('script,style,meta,link', tmp).forEach(function (n) { n.remove(); });
         insertHtml(clean(tmp.innerHTML));
       } else if (text) {

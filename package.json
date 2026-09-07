@@ -3,8 +3,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/build-image-manifest.mjs && npm run build:experience && vite build",
+    "build": "node scripts/build-image-manifest.mjs && npm run build:experience && npm run build:admin && vite build",
     "build:experience": "rm -rf public/static/experience && esbuild src/client/experience.ts --bundle --splitting --format=esm --target=es2020 --minify --outdir=public/static/experience --entry-names=main --chunk-names=[name]-[hash] --legal-comments=linked",
+    "build:admin": "esbuild src/client/admin-sanitizer.ts --bundle --format=iife --global-name=AdminSanitizer --minify --outfile=public/static/admin-sanitizer.js --legal-comments=linked",
+    "test:security": "node scripts/security-smoke.mjs",
     "test:design": "node scripts/design-smoke.mjs",
     "test:kinetic": "node scripts/kinetic-smoke.mjs",
     "test:seo": "node scripts/seo-smoke.mjs",
@@ -22,7 +24,9 @@
     "clean-port": "fuser -k 3000/tcp 2>/dev/null || true"
   },
   "dependencies": {
-    "hono": "^4.13.5"
+    "dompurify": "^3.4.15",
+    "hono": "^4.13.5",
+    "xss": "^1.0.15"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260903.1",

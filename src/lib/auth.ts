@@ -1,6 +1,6 @@
 import type { Context } from 'hono'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
-import type { Env, SessionUser } from './types'
+import type { Env, SessionUser, StaffPrincipal } from './types'
 
 const enc = new TextEncoder()
 
@@ -29,7 +29,7 @@ export async function signToken(secret: string, payload: Record<string, unknown>
 }
 
 export async function verifyToken<T = any>(secret: string, token?: string): Promise<T | null> {
-  if (!token || !token.includes('.')) return null
+  if (!token || token.length > 4096 || token.split('.').length !== 2) return null
   const [body, sig] = token.split('.')
   const expect = await hmac(secret, body)
   if (sig.length !== expect.length) return null
@@ -55,7 +55,7 @@ export async function hashPassword(pw: string) {
 }
 
 export async function verifyPassword(pw: string, stored?: string | null) {
-  if (!stored) return false
+  if (!stored || !/^pbkdf2\$100000\$[A-Za-z0-9_-]+\$[A-Za-z0-9_-]+$/.test(stored) || pw.length > 128) return false
   const [, iter, saltB, hashB] = stored.split('$')
   const key = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveBits'])
   const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: unb64url(saltB), iterations: Number(iter) }, key, 256)
@@ -73,27 +73,43 @@ function secure(c: Context<Env>) {
 }
 
 export async function setMemberSession(c: Context<Env>, user: SessionUser) {
-  const token = await signToken(c.env.SESSION_SECRET, { u: user }, MEMBER_TTL)
+  const row = await c.env.DB.prepare('SELECT session_version FROM users WHERE id=?').bind(user.id).first<{ session_version: number }>()
+  if (!row) throw new Error('Member no longer exists')
+  const token = await signToken(c.env.SESSION_SECRET, { kind: 'member', uid: user.id, version: row.session_version }, MEMBER_TTL)
   setCookie(c, MEMBER_COOKIE, token, { httpOnly: true, sameSite: 'Lax', secure: secure(c), path: '/', maxAge: MEMBER_TTL })
 }
 export function clearMemberSession(c: Context<Env>) {
   deleteCookie(c, MEMBER_COOKIE, { path: '/' })
 }
 export async function readMemberSession(c: Context<Env>): Promise<SessionUser | null> {
-  const data = await verifyToken<{ u: SessionUser }>(c.env.SESSION_SECRET, getCookie(c, MEMBER_COOKIE))
-  return data?.u ?? null
+  const token = getCookie(c, MEMBER_COOKIE)
+  if (!token) return null
+  const data = await verifyToken(c.env.SESSION_SECRET, token)
+  if (data?.kind !== 'member' || !Number.isSafeInteger(data.uid)) return null
+  const row = await c.env.DB.prepare('SELECT id,email,name,role,session_version FROM users WHERE id=?').bind(data.uid).first<any>()
+  if (!row || row.session_version !== data.version) return null
+  return { id: row.id, email: row.email, name: row.name, role: row.role === 'admin' ? 'admin' : 'member' }
 }
 
-export async function setAdminSession(c: Context<Env>) {
-  const token = await signToken(c.env.SESSION_SECRET, { admin: true }, ADMIN_TTL)
+export async function setAdminSession(c: Context<Env>, staff: StaffPrincipal) {
+  const token = await signToken(c.env.SESSION_SECRET, { kind: 'staff', sid: staff.id, version: staff.version, bootstrap: !!staff.bootstrap }, staff.bootstrap ? 900 : ADMIN_TTL)
   setCookie(c, ADMIN_COOKIE, token, { httpOnly: true, sameSite: 'Strict', secure: secure(c), path: '/', maxAge: ADMIN_TTL })
 }
 export function clearAdminSession(c: Context<Env>) {
   deleteCookie(c, ADMIN_COOKIE, { path: '/' })
 }
-export async function readAdminSession(c: Context<Env>): Promise<boolean> {
-  const data = await verifyToken<{ admin: boolean }>(c.env.SESSION_SECRET, getCookie(c, ADMIN_COOKIE))
-  return !!data?.admin
+export async function readAdminSession(c: Context<Env>): Promise<StaffPrincipal | null> {
+  const token = getCookie(c, ADMIN_COOKIE)
+  if (!token) return null
+  const data = await verifyToken(c.env.SESSION_SECRET, token)
+  if (data?.kind !== 'staff') return null
+  if (data.bootstrap && data.sid === null) {
+    const row = await c.env.DB.prepare('SELECT COUNT(*) n FROM staff').first<{ n: number }>()
+    return row?.n === 0 ? { id: null, login: 'bootstrap', name: '최초 설정', role: 'owner', version: 0, bootstrap: true } : null
+  }
+  if (!Number.isSafeInteger(data.sid)) return null
+  const row = await c.env.DB.prepare('SELECT id,login,name,role,active,session_version FROM staff WHERE id=?').bind(data.sid).first<any>()
+  return row?.active && row.session_version === data.version ? { id: row.id, login: row.login, name: row.name, role: row.role, version: row.session_version } : null
 }
 
 // ── OAuth state (짧은 수명) ───────────────────────────────

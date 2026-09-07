@@ -1,5 +1,7 @@
 import { Hono } from 'hono'
 import { html } from 'hono/html'
+import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
+import { loginBudget } from '../lib/security'
 import type { Env, SessionUser } from '../lib/types'
 import { Layout } from '../lib/layout'
 import { hashPassword, verifyPassword, setMemberSession, clearMemberSession, makeState, readState } from '../lib/auth'
@@ -8,7 +10,10 @@ import { formData, isEmail, normPhone, fmtDate } from '../lib/util'
 
 const auth = new Hono<Env>()
 
-const safeNext = (n?: string) => (n && n.startsWith('/') && !n.startsWith('//') ? n : '/')
+const safeNext = (n?: string) => {
+  if (!n || !n.startsWith('/') || /[\\\\\u0000-\u0020]/.test(n) || n.startsWith('//')) return '/'
+  try { const url = new URL(n, 'https://local.invalid'); return url.origin === 'https://local.invalid' ? url.pathname + url.search + url.hash : '/' } catch { return '/' }
+}
 
 function googleBtn(c: any, next: string) {
   if (!c.env.GOOGLE_CLIENT_ID) return ''
@@ -19,7 +24,7 @@ function googleBtn(c: any, next: string) {
 // ── 회원가입 ─────────────────────────────────────────────
 function registerForm(c: any, o: { error?: string; v?: Record<string, string>; next: string }) {
   const v = o.v || {}
-  const body = html`${pageHero({ eyebrow: '회원가입', title: '치료 전후 사진을 보려면 가입이 필요합니다', lead: '의료법에 따라 치료 후 사진은 회원에게만 공개됩니다. 가입은 1분이면 됩니다.' })}
+  const body = html`${pageHero({ eyebrow: '회원가입', title: '치료 전후 사진을 보려면 가입이 필요합니다', lead: '병원의 공개 정책에 따라 치료 후 사진은 회원에게 제공합니다. 회원가입만으로 사진 게시의 적법성이나 치료 효과가 보장되는 것은 아닙니다.' })}
 <section class="section-sm"><div class="container form-card">
   ${alertBox(o.error)}
   <form method="post" action="/auth/register" class="form" data-once>
@@ -44,8 +49,9 @@ auth.post('/register', async (c) => {
   const f = await formData(c)
   const next = safeNext(f.next)
   const name = String(f.name || '').trim(), email = String(f.email || '').trim().toLowerCase(), phone = normPhone(String(f.phone || '')), pw = String(f.password || '')
+  if (!(await loginBudget(c, 'member-register', email))) return c.text('가입 요청이 많습니다. 잠시 후 다시 시도해 주세요.', 429)
   const v = { name, email, phone, agree_marketing: f.agree_marketing }
-  if (!name || !isEmail(email) || phone.replace(/\D/g, '').length < 10 || pw.length < 8) return registerForm(c, { error: '입력 내용을 확인해 주세요. (이름·이메일·휴대전화·8자 이상 비밀번호)', v, next })
+  if (!name || !isEmail(email) || phone.replace(/\D/g, '').length < 10 || pw.length < 8 || pw.length > 128 || name.length > 40 || email.length > 254) return registerForm(c, { error: '입력 내용을 확인해 주세요. (이름·이메일·휴대전화·8자 이상 비밀번호)', v, next })
   if (!f.agree_privacy) return registerForm(c, { error: '개인정보 수집·이용 동의는 필수입니다.', v, next })
   const dup = await c.env.DB.prepare('SELECT id FROM users WHERE email=?').bind(email).first()
   if (dup) return registerForm(c, { error: '이미 가입된 이메일입니다. 로그인해 주세요.', v, next })
@@ -78,6 +84,7 @@ auth.post('/login', async (c) => {
   const f = await formData(c)
   const next = safeNext(f.next)
   const email = String(f.email || '').trim().toLowerCase()
+  if (!(await loginBudget(c, 'member-login', email))) return c.text('로그인 시도가 많습니다. 잠시 후 다시 시도해 주세요.', 429)
   const u = await c.env.DB.prepare('SELECT id, email, name, password_hash, role FROM users WHERE email=?').bind(email).first<any>()
   if (!u || !(await verifyPassword(String(f.password || ''), u.password_hash))) return loginForm(c, { error: '이메일 또는 비밀번호가 올바르지 않습니다.', email, next })
   await c.env.DB.prepare('UPDATE users SET last_login_at=CURRENT_TIMESTAMP WHERE id=?').bind(u.id).run()
@@ -85,13 +92,14 @@ auth.post('/login', async (c) => {
   return c.redirect(next)
 })
 
-auth.post('/logout', (c) => { clearMemberSession(c); return c.redirect('/auth/login?msg=out') })
-auth.get('/logout', (c) => { clearMemberSession(c); return c.redirect('/auth/login?msg=out') })
+auth.post('/logout', async (c) => { const user=c.get('user'); if(user) await c.env.DB.prepare('UPDATE users SET session_version=session_version+1 WHERE id=?').bind(user.id).run(); clearMemberSession(c); return c.redirect('/auth/login?msg=out') })
+auth.get('/logout', (c) => c.redirect('/auth/mypage'))
 
 // ── Google OAuth ─────────────────────────────────────────
 auth.get('/google', async (c) => {
   if (!c.env.GOOGLE_CLIENT_ID) return c.redirect('/auth/login')
   const state = await makeState(c.env.SESSION_SECRET, safeNext(c.req.query('next')))
+  setCookie(c, 'dd_oauth_state', state, { httpOnly:true, sameSite:'Lax', secure:new URL(c.req.url).protocol==='https:', path:'/auth/google', maxAge:600 })
   const redirect = `${c.get('siteUrl')}/auth/google/callback`
   const u = new URL('https://accounts.google.com/o/oauth2/v2/auth')
   u.search = new URLSearchParams({ client_id: c.env.GOOGLE_CLIENT_ID, redirect_uri: redirect, response_type: 'code', scope: 'openid email profile', state, prompt: 'select_account' }).toString()
@@ -99,21 +107,26 @@ auth.get('/google', async (c) => {
 })
 
 auth.get('/google/callback', async (c) => {
-  const code = c.req.query('code'), st = await readState(c.env.SESSION_SECRET, c.req.query('state'))
+  const supplied=c.req.query('state')
+  if (!supplied || supplied !== getCookie(c,'dd_oauth_state')) return c.redirect('/auth/login')
+  deleteCookie(c,'dd_oauth_state',{path:'/auth/google'})
+  const code = c.req.query('code'), st = await readState(c.env.SESSION_SECRET, supplied)
   if (!code || !st || !c.env.GOOGLE_CLIENT_ID || !c.env.GOOGLE_CLIENT_SECRET) return c.redirect('/auth/login')
   const redirect = `${c.get('siteUrl')}/auth/google/callback`
   const tokRes = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ code, client_id: c.env.GOOGLE_CLIENT_ID, client_secret: c.env.GOOGLE_CLIENT_SECRET, redirect_uri: redirect, grant_type: 'authorization_code' }) })
   if (!tokRes.ok) return loginForm(c, { error: 'Google 인증에 실패했습니다. 다시 시도해 주세요.', next: st.n })
   const tok = await tokRes.json<any>()
   const info = await (await fetch('https://openidconnect.googleapis.com/v1/userinfo', { headers: { authorization: `Bearer ${tok.access_token}` } })).json<any>()
-  if (!info?.email) return loginForm(c, { error: 'Google 계정 정보를 가져올 수 없습니다.', next: st.n })
+  if (!info?.email || info.email_verified !== true || !info.sub) return loginForm(c, { error: 'Google 계정 정보를 가져올 수 없습니다.', next: st.n })
   const email = String(info.email).toLowerCase()
-  let u = await c.env.DB.prepare('SELECT id, email, name, role FROM users WHERE email=?').bind(email).first<any>()
+  let u = await c.env.DB.prepare('SELECT id, email, name, role, provider, provider_id FROM users WHERE email=?').bind(email).first<any>()
   if (!u) {
     const r = await c.env.DB.prepare('INSERT INTO users (email, name, provider, provider_id, agree_privacy, agree_marketing, last_login_at) VALUES (?,?,?,?,1,0,CURRENT_TIMESTAMP)').bind(email, info.name || email.split('@')[0], 'google', String(info.sub || '')).run()
     u = { id: Number(r.meta.last_row_id), email, name: info.name || email.split('@')[0], role: 'member' }
   } else {
-    await c.env.DB.prepare("UPDATE users SET last_login_at=CURRENT_TIMESTAMP, provider_id=COALESCE(provider_id, ?) WHERE id=?").bind(String(info.sub || ''), u.id).run()
+    // Never auto-link a Google identity to an unverified email/password account.
+    if (u.provider !== 'google' || u.provider_id !== String(info.sub)) return loginForm(c, { error:'같은 이메일의 기존 계정은 기존 로그인 방식을 이용해 주세요. 자동 계정 연결은 지원하지 않습니다.', next:st.n })
+    await c.env.DB.prepare('UPDATE users SET last_login_at=CURRENT_TIMESTAMP WHERE id=?').bind(u.id).run()
   }
   await setMemberSession(c, { id: u.id, email: u.email, name: u.name, role: u.role === 'admin' ? 'admin' : 'member' })
   // 전화번호 미등록(구글 가입) 시 마이페이지에서 보완 안내
@@ -126,7 +139,7 @@ auth.get('/mypage', async (c) => {
   if (!user) return c.redirect('/auth/login?next=/auth/mypage')
   const u = await c.env.DB.prepare('SELECT id, email, name, phone, provider, agree_marketing, created_at FROM users WHERE id=?').bind(user.id).first<any>()
   if (!u) { clearMemberSession(c); return c.redirect('/auth/login') }
-  const res = (await c.env.DB.prepare('SELECT id, treatment, preferred_date, preferred_time, status, created_at FROM reservations WHERE user_id=? OR (email=? AND email<>"") ORDER BY created_at DESC LIMIT 20').bind(u.id, u.email).all<any>()).results || []
+  const res = (await c.env.DB.prepare('SELECT id, treatment, preferred_date, preferred_time, status, created_at FROM reservations WHERE user_id=? ORDER BY created_at DESC LIMIT 20').bind(u.id).all<any>()).results || []
   const statusKo: Record<string, string> = { pending: '확인 대기', confirmed: '예약 확정', done: '진료 완료', cancelled: '취소' }
   const msg = c.req.query('msg')
   const body = html`${pageHero({ eyebrow: '마이페이지', title: `${u.name}님, 안녕하세요`, lead: '회원 정보와 예약 내역을 확인하세요.' })}
@@ -139,7 +152,7 @@ auth.get('/mypage', async (c) => {
       <div class="field"><label>이메일</label><input value="${u.email}" disabled></div>
       <div class="field"><label for="name">이름</label><input id="name" name="name" value="${u.name}" required maxlength="40"></div>
       <div class="field"><label for="phone">휴대전화</label><input id="phone" name="phone" type="tel" value="${u.phone || ''}" inputmode="numeric" placeholder="010-0000-0000"></div>
-      ${u.provider === 'local' ? html`<div class="field"><label for="password">새 비밀번호 <small>(변경 시에만)</small></label><input id="password" name="password" type="password" minlength="8" autocomplete="new-password"></div>` : html`<p class="hint">Google 계정으로 가입하셨습니다.</p>`}
+      ${u.provider === 'local' ? html`<div class="field"><label for="current-password">현재 비밀번호 (비밀번호 변경 시)</label><input id="current-password" name="current_password" type="password" autocomplete="current-password"></div><div class="field"><label for="password">새 비밀번호 <small>(변경 시에만)</small></label><input id="password" name="password" type="password" minlength="8" autocomplete="new-password"></div>` : html`<p class="hint">Google 계정으로 가입하셨습니다.</p>`}
       <label class="check"><input type="checkbox" name="agree_marketing" value="1" ${u.agree_marketing ? 'checked' : ''}> <span>병원 소식·안내 수신 동의</span></label>
       <button type="submit" class="btn btn-primary">저장</button>
       <p class="hint">가입일 ${fmtDate(u.created_at)}</p>
@@ -150,7 +163,7 @@ auth.get('/mypage', async (c) => {
       <a href="/reservation" class="btn btn-outline" style="margin-top:14px">새 예약 신청</a>
       <hr class="divider-line">
       <form method="post" action="/auth/logout"><button type="submit" class="btn btn-ghost">로그아웃</button></form>
-      <form method="post" action="/auth/delete" onsubmit="return confirm('탈퇴하면 회원 정보가 삭제됩니다. 계속할까요?')" style="margin-top:8px"><button type="submit" class="btn btn-ghost btn-danger-text">회원 탈퇴</button></form>
+      <form method="post" action="/auth/delete" onsubmit="return confirm('탈퇴하면 회원 정보가 삭제됩니다. 계속할까요?')" style="margin-top:8px">${u.provider === 'local' ? html`<label>탈퇴 확인용 현재 비밀번호<input type="password" name="current_password" required autocomplete="current-password"></label>` : html`<p class="hint">탈퇴는 최근 15분 안에 Google로 다시 로그인한 경우 가능합니다.</p>`}<button type="submit" class="btn btn-ghost btn-danger-text">회원 탈퇴</button></form>
     </div>
   </div>
 </div></section>`
@@ -161,9 +174,13 @@ auth.post('/mypage', async (c) => {
   const user = c.get('user')
   if (!user) return c.redirect('/auth/login')
   const f = await formData(c)
-  const name = String(f.name || '').trim() || user.name, phone = f.phone ? normPhone(String(f.phone)) : null
+  if (f.password) {
+    const record=await c.env.DB.prepare('SELECT password_hash,provider FROM users WHERE id=?').bind(user.id).first<any>()
+    if (record?.provider!=='local' || !(await loginBudget(c,'member-password',String(user.id))) || !(await verifyPassword(String(f.current_password || ''),record.password_hash)) || String(f.password).length<8 || String(f.password).length>128) return c.text('현재 비밀번호와 새 비밀번호를 확인해 주세요.',403)
+  }
+  const name = (String(f.name || '').trim() || user.name).slice(0,40), phone = f.phone ? normPhone(String(f.phone)) : null
   await c.env.DB.prepare('UPDATE users SET name=?, phone=COALESCE(?, phone), agree_marketing=? WHERE id=?').bind(name, phone, f.agree_marketing ? 1 : 0, user.id).run()
-  if (f.password && String(f.password).length >= 8) await c.env.DB.prepare('UPDATE users SET password_hash=? WHERE id=?').bind(await hashPassword(String(f.password)), user.id).run()
+  if (f.password && String(f.password).length >= 8) await c.env.DB.prepare('UPDATE users SET password_hash=?,session_version=session_version+1 WHERE id=?').bind(await hashPassword(String(f.password)), user.id).run()
   await setMemberSession(c, { ...user, name } as SessionUser)
   return c.redirect('/auth/mypage?msg=saved')
 })
@@ -171,7 +188,10 @@ auth.post('/mypage', async (c) => {
 auth.post('/delete', async (c) => {
   const user = c.get('user')
   if (!user) return c.redirect('/auth/login')
-  await c.env.DB.prepare('DELETE FROM users WHERE id=?').bind(user.id).run()
+  const f=await formData(c), row=await c.env.DB.prepare('SELECT password_hash,provider,last_login_at FROM users WHERE id=?').bind(user.id).first<any>()
+  if (!row || !(await loginBudget(c,'member-delete',String(user.id)))) return c.text('다시 로그인해 주세요.',403)
+  if (row.provider==='local' ? !(await verifyPassword(String(f.current_password || ''),row.password_hash)) : !(row.last_login_at && Date.now()-new Date(row.last_login_at.replace(' ','T')+'Z').getTime()<900000)) return c.text('본인 확인을 위해 다시 로그인하거나 현재 비밀번호를 확인해 주세요.',403)
+  await c.env.DB.batch([c.env.DB.prepare('UPDATE reservations SET user_id=NULL WHERE user_id=?').bind(user.id),c.env.DB.prepare('DELETE FROM users WHERE id=?').bind(user.id)])
   clearMemberSession(c)
   return c.redirect('/?bye=1')
 })
