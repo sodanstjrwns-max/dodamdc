@@ -33,7 +33,7 @@ function client(ip='192.0.2.10') {
 }
 async function login(who,name,pw){await who.request('/admin/login');return who.request('/admin/login',{method:'POST',data:{login:name,password:pw}})}
 try{
- for(const file of ['0001_initial_schema.sql','0002_conversion_aggregates.sql','0003_staff_reservation_security.sql']){
+ for(const file of ['0001_initial_schema.sql','0002_conversion_aggregates.sql','0003_staff_reservation_security.sql','0004_fees_table.sql','0005_fees_seed.sql']){
   const sql=(await readFile('migrations/'+file,'utf8')).replace(/--[^\n]*/g,'')
   await DB.batch(sql.split(';').map(s=>s.trim()).filter(Boolean).map(s=>DB.prepare(s)))
  }
@@ -65,6 +65,31 @@ try{
  assert.equal((await owner.request('/admin/settings',{method:'POST',data:{ga4:"G-TEST');alert(1)//"}})).status,400)
  assert.equal((await owner.request('/admin/settings',{method:'POST',data:{'channels.kakao':'javascript:alert(1)'}})).status,400)
  checks.push('Origin + CSRF required; bootstrap restricted; staff roles enforced server-side; final owner protected; unsafe settings rejected')
+
+ assert.equal((await stranger.request('/admin/stats?key=legacy-repo-token')).status,302)
+ assert.equal((await stranger.request('/api/local-stats')).status,404)
+ assert.equal((await stranger.request('/api/local-stats?key=legacy-repo-token')).status,404)
+ env.LOCAL_STATS_TOKEN='isolated-stats-token'
+ const aggregate=await stranger.request('/api/local-stats',{headers:{authorization:'Bearer isolated-stats-token'}})
+ assert.equal(aggregate.status,200);assert.match(aggregate.headers.get('cache-control'),/no-store/)
+ assert.equal((await stranger.request('/api/local-stats?key=isolated-stats-token')).status,404)
+ delete env.LOCAL_STATS_TOKEN
+ for (const person of [reception,editor]) assert.equal((await person.request('/admin/fees')).status,403)
+ await owner.request('/admin/fees')
+ const feeCount=(await DB.prepare('SELECT COUNT(*) n FROM fees').first()).n
+ const saveFee=body=>owner.request('/admin/api/fees',{method:'POST',data:JSON.stringify(body),headers:{'content-type':'application/json'}})
+ assert.equal((await saveFee({})).status,400)
+ assert.equal((await DB.prepare('SELECT COUNT(*) n FROM fees').first()).n,feeCount)
+ const fee={id:'implant',group:'임플란트',desc:'',items:[{name:'PRIVATE_FEE_FIXTURE',price:'123456',unit:'1개',note:'',is_published:0}]}
+ assert.equal((await saveFee({groups:[{...fee,items:[{...fee.items[0],price:'-200'}]}]})).status,400)
+ assert.equal((await saveFee({groups:[fee]})).status,200)
+ const hiddenFees=await (await stranger.request('/pricing')).text()
+ assert(!hiddenFees.includes('PRIVATE_FEE_FIXTURE') && !hiddenFees.includes('오스템 임플란트 (구치부)'), 'All hidden fees cannot revive the original schedule')
+ assert((await (await owner.request('/admin/fees')).text()).includes('PRIVATE_FEE_FIXTURE'))
+ fee.items[0].is_published=1
+ assert.equal((await saveFee({groups:[fee]})).status,200)
+ assert((await (await stranger.request('/pricing')).text()).includes('PRIVATE_FEE_FIXTURE'))
+ checks.push('Upstream fees owner-only save validation, all-hidden privacy, staff-only statistics, header-only aggregate secret and no-store')
 
  const publicClient=client('192.0.2.20')
  await publicClient.request('/reservation')

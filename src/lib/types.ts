@@ -10,6 +10,8 @@ export type Bindings = {
   RESEND_API_KEY?: string
   NOTIFICATION_EMAIL?: string
   SITE_URL?: string
+  STATS_API_TOKEN?: string
+  LOCAL_STATS_TOKEN?: string
 }
 
 export type SessionUser = {

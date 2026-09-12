@@ -21,12 +21,12 @@ export type PageMeta = {
   author?: Doctor
 }
 
-// Existing production origin. Set SITE_URL to the verified HTTPS origin on a domain move.
-export const DEFAULT_SITE_URL = 'https://seoul-dodam-dental.pages.dev'
+// Verified custom domain attached to the existing Cloudflare Pages project.
+export const DEFAULT_SITE_URL = 'https://dodamdc.kr'
 export function resolveSiteUrl(configured?: string) {
   try {
     const url = new URL(configured || DEFAULT_SITE_URL)
-    if (url.protocol === 'https:' && !url.username && !url.password && !/^(localhost|127\.|\[::1\])/.test(url.hostname)) return url.origin
+    if (url.protocol === 'https:' && !url.username && !url.password && !/^(localhost|127\.|\[::1\])/.test(url.hostname)) return ['seoul-dodam-dental.pages.dev', 'www.dodamdc.kr'].includes(url.hostname) ? DEFAULT_SITE_URL : url.origin
   } catch { /* Invalid or local preview settings must not become canonical URLs. */ }
   return DEFAULT_SITE_URL
 }

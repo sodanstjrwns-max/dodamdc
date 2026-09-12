@@ -21,7 +21,7 @@ export function handoverPage(c: Context<Env>) {
         <section class="handover-card"><span class="handover-status">구현</span><h3>병원의 브랜드와 진료 철학</h3><p>실제 병원·의료진 사진, 자연치아 보존 중심의 소개, 3D 치아와 모션, 모바일 대응 및 모션 대체 화면.</p><a href="/mission">진료 철학 보기</a></section>
         <section class="handover-card"><span class="handover-status">구현</span><h3>환자가 이해하는 진료 안내</h3><p>상황별 안내, 핵심 진료, 의료진, 첫 방문 준비, 진료시간·오시는 길·비급여·FAQ·치과 백과사전.</p><a href="/first-visit">첫 방문 안내 보기</a></section>
         <section class="handover-card"><span class="handover-status">구현</span><h3>예약 신청과 응대 업무판</h3><p>네이버 예약 연결, 홈페이지 신청 저장, 담당자·연락 결과·재연락 일정·처리 이력 관리. 홈페이지 신청은 병원 확인 연락 후 확정합니다.</p><a href="/admin/reservations">예약 응대 업무판</a></section>
-        <section class="handover-card"><span class="handover-status">구현</span><h3>콘텐츠와 직원별 권한</h3><p>공지·칼럼·치료 사례 관리, 역할별 접근, 회원 본인 예약 확인, 공개/회원 전용 이미지 구분. 예약 만료 자료 삭제는 책임자 확인 후 별도로 진행합니다.</p><a href="/admin">관리자 홈</a></section>
+        <section class="handover-card"><span class="handover-status">구현</span><h3>콘텐츠와 직원별 권한</h3><p>공지·칼럼·치료 사례·비급여 편집, 역할별 접근, 회원 본인 예약 확인, 공개/회원 전용 이미지 구분. 예약 만료 자료 삭제는 책임자 확인 후 별도로 진행합니다.</p><a href="/admin">관리자 홈</a></section>
       </div>
     </section>
     <section id="delivery-search" class="handover-section">
@@ -46,14 +46,14 @@ export function handoverPage(c: Context<Env>) {
         <li><h3>직원별로 역할 부여</h3><p><a href="/admin/staff">직원 관리</a>에서 관리책임자·접수 담당·콘텐츠 담당을 구분합니다. 접수 담당은 예약 응대, 콘텐츠 담당은 칼럼·공지·사례 관리를 맡습니다. 계정 공유 대신 개인 계정을 사용하세요.</p></li>
         <li><h3>새 접수를 업무판에서 확인</h3><p><a href="/admin/reservations">예약 업무판</a>에서 신청을 열고 담당자·연락 결과·상태·필요한 재연락 일정을 저장합니다. 다른 직원이 먼저 수정했다면 최신 내용을 다시 확인하세요. 네이버 예약은 네이버 관리자에서 별도로 확인합니다.</p></li>
         <li><h3>공지 · 칼럼 · 사례 게시</h3><p><a href="/admin/notices">공지</a>, <a href="/admin/columns">칼럼</a>, <a href="/admin/cases">치료 사례</a>에서 작성·저장 후 게시 여부를 확인합니다. 환자 동의, 사진 비식별화, 의료광고 검토를 먼저 진행하고 치료 후 사진을 일반 칼럼 이미지로 재업로드하지 마세요.</p></li>
-        <li><h3>변경사항과 성과 확인</h3><p><a href="/admin/settings">병원 설정</a>에서 지원하는 정보만 수정합니다. 진료 설명·가격표 등 코드로 관리하는 항목은 제작 담당자에게 변경을 요청하세요. <a href="/admin/stats">통계</a>의 클릭은 실제 내원이나 네이버 예약 완료 건수와 다릅니다.</p></li>
+        <li><h3>변경사항과 성과 확인</h3><p><a href="/admin/settings">병원 설정</a>에서 지원하는 정보만 수정합니다. 관리책임자는 <a href="/admin/fees">비급여 수가</a>에서 금액·항목별 공개 여부를 수정하고 저장 후 공개 화면을 확인할 수 있습니다. 진료 설명 등 코드로 관리하는 항목은 제작 담당자에게 변경을 요청하세요. <a href="/admin/stats">통계</a>의 클릭은 실제 내원이나 네이버 예약 완료 건수와 다릅니다.</p></li>
       </ol>
-      <aside class="handover-note handover-note-important"><h3>현재는 새 접수를 직접 확인해 주세요.</h3><p>자동 이메일 알림과 Google 로그인은 현재 운영 연동이 활성화되지 않았습니다. 이메일 알림이 온다고 가정하지 말고 업무판을 정기적으로 확인하세요. 별도 연동 정보를 설정하고 실제 발송·로그인 검증을 마친 뒤 사용해야 합니다.</p></aside>
+      <aside class="handover-note handover-note-important"><h3>현재는 새 접수를 직접 확인해 주세요.</h3><p>자동 이메일 알림과 Google 로그인은 현재 운영 연동이 활성화되지 않았습니다. 이메일 알림이 온다고 가정하지 말고 업무판을 정기적으로 확인하세요. 별도 연동 정보를 설정하고 실제 발송·로그인 검증을 마친 뒤 사용해야 합니다. 외부 통합통계 데이터 연결도 인증정보 재설정 후 확인이 필요하며, 기존 로컬 조회·예약 동선 통계는 관리자에서 확인할 수 있습니다.</p></aside>
     </section>
     <section id="delivery-checklist" class="handover-section">
       <p class="handover-eyebrow">04 / ACCEPTANCE CHECKLIST</p><h2>병원에서 마지막으로<br>확인해 주세요.</h2>
       <p>아래 항목은 병원 담당자의 최종 확인이 필요합니다. 인쇄한 안내에 체크하거나 별도 인수 기록으로 보관하세요.</p>
-      <ul class="handover-checklist"><li>병원명·주소·전화·진료시간·주차 안내가 실제 운영과 일치하는지</li><li>의료진 약력·진료 설명·가격·개인정보처리방침·치료 사진 동의 및 의료광고 검토</li><li>관리책임자 로그인, 직원별 역할, 새 접수 확인 담당자와 확인 주기</li><li>실제 iPhone·Android·카카오 인앱브라우저에서 메뉴·스크롤·예약 화면 확인</li><li>네이버 공식 예약 주소와 병원 네이버 관리자 접근권한 확인</li><li>Google Search Console·네이버 서치어드바이저 소유권 확인 및 사이트맵 제출</li><li>병원 전용 도메인 사용 여부와 전환 시 대표주소·리디렉션·검색 등록 이전 계획</li><li>운영 DB·사진 저장소의 별도 백업 담당자, 보관 위치와 복구 절차</li></ul>
+      <ul class="handover-checklist"><li>병원명·주소·전화·진료시간·주차 안내가 실제 운영과 일치하는지</li><li>의료진 약력·진료 설명·가격·개인정보처리방침·치료 사진 동의 및 의료광고 검토</li><li>관리책임자 로그인, 직원별 역할, 새 접수 확인 담당자와 확인 주기</li><li>실제 iPhone·Android·카카오 인앱브라우저에서 메뉴·스크롤·예약 화면 확인</li><li>네이버 공식 예약 주소와 병원 네이버 관리자 접근권한 확인</li><li>Google Search Console·네이버 서치어드바이저 소유권 확인 및 사이트맵 제출</li><li>병원 전용 도메인 사용 여부와 전환 시 대표주소·리디렉션·검색 등록 이전 계획</li><li>운영 DB·사진 저장소의 별도 백업 담당자, 보관 위치와 복구 절차</li><li>외부 통계 연동의 인증정보 재설정, Clarity·방문 분석 도구의 동의·개인정보 고지 확인</li></ul>
       <p class="handover-caption">소유확인 태그를 지원하는 것과 검색서비스 계정에서 등록·제출을 완료하는 것은 별개입니다. 관리자 설정에 제공받은 확인값을 입력한 뒤 각 서비스에서 소유확인을 마쳐야 합니다.</p>
     </section>
     <section id="delivery-limits" class="handover-section">

@@ -15,6 +15,8 @@ import { treatments, getTreatment } from '../data/treatments'
 import { doctors } from '../data/doctors'
 import { formData, slugify, fmtDate, stripTags, esc } from '../lib/util'
 import { alertBox } from '../lib/ui'
+import { loadFeeGroupsForAdmin } from '../lib/fees'
+import { AdminStats, fetchSiteStats } from '../lib/stats-page'
 
 const admin = new Hono<Env>()
 
@@ -49,6 +51,18 @@ admin.post('/logout', async (c) => {
   const actor=c.get('staff')
   if(actor?.id) await c.env.DB.batch([c.env.DB.prepare('UPDATE staff SET session_version=session_version+1 WHERE id=?').bind(actor.id),auditStatement(c.env.DB,actor.id,'staff.logout',actor.id)])
   clearAdminSession(c); return c.redirect('/admin/login')
+})
+
+// ── 통합 통계 (중앙 대시보드 연동) ──────────────────────
+// Only an authorized personal staff session can view statistics.
+// Legacy public-repository keys are not authentication credentials.
+admin.get('/stats', async (c) => {
+  if (!c.get('admin')) return c.redirect('/admin/login')
+  if (!canAccessStaff(c.get('staff'), '/admin/stats')) return c.text('이 작업에 접근할 권한이 없습니다.', 403)
+  c.header('Cache-Control', 'private, no-store')
+  const data = await fetchSiteStats(c.env.STATS_API_TOKEN)
+  const body = html`${AdminStats(data)}${await localStatsBody(c)}`
+  return shell(c, '통합 통계', body, 'stats')
 })
 
 // 인증 가드
@@ -289,8 +303,8 @@ admin.post('/settings', async (c) => {
   return c.redirect('/admin/settings?saved=1')
 })
 
-// ── 조회 통계 ────────────────────────────────────────────
-admin.get('/stats', async (c) => {
+// ── 로컬 조회·동선 통계 (D1) — /admin/stats 하단에 포함 ──────
+async function localStatsBody(c: Context<Env>) {
   const db = c.env.DB
   const daily = (await db.prepare("SELECT date(created_at) d, SUM(CASE WHEN is_bot=0 THEN 1 ELSE 0 END) human, SUM(is_bot) bot FROM page_views WHERE created_at > datetime('now','-30 days') GROUP BY d ORDER BY d DESC").all<any>()).results || []
   const top = (await db.prepare("SELECT path, COUNT(*) n FROM page_views WHERE is_bot=0 AND created_at > datetime('now','-30 days') GROUP BY path ORDER BY n DESC LIMIT 30").all<any>()).results || []
@@ -300,7 +314,7 @@ admin.get('/stats', async (c) => {
   const conversions = (await db.prepare("SELECT event, page, location, SUM(count) n FROM conversion_daily WHERE scope=? AND day >= date('now','+9 hours','-29 days') GROUP BY event,page,location ORDER BY n DESC").bind(scope).all<any>()).results || []
   const totals = (await db.prepare("SELECT event, SUM(count) n FROM conversion_daily WHERE scope=? AND day >= date('now','+9 hours','-29 days') GROUP BY event").bind(scope).all<any>()).results || []
   const conversionDays = (await db.prepare("SELECT day, SUM(CASE WHEN event='form_completed' THEN count ELSE 0 END) completed, SUM(CASE WHEN event!='form_completed' THEN count ELSE 0 END) clicks FROM conversion_daily WHERE scope=? AND day >= date('now','+9 hours','-29 days') GROUP BY day ORDER BY day DESC").bind(scope).all<any>()).results || []
-  return shell(c, '조회·예약 동선 통계 (최근 30일)', html`<section id="conversion-stats"><h2 class="h3">예약·문의 동선</h2><form method="get" class="admin-toolbar"><label for="conversion-scope">집계 환경</label><select id="conversion-scope" name="scope"><option value="production" ${scope === 'production' ? 'selected' : ''}>운영</option><option value="preview" ${scope === 'preview' ? 'selected' : ''}>미리보기·로컬</option></select><button class="btn btn-primary btn-sm" type="submit">보기</button></form>
+  return html`<hr style="margin:36px 0 24px"><h2 class="h3">조회·예약 동선 통계 (최근 30일 · 사이트 자체 집계)</h2><section id="conversion-stats"><h2 class="h3">예약·문의 동선</h2><form method="get" class="admin-toolbar"><label for="conversion-scope">집계 환경</label><select id="conversion-scope" name="scope"><option value="production" ${scope === 'production' ? 'selected' : ''}>운영</option><option value="preview" ${scope === 'preview' ? 'selected' : ''}>미리보기·로컬</option></select><button class="btn btn-primary btn-sm" type="submit">보기</button></form>
   <p class="hint">한국시간 기준 최근 30일 · 현재 ${scope === 'production' ? '운영' : '미리보기·로컬'} 집계. 네이버·전화·카카오는 클릭이며 실제 예약 완료·통화·상담 완료가 아닙니다. 홈페이지 접수 완료도 병원의 예약 확정과 다릅니다. 집계 시작 이전 데이터는 소급하지 않습니다.</p>
   <div class="admin-cards">${Object.entries(eventLabels).map(([key, label]) => html`<div class="admin-card"><span class="n">${totals.find(x => x.event === key)?.n || 0}</span><span class="l">${label}</span></div>`)}</div>
   <p class="hint">동일 화면의 같은 종류·위치 클릭은 1회만 반영(서명 유효기간 30분). 재방문·새로고침은 별도이며 고유 환자 수나 전환율이 아닙니다. 봇 추정·관리자·DNT/GPC 요청은 제외합니다. 스크립트 차단·전송 실패·30분 경과 시 누락될 수 있으며, 자동화 조작을 완전히 차단하는 통계는 아닙니다.</p>
@@ -309,7 +323,139 @@ admin.get('/stats', async (c) => {
   <hr><h2 class="h3">기존 페이지 조회 통계</h2><p class="hint">아래는 기존 조회 통계이며 위의 환경별 전환 집계와 별개입니다. User-Agent로 추정한 봇을 제외한 조회수로, 실제 사람 수를 보장하지 않습니다.</p>
   <div class="admin-cards">${ents.map((e: any) => html`<div class="admin-card"><span class="n">${e.n}</span><span class="l">${e.entity_type || 'page'}</span></div>`)}</div>
   <div class="grid-2" style="margin-top:24px"><section><h2 class="h3">일별</h2><table class="admin-table"><thead><tr><th>날짜</th><th>방문</th><th>봇</th></tr></thead><tbody>${daily.map((d: any) => html`<tr><td>${d.d}</td><td>${d.human}</td><td class="hint">${d.bot}</td></tr>`)}</tbody></table></section>
-  <section><h2 class="h3">인기 페이지</h2><table class="admin-table"><thead><tr><th>경로</th><th>조회</th></tr></thead><tbody>${top.map((r: any) => html`<tr><td><a href="${r.path}" target="_blank">${r.path}</a></td><td>${r.n}</td></tr>`)}</tbody></table></section></div>`, 'stats')
+  <section><h2 class="h3">인기 페이지</h2><table class="admin-table"><thead><tr><th>경로</th><th>조회</th></tr></thead><tbody>${top.map((r: any) => html`<tr><td><a href="${r.path}" target="_blank">${r.path}</a></td><td>${r.n}</td></tr>`)}</tbody></table></section></div>`
+}
+
+// ── 비급여 수가 (원장 편집 + 항목별 공개/비공개) ─────────
+admin.get('/fees', async (c) => {
+  const groups = await loadFeeGroupsForAdmin(c.env.DB)
+  const body = html`<p class="hint">진료비를 직접 수정하고 항목별로 <strong>공개/비공개</strong>를 정할 수 있습니다. 비공개 항목은 공개 페이지(<a href="/pricing" target="_blank">/pricing</a>)에서 숨겨지고, 이 화면에서는 계속 편집됩니다. 금액을 비우면 공개 페이지에 '상담 후 안내'로 표시됩니다. 저장 전에는 반영되지 않습니다.</p>
+  <div id="f-groups"></div>
+  <div class="admin-toolbar" style="margin-top:12px"><button type="button" id="f-addgroup" class="btn btn-outline btn-sm">+ 분류(그룹) 추가</button></div>
+  <div class="admin-toolbar" style="margin-top:20px;align-items:center;gap:14px"><button type="button" id="f-save" class="btn btn-primary" data-loading="저장 중…">저장</button><a href="/pricing" target="_blank" class="btn btn-outline">공개 페이지 미리보기 ↗</a><span id="f-status" class="hint"></span></div>
+  <script>
+  (function(){
+    var GROUPS = ${raw(JSON.stringify(groups).replace(/</g, '\\u003c'))};
+    var wrap = document.getElementById('f-groups');
+    function q(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+    function rnd(){ return 'grp-'+Math.random().toString(36).slice(2,8); }
+    function itemRow(it){
+      var tr = document.createElement('tr');
+      if(it.is_published===0) tr.style.opacity='0.5';
+      tr.innerHTML =
+        '<td><input type="text" data-k="name" value="'+q(it.name)+'" placeholder="항목명" style="width:100%"></td>'+
+        '<td><input type="text" inputmode="numeric" data-k="price" value="'+(it.price==null?'':q(it.price))+'" placeholder="숫자(비우면 상담 후 안내)" style="width:130px"></td>'+
+        '<td><input type="text" data-k="unit" value="'+q(it.unit)+'" placeholder="단위" style="width:80px"></td>'+
+        '<td><input type="text" data-k="note" value="'+q(it.note)+'" placeholder="비고" style="width:100%"></td>'+
+        '<td style="text-align:center"><label class="check small" style="justify-content:center"><input type="checkbox" data-k="pub" '+(it.is_published===0?'':'checked')+'> 공개</label></td>'+
+        '<td><button type="button" class="btn btn-danger btn-sm rowdel">삭제</button></td>';
+      tr.querySelector('[data-k=pub]').addEventListener('change', function(e){ tr.style.opacity = e.target.checked ? '' : '0.5'; });
+      tr.querySelector('.rowdel').addEventListener('click', function(){ tr.remove(); });
+      return tr;
+    }
+    function groupBlock(g){
+      var box = document.createElement('section'); box.className='admin-form'; box.style.marginBottom='22px';
+      box.setAttribute('data-gid', g.id || rnd());
+      box.innerHTML =
+        '<div class="form-row"><div class="field"><label>분류명</label><input data-k="group" type="text" value="'+q(g.group)+'" placeholder="예: 임플란트"></div>'+
+        '<div class="field"><label>분류 설명 (선택)</label><input data-k="desc" type="text" value="'+q(g.desc)+'" placeholder="이 그룹 상단에 표시되는 안내문"></div>'+
+        '<div class="field" style="flex:0 0 auto;align-self:flex-end"><button type="button" class="btn btn-outline btn-sm grpdel">그룹 삭제</button></div></div>'+
+        '<div class="table-wrap"><table class="admin-table"><thead><tr><th>항목</th><th>금액(원)</th><th>단위</th><th>비고</th><th style="text-align:center">공개</th><th></th></tr></thead><tbody></tbody></table></div>'+
+        '<div class="admin-toolbar" style="margin-top:8px"><button type="button" class="btn btn-outline btn-sm addrow">+ 항목 추가</button></div>';
+      var tb = box.querySelector('tbody');
+      (g.items||[]).forEach(function(it){ tb.appendChild(itemRow(it)); });
+      box.querySelector('.addrow').addEventListener('click', function(){ tb.appendChild(itemRow({name:'',price:null,unit:'',note:'',is_published:1})); });
+      box.querySelector('.grpdel').addEventListener('click', function(){ if(confirm('이 분류 전체를 삭제할까요?')) box.remove(); });
+      return box;
+    }
+    (GROUPS||[]).forEach(function(g){ wrap.appendChild(groupBlock(g)); });
+    document.getElementById('f-addgroup').addEventListener('click', function(){ wrap.appendChild(groupBlock({id:rnd(),group:'새 분류',desc:'',items:[]})); });
+    function collect(){
+      var groups=[];
+      wrap.querySelectorAll('section[data-gid]').forEach(function(box){
+        var group = box.querySelector('[data-k=group]').value.trim();
+        var desc = box.querySelector('[data-k=desc]').value.trim();
+        var items=[];
+        box.querySelectorAll('tbody tr').forEach(function(tr){
+          var name = tr.querySelector('[data-k=name]').value.trim();
+          if(!name) return;
+          items.push({
+            name: name,
+            price: tr.querySelector('[data-k=price]').value.trim(),
+            unit: tr.querySelector('[data-k=unit]').value.trim(),
+            note: tr.querySelector('[data-k=note]').value.trim(),
+            is_published: tr.querySelector('[data-k=pub]').checked ? 1 : 0
+          });
+        });
+        if(group && items.length) groups.push({ id: box.getAttribute('data-gid'), group:group, desc:desc, items:items });
+      });
+      return { groups: groups };
+    }
+    document.getElementById('f-save').addEventListener('click', async function(){
+      var btn=this, st=document.getElementById('f-status');
+      var token=(document.querySelector('meta[name=csrf-token]')||{}).content||'';
+      btn.disabled=true; st.textContent='저장 중…';
+      try{
+        var r = await fetch('/admin/api/fees',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':token},body:JSON.stringify(collect())});
+        var j = await r.json().catch(function(){return {}});
+        st.textContent = (r.ok && j.ok) ? ('✓ 저장되었습니다 ('+j.count+'개 항목) · 공개 페이지에 즉시 반영') : ('✗ '+(j.error||('저장 실패 ('+r.status+')')));
+      }catch(e){ st.textContent='✗ 네트워크 오류'; }
+      btn.disabled=false;
+    });
+  })();
+  </script>`
+  return shell(c, '비급여 수가', body, 'fees')
+})
+
+// 저장 — 전체 교체(delete-all + insert) 단일 트랜잭션(batch)
+admin.post('/api/fees', async (c) => {
+  if (!c.env.DB) return c.json({ error: 'DB 를 사용할 수 없습니다.' }, 503)
+  let body: any
+  try { body = await c.req.json() } catch { return c.json({ error: '잘못된 요청입니다.' }, 400) }
+  if (!body || !Array.isArray(body.groups) || body.groups.length > 40) return c.json({ error: '수가 분류 형식을 확인해 주세요.' }, 400)
+  const groups = body.groups
+  const ids = new Set<string>()
+  let count = 0
+  for (const g of groups) {
+    if (!g || typeof g.id !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,79}$/.test(g.id) || ids.has(g.id) ||
+      typeof g.group !== 'string' || !g.group.trim() || g.group.length > 100 || typeof g.desc !== 'string' || g.desc.length > 1000 || !Array.isArray(g.items)) return c.json({ error: '분류 이름·고유 ID·설명을 확인해 주세요.' }, 400)
+    ids.add(g.id)
+    for (const it of g.items) {
+      const priceText = String(it?.price ?? '').trim()
+      if (!it || typeof it.name !== 'string' || !it.name.trim() || it.name.length > 200 ||
+        typeof it.unit !== 'string' || it.unit.length > 40 || typeof it.note !== 'string' || it.note.length > 500 ||
+        ![0, 1, true, false].includes(it.is_published) ||
+        (priceText !== '' && (!/^(?:\d+|\d{1,3}(?:,\d{3})+)$/.test(priceText) || !Number.isSafeInteger(Number(priceText.replace(/,/g, ''))) || Number(priceText.replace(/,/g, '')) > 1e9)) || ++count > 500) return c.json({ error: '항목·금액·공개 여부를 확인해 주세요. 금액은 0 이상의 정수입니다.' }, 400)
+    }
+  }
+  const ins = c.env.DB.prepare(
+    'INSERT INTO fees (group_id, group_name, group_desc, name, price, unit, note, is_published, sort_group, sort_order) VALUES (?,?,?,?,?,?,?,?,?,?)',
+  )
+  const stmts: any[] = [c.env.DB.prepare('DELETE FROM fees')]
+  groups.forEach((g: any, gi: number) => {
+    const gname = String(g?.group ?? '').trim()
+    if (!gname) return
+    const gid = (String(g?.id ?? '').trim() || `grp-${gi}`).slice(0, 80)
+    const gdesc = g?.desc ? String(g.desc).trim() : null
+    const items = Array.isArray(g?.items) ? g.items : []
+    items.forEach((it: any, ii: number) => {
+      const name = String(it?.name ?? '').trim()
+      if (!name) return
+      const digits = String(it?.price ?? '').replace(/[^0-9]/g, '')
+      const price = digits ? parseInt(digits, 10) : null
+      const unit = it?.unit ? String(it.unit).trim() : null
+      const note = it?.note ? String(it.note).trim() : null
+      const pub = it?.is_published === 0 || it?.is_published === false ? 0 : 1
+      stmts.push(ins.bind(gid, gname, gdesc, name, price, unit, note, pub, gi, ii))
+    })
+  })
+  try {
+    await c.env.DB.batch(stmts)
+    return c.json({ ok: true, count: stmts.length - 1 })
+  } catch (e: any) {
+    console.error('save fees error', e)
+    return c.json({ error: '저장에 실패했습니다.' }, 500)
+  }
 })
 
 export default admin

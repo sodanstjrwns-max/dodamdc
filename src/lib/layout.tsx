@@ -6,7 +6,7 @@ import { coreTreatments, otherTreatments } from '../data/treatments'
 import { doctors } from '../data/doctors'
 import { imageManifest } from '../data/image-manifest'
 import { naverBookingLink } from './ui'
-import { conversionMeta } from './conversions'
+import { conversionScope, conversionMeta } from './conversions'
 
 const escAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
@@ -24,6 +24,7 @@ export function Layout(c: Context<Env>, meta: PageMeta, body: any) {
   const imageSize = imageManifest[imagePath]
   const preview = new URL(c.req.url).origin !== siteUrl
   const noindex = preview || meta.noindex || !['GET', 'HEAD'].includes(c.req.method) || (meta.path === '/reservation' && c.req.query('ok') === '1')
+  const publicAnalytics = !preview && !noindex && !user && conversionScope(c) === 'production' && !/^\/(auth|admin|reservation|handover|cases|files)(\/|$)/.test(meta.path)
   c.header('X-Robots-Tag', noindex ? 'noindex, follow' : 'index, follow')
   // Personalized headers/forms must never enter a shared HTML cache.
   c.header('Cache-Control', 'private, no-store')
@@ -78,6 +79,8 @@ ${meta.path === '/handover' ? html`<link rel="stylesheet" href="/static/handover
 <link rel="alternate" type="application/rss+xml" title="${clinic.shortName} 원장 칼럼" href="/column/rss.xml">
 ${lds.map((l) => raw(`<script type="application/ld+json">${JSON.stringify(l).replace(/</g, '\\u003c')}</script>`))}
 ${clinic.ga4 && !/^\/(auth|admin|reservation|handover)(\/|$)/.test(meta.path) ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?id=${escAttr(clinic.ga4)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${escAttr(clinic.ga4)}',{anonymize_ip:true});</script>`) : ''}
+${publicAnalytics ? raw('<script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","yenge7hmxi");</script>') : ''}
+${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/beacon.js"></script>') : ''}
 </head>
 <body class="site-page experience-theme ${meta.bodyClass || ''} ${meta.path === '/reservation' ? 'reservation-page' : ''}" id="top">
 <a href="#main" class="skip-link">본문으로 건너뛰기</a>

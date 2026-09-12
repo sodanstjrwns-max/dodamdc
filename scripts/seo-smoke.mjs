@@ -5,7 +5,7 @@ import { build } from 'esbuild'
 import { mkdir, writeFile } from 'node:fs/promises'
 import assert from 'node:assert/strict'
 const base = process.env.SEO_BASE_URL || 'http://localhost:3000'
-const live = base === 'https://seoul-dodam-dental.pages.dev'
+const live = base === 'https://dodamdc.kr'
 if (!live && base !== 'http://localhost:3000') throw new Error('Unsupported audit origin')
 const request = (url, options = {}) => fetch(url, { ...options, headers: { 'User-Agent': 'DodamDeliveryAuditBot/1.0', DNT: '1', ...options.headers }, signal: AbortSignal.timeout(30000) })
 const reportPath = `.artifacts/seo-${live ? 'production' : 'audit'}.json`
@@ -39,7 +39,7 @@ try {
   const sitemapText = await (await request(base + '/sitemap.xml')).text()
   const locs = [...sitemapText.matchAll(/<loc>(.*?)<\/loc>/g)].map(m => m[1].replaceAll('&amp;', '&'))
   const site = new URL(locs[0]).origin
-  check(site === 'https://seoul-dodam-dental.pages.dev', 'Production canonical origin must not be localhost/sandbox')
+  check(site === 'https://dodamdc.kr', 'Production canonical origin must not be localhost/sandbox')
   check(locs.length === new Set(locs).size, 'Duplicate sitemap URLs')
   const rootEntry = sitemapText.match(/<url><loc>[^<]+\/<\/loc>(.*?)<\/url>/)?.[1] || ''
   check(!rootEntry.includes('<lastmod>'), 'Static sitemap must not fabricate daily modification dates')
@@ -169,6 +169,15 @@ try {
   const get = await app.request(site + '/', {}, env)
   const head = await app.request(site + '/', { method: 'HEAD' }, env)
   check(head.headers.get('x-robots-tag') === get.headers.get('x-robots-tag'), 'Production GET/HEAD indexing parity')
+  const visitorHeaders = { 'user-agent': 'Mozilla/5.0 DeliveryFixture' }
+  const publicHome = await (await app.request(site + '/', { headers: visitorHeaders }, env)).text()
+  check(publicHome.includes('clarity.ms/tag/') && publicHome.includes('/beacon.js'), 'Preserve approved public analytics integration')
+  for (const path of ['/reservation', '/auth/login', '/handover', '/cases/gallery']) {
+    const source = await (await app.request(site + path, { headers: visitorHeaders }, env)).text()
+    check(!source.includes('clarity.ms/tag/') && !source.includes('/beacon.js'), 'Sensitive page excludes third-party behavior tracking: ' + path)
+  }
+  const dntHome = await (await app.request(site + '/', { headers: { ...visitorHeaders, DNT: '1' } }, env)).text()
+  check(!dntHome.includes('/beacon.js'), 'Behavior analytics respects DNT')
   const helpers = await build({ entryPoints: ['src/lib/seo.ts'], bundle: true, write: false, format: 'esm', platform: 'node' })
   const { isoDate } = await import('data:text/javascript;base64,' + Buffer.from(helpers.outputFiles[0].text).toString('base64'))
   for (const invalid of ['2026-02-30', '2026-02-30 09:00:00', '09/12/2026', '2026-13-01', 'not a date']) check(isoDate(invalid) === undefined, 'Reject invalid or ambiguous date: ' + invalid)

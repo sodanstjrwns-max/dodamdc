@@ -2,7 +2,7 @@ import { chromium, webkit } from '@playwright/test'
 import { mkdir, writeFile } from 'node:fs/promises'
 import assert from 'node:assert/strict'
 const base = process.env.DELIVERY_BASE_URL || 'http://localhost:3000'
-assert(['http://localhost:3000', 'https://seoul-dodam-dental.pages.dev'].includes(base))
+assert(['http://localhost:3000', 'https://dodamdc.kr'].includes(base))
 const live = base.startsWith('https:')
 const report = { base, checkedAt: new Date().toISOString(), checks: [], errors: [] }
 await mkdir('.artifacts', { recursive: true })
@@ -13,7 +13,7 @@ for (const [name, engine] of [['chromium', chromium], ...(process.env.TEST_WEBKI
       const context = await browser.newContext({ viewport: { width, height: 900 }, userAgent: 'DodamDeliveryAuditBot/1.0', extraHTTPHeaders: { DNT: '1' }, reducedMotion: 'reduce' })
       await context.route('**/*', route => {
         const request = route.request(), url = new URL(request.url())
-        if (!['GET', 'HEAD'].includes(request.method()) || /google-analytics|googletagmanager/.test(url.hostname)) return route.abort()
+        if (!['GET', 'HEAD'].includes(request.method()) || /google-analytics|googletagmanager|clarity\.ms|pf-dashboard-2nt/.test(url.hostname)) return route.abort()
         return route.continue()
       })
       const page = await context.newPage(), errors = []
@@ -24,7 +24,7 @@ for (const [name, engine] of [['chromium', chromium], ...(process.env.TEST_WEBKI
       assert.equal(await page.locator('main h1').count(), 1)
       assert.equal(await page.locator('meta[name="conversion-ticket"]').count(), 0)
       assert.equal(await page.locator('script[src*="googletagmanager"]').count(), 0)
-      assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), 'https://seoul-dodam-dental.pages.dev/handover')
+      assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), 'https://dodamdc.kr/handover')
       assert(await page.locator('h1').isVisible())
       const box = await page.locator('#handover-print').boundingBox()
       assert(box.height >= 44 && box.width >= 44)

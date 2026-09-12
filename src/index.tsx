@@ -50,6 +50,13 @@ app.use('*', async (c, next) => {
   c.set('clinic', clinic)
   const siteUrl = resolveSiteUrl(c.env?.SITE_URL)
   c.set('siteUrl', siteUrl)
+  // Only known public aliases redirect. Preserve origin-bound sessions, APIs and R2 permissions.
+  if (['GET', 'HEAD'].includes(c.req.method) && siteUrl === 'https://dodamdc.kr' && ['www.dodamdc.kr', 'seoul-dodam-dental.pages.dev'].includes(url.hostname) && !/^\/(admin|auth|api|files|health)(\/|$)/.test(url.pathname)) {
+    const target = new URL(siteUrl)
+    target.pathname = url.pathname
+    target.search = url.search
+    return c.redirect(target.href, 301)
+  }
   if (url.origin !== siteUrl || /^\/(admin|auth|api|health)(\/|$)/.test(url.pathname)) c.header('X-Robots-Tag', 'noindex, follow')
   // Normalize public trailing-slash duplicates, without redirecting POSTs or R2 keys.
   if ((c.req.method === 'GET' || c.req.method === 'HEAD') && url.pathname.length > 1 && url.pathname.endsWith('/') && !/^\/(files|api|auth|admin)(\/|$)/.test(url.pathname)) {
