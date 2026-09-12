@@ -15,17 +15,19 @@ export function Layout(c: Context<Env>, meta: PageMeta, body: any) {
   const siteUrl = c.get('siteUrl')
   const user = c.get('user')
   const path = canonicalPath(meta.path, c.req.url)
-  const title = fullTitle(meta.title, clinic) + (new URL('https://canonical.invalid' + path).searchParams.has('page') ? ` · ${new URL(c.req.url).searchParams.get('page')}페이지` : '')
+  const pageNumber = new URL('https://canonical.invalid' + path).searchParams.get('page')
+  const title = fullTitle(meta.title, clinic) + (pageNumber ? ` · ${pageNumber}페이지` : '')
+  const description = meta.description + (pageNumber ? ` (${pageNumber}페이지)` : '')
   const url = absUrl(siteUrl, path)
   const imagePath = meta.image || '/static/img/suwon-dodam-dental-reception-desk-v2.webp'
   const image = absUrl(siteUrl, imagePath)
   const imageSize = imageManifest[imagePath]
   const preview = new URL(c.req.url).origin !== siteUrl
-  const noindex = preview || meta.noindex || c.req.method !== 'GET' || (meta.path === '/reservation' && c.req.query('ok') === '1')
+  const noindex = preview || meta.noindex || !['GET', 'HEAD'].includes(c.req.method) || (meta.path === '/reservation' && c.req.query('ok') === '1')
   c.header('X-Robots-Tag', noindex ? 'noindex, follow' : 'index, follow')
   // Personalized headers/forms must never enter a shared HTML cache.
   c.header('Cache-Control', 'private, no-store')
-  const lds = [dentistLd(clinic, siteUrl), websiteLd(clinic, siteUrl), webpageLd(meta, siteUrl, path), ...(meta.jsonld || [])]
+  const lds = [dentistLd(clinic, siteUrl), websiteLd(clinic, siteUrl), webpageLd({ ...meta, title, description }, siteUrl, path), ...(meta.jsonld || [])]
   if (meta.crumbs && meta.crumbs.length > 1) lds.push(breadcrumbLd(meta.crumbs, siteUrl, path))
   const hoursToday = (() => {
     const d = ['일', '월', '화', '수', '목', '금', '토'][new Date(Date.now() + 9 * 3600e3).getUTCDay()]
@@ -39,7 +41,7 @@ export function Layout(c: Context<Env>, meta: PageMeta, body: any) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${title}</title>
-<meta name="description" content="${meta.description}">
+<meta name="description" content="${description}">
 ${conversionMeta(c, meta.path)}
 <link rel="canonical" href="${url}">
 ${noindex ? raw('<meta name="robots" content="noindex, follow">') : raw('<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">')}
@@ -47,17 +49,17 @@ ${noindex ? raw('<meta name="robots" content="noindex, follow">') : raw('<meta n
 <meta property="og:site_name" content="${clinic.name}">
 <meta property="og:locale" content="ko_KR">
 <meta property="og:title" content="${title}">
-<meta property="og:description" content="${meta.description}">
+<meta property="og:description" content="${description}">
 <meta property="og:url" content="${url}">
 <meta property="og:image" content="${image}">
 <meta property="og:image:alt" content="${meta.imageAlt || meta.title}">
 ${imageSize ? html`<meta property="og:image:width" content="${imageSize.width}"><meta property="og:image:height" content="${imageSize.height}">` : ''}
 ${isoDate(meta.publishedAt) ? html`<meta property="article:published_time" content="${isoDate(meta.publishedAt)}">` : ''}
 ${isoDate(meta.modifiedAt) ? html`<meta property="article:modified_time" content="${isoDate(meta.modifiedAt)}">` : ''}
-${meta.reviewer ? html`<meta name="author" content="${meta.reviewer.name}">` : ''}
+${meta.author || meta.reviewer ? html`<meta name="author" content="${(meta.author || meta.reviewer)!.name}">` : ''}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${title}">
-<meta name="twitter:description" content="${meta.description}">
+<meta name="twitter:description" content="${description}">
 <meta name="twitter:image" content="${image}">
 <meta name="twitter:image:alt" content="${meta.imageAlt || meta.title}">
 ${clinic.gsc ? raw(`<meta name="google-site-verification" content="${escAttr(clinic.gsc)}">`) : ''}
@@ -72,9 +74,10 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="stylesheet" href="/static/fonts/wanted-subsets.css?v=2">
 <link rel="stylesheet" href="/static/style.css?v=8">
 <link rel="stylesheet" href="/static/kinetic.css?v=16">
+${meta.path === '/handover' ? html`<link rel="stylesheet" href="/static/handover.css?v=1">` : ''}
 <link rel="alternate" type="application/rss+xml" title="${clinic.shortName} 원장 칼럼" href="/column/rss.xml">
 ${lds.map((l) => raw(`<script type="application/ld+json">${JSON.stringify(l).replace(/</g, '\\u003c')}</script>`))}
-${clinic.ga4 && !/^\/(auth|admin|reservation)(\/|$)/.test(meta.path) ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?id=${escAttr(clinic.ga4)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${escAttr(clinic.ga4)}',{anonymize_ip:true});</script>`) : ''}
+${clinic.ga4 && !/^\/(auth|admin|reservation|handover)(\/|$)/.test(meta.path) ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?id=${escAttr(clinic.ga4)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${escAttr(clinic.ga4)}',{anonymize_ip:true});</script>`) : ''}
 </head>
 <body class="site-page experience-theme ${meta.bodyClass || ''} ${meta.path === '/reservation' ? 'reservation-page' : ''}" id="top">
 <a href="#main" class="skip-link">본문으로 건너뛰기</a>

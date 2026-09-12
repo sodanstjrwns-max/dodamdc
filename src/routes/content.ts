@@ -5,7 +5,7 @@ import { conversionScope, conversionStatement, cleanupConversions } from '../lib
 import { html, raw } from 'hono/html'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
-import { articleLd, truncate, physicianLd, isoDate } from '../lib/seo'
+import { articleLd, truncate, physicianLd, isoDate, paginationPage } from '../lib/seo'
 import { treatments, getTreatment } from '../data/treatments'
 import { doctors, getDoctor } from '../data/doctors'
 import { autoLink } from '../data/encyclopedia'
@@ -75,14 +75,17 @@ const caseCard = (k: any) => html`<a href="/cases/gallery/${k.slug}" class="case
 content.get('/cases/gallery', async (c) => {
   const clinic = c.get('clinic') as any
   const tx = c.req.query('treatment') || '', dr = c.req.query('doctor') || ''
-  const page = Math.min(10000, Math.max(1, Math.floor(Number(c.req.query('page')) || 1)))
+  const page = paginationPage(c.req.query('page'))
   const where = ['published=1']; const args: any[] = []
   if (tx) { where.push('treatment_slug=?'); args.push(tx) }
   if (dr) { where.push('doctor_slug=?'); args.push(dr) }
   const w = where.join(' AND ')
   const total = (await c.env.DB.prepare(`SELECT COUNT(*) n FROM cases WHERE ${w}`).bind(...args).first<any>())?.n || 0
   const rows = (await c.env.DB.prepare(`SELECT slug,title,treatment_slug,age_group,gender,region,duration,intra_before,pano_before FROM cases WHERE ${w} ORDER BY created_at DESC LIMIT ? OFFSET ?`).bind(...args, PER, (page - 1) * PER).all<any>()).results || []
-  const base = `/cases/gallery${tx ? `?treatment=${tx}` : dr ? `?doctor=${dr}` : ''}`
+  const filters = new URLSearchParams()
+  if (tx) filters.set('treatment', tx)
+  if (dr) filters.set('doctor', dr)
+  const base = `/cases/gallery${filters.size ? '?' + filters.toString() : ''}`
   const body = html`${pageHero({ eyebrow: '치료 전후', title: html`사진으로 보는<br>치료 과정`, lead: '공개된 사례의 치료 전 사진은 누구나, 치료 후 사진은 병원 정책에 따라 회원에게 제공합니다. 모든 사례는 환자분 동의를 받아 개인정보를 제외하고 게시합니다.', crumbs: [{ name: '홈', href: '/' }, { name: '치료 전후', href: '/cases/gallery' }] })}
 <section class="section"><div class="container">
   <h2 class="sr-only">진료별 게시물 목록</h2>
@@ -134,7 +137,7 @@ ${ctaStrip(clinic)}`
 content.get('/column', async (c) => {
   const clinic = c.get('clinic') as any
   const tx = c.req.query('treatment') || ''
-  const page = Math.min(10000, Math.max(1, Math.floor(Number(c.req.query('page')) || 1)))
+  const page = paginationPage(c.req.query('page'))
   const w = tx ? 'published=1 AND treatment_slug=?' : 'published=1'; const args = tx ? [tx] : []
   const total = (await c.env.DB.prepare(`SELECT COUNT(*) n FROM columns WHERE ${w}`).bind(...args).first<any>())?.n || 0
   const rows = (await c.env.DB.prepare(`SELECT slug,title,excerpt,thumbnail,author_slug,treatment_slug,published_at,views FROM columns WHERE ${w} ORDER BY published_at DESC LIMIT ? OFFSET ?`).bind(...args, PER, (page - 1) * PER).all<any>()).results || []
@@ -147,7 +150,7 @@ content.get('/column', async (c) => {
   ${first ? html`<a href="/column/${first.slug}" class="post-featured reveal">${first.thumbnail ? html`<div class="post-thumb"><img src="/files/${first.thumbnail}" alt="" width="960" height="600" decoding="async"></div>` : ''}<div class="post-body"><p class="post-meta">${fmtDate(first.published_at)} · ${getDoctor(first.author_slug)?.name || ''} 원장</p><h2 class="h2">${first.title}</h2><p class="lead">${first.excerpt || ''}</p><span class="link-arrow">읽기</span></div></a>` : ''}
   ${rest.length ? html`<div class="post-grid">${rest.map(card)}</div>` : ''}
   ${!rows.length ? html`<section class="empty-content"><p class="edition-label">DODAM JOURNAL</p><h2>차근차근, 진료 이야기를 채워갑니다.</h2><p>이 분류에 아직 게시된 칼럼이 없습니다.<br>먼저 진료 안내에서 치아 건강에 필요한 정보를 살펴보세요.</p><a href="/treatments" class="editorial-link">진료 이야기 읽기 <span aria-hidden="true">↗</span></a></section>` : ''}
-  ${paginate(`/column${tx ? `?treatment=${tx}` : ''}`, page, total, PER)}
+  ${paginate(`/column${tx ? `?treatment=${encodeURIComponent(tx)}` : ''}`, page, total, PER)}
 </div></section>`
   return c.html(Layout(c, { title: '원장 칼럼', description: '서울도담치과 한휘림 원장이 진료실에서 못 다한 이야기를 씁니다. 생활치수치료, 신경치료, 잇몸관리, 임플란트, 사랑니에 대한 솔직한 설명.', path: '/column', noindex: !!tx || (page > 1 && !rows.length), crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }] }, body))
 })
@@ -156,7 +159,7 @@ content.get('/column/rss.xml', async (c) => {
   const clinic = c.get('clinic') as any, siteUrl = c.get('siteUrl')
   const rows = (await c.env.DB.prepare('SELECT slug,title,excerpt,published_at FROM columns WHERE published=1 ORDER BY published_at DESC LIMIT 30').all<any>()).results || []
   const x = (s: string) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  const xml = `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>${x(clinic.shortName)} 원장 칼럼</title><link>${siteUrl}/column</link><description>${x(clinic.mission)}</description><language>ko</language>${rows.map((r: any) => `<item><title>${x(r.title)}</title><link>${siteUrl}/column/${r.slug}</link><guid>${siteUrl}/column/${r.slug}</guid><pubDate>${new Date(isoDate(r.published_at) || r.published_at).toUTCString()}</pubDate><description>${x(r.excerpt)}</description></item>`).join('')}</channel></rss>`
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>${x(clinic.shortName)} 원장 칼럼</title><link>${siteUrl}/column</link><description>${x(clinic.mission)}</description><language>ko</language>${rows.map((r: any) => `<item><title>${x(r.title)}</title><link>${siteUrl}/column/${r.slug}</link><guid>${siteUrl}/column/${r.slug}</guid>${isoDate(r.published_at) ? `<pubDate>${new Date(isoDate(r.published_at)!).toUTCString()}</pubDate>` : ''}<description>${x(r.excerpt)}</description></item>`).join('')}</channel></rss>`
   return c.body(xml, 200, { 'content-type': 'application/rss+xml; charset=utf-8', 'cache-control': 'public, max-age=3600' })
 })
 
@@ -180,18 +183,18 @@ content.get('/column/:slug', async (c) => {
   <div class="article-body prose">${raw(autoLink(String(articleHtml(p.content_html)), { exclude: t ? [t.slug] : [], max: 10 }))}</div>
   <footer class="article-foot">
     ${tags.length ? html`<ul class="pill-list">${tags.map((s: string) => html`<li>#${s}</li>`)}</ul>` : ''}
-    ${t ? html`<div class="summary-box"><h3>이 글과 관련된 진료</h3><p>${t.short}</p><a href="/treatments/${t.slug}" class="link-arrow">${t.name} 안내 보기</a></div>` : ''}
+    ${t ? html`<div class="summary-box"><h2 class="h3">이 글과 관련된 진료</h2><p>${t.short}</p><a href="/treatments/${t.slug}" class="link-arrow">${t.name} 안내 보기</a></div>` : ''}
     <p class="reviewed">이 글은 일반적인 정보 제공을 위한 것으로 개인의 상태에 따라 다를 수 있습니다. 치료 효과를 보장하거나 다른 의료기관과 비교하는 내용은 포함하지 않습니다.</p>
     ${more.length ? html`<h2 class="h3">다른 글</h2><ul class="notice-list">${more.map((m: any) => html`<li class="notice-row"><a href="/column/${m.slug}">${m.title}</a><span class="date">${fmtDate(m.published_at)}</span></li>`)}</ul>` : ''}
   </footer>
 </article>
 ${ctaStrip(clinic)}`
-  return c.html(Layout(c, { title: p.meta_title || p.title, description: p.meta_description || truncate(p.excerpt || stripTags(p.content_html)), path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, type: 'article', reviewer: d, publishedAt: p.published_at, modifiedAt: p.updated_at, jsonld: [physicianLd(d, clinic, siteUrl), articleLd({ title: p.title, description: p.meta_description || p.excerpt || '', path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, author: `${d.name}`, authorPath: `/doctors/${d.slug}`, publishedAt: p.published_at, modifiedAt: p.updated_at }, clinic, siteUrl)], crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }, { name: p.title, href: `/column/${p.slug}` }] }, body))
+  return c.html(Layout(c, { title: p.meta_title || p.title, description: p.meta_description || truncate(p.excerpt || stripTags(p.content_html)), path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, type: 'article', author: d, publishedAt: p.published_at, modifiedAt: p.updated_at, jsonld: [physicianLd(d, clinic, siteUrl), articleLd({ title: p.title, description: p.meta_description || p.excerpt || '', path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, author: `${d.name}`, authorPath: `/doctors/${d.slug}`, publishedAt: p.published_at, modifiedAt: p.updated_at }, clinic, siteUrl)], crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }, { name: p.title, href: `/column/${p.slug}` }] }, body))
 })
 
 // ── 공지사항 ─────────────────────────────────────────────
 content.get('/notice', async (c) => {
-  const page = Math.min(10000, Math.max(1, Math.floor(Number(c.req.query('page')) || 1)))
+  const page = paginationPage(c.req.query('page'))
   const total = (await c.env.DB.prepare('SELECT COUNT(*) n FROM notices WHERE published=1').first<any>())?.n || 0
   const rows = (await c.env.DB.prepare('SELECT id,title,pinned,image,created_at FROM notices WHERE published=1 ORDER BY pinned DESC, created_at DESC LIMIT ? OFFSET ?').bind(20, (page - 1) * 20).all<any>()).results || []
   const body = html`${pageHero({ eyebrow: '공지사항', title: '병원 소식', lead: '휴진 안내, 진료시간 변경 등 병원 소식을 알려드립니다.', crumbs: [{ name: '홈', href: '/' }, { name: '공지사항', href: '/notice' }] })}
@@ -211,7 +214,7 @@ content.get('/notice/:id', async (c) => {
   <div class="article-body prose">${articleHtml(n.content_html)}</div>
   <footer class="article-foot"><a href="/notice" class="link-arrow">목록으로</a></footer>
 </article>`
-  return c.html(Layout(c, { title: n.title, description: truncate(stripTags(n.content_html)), path: `/notice/${n.id}`, image: n.image ? `/files/${n.image}` : undefined, type: 'article', crumbs: [{ name: '홈', href: '/' }, { name: '공지사항', href: '/notice' }, { name: n.title, href: `/notice/${n.id}` }] }, body))
+  return c.html(Layout(c, { title: n.title, description: truncate(stripTags(n.content_html)), path: `/notice/${n.id}`, image: n.image ? `/files/${n.image}` : undefined, type: 'article', publishedAt: n.created_at, modifiedAt: n.updated_at, jsonld: [articleLd({ title: n.title, description: truncate(stripTags(n.content_html)), path: `/notice/${n.id}`, image: n.image ? `/files/${n.image}` : undefined, publishedAt: n.created_at, modifiedAt: n.updated_at }, c.get('clinic'), c.get('siteUrl'))], crumbs: [{ name: '홈', href: '/' }, { name: '공지사항', href: '/notice' }, { name: n.title, href: `/notice/${n.id}` }] }, body))
 })
 
 // ── 예약 ─────────────────────────────────────────────────

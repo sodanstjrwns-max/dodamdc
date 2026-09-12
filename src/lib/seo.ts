@@ -18,6 +18,7 @@ export type PageMeta = {
   modifiedAt?: string
   reviewedAt?: string
   reviewer?: Doctor
+  author?: Doctor
 }
 
 // Existing production origin. Set SITE_URL to the verified HTTPS origin on a domain move.
@@ -36,6 +37,11 @@ export function fullTitle(title: string, clinic: Clinic) {
 export function absUrl(siteUrl: string, path: string) {
   return new URL(path, siteUrl + '/').href
 }
+// Keep list rendering, titles and canonical URLs on the same bounded page number.
+export function paginationPage(value?: string | null) {
+  const page = Number(value)
+  return Number.isFinite(page) ? Math.min(10000, Math.max(1, Math.floor(page) || 1)) : 1
+}
 export function canonicalPath(path: string, requestUrl: string) {
   const url = new URL(path, 'https://canonical.invalid')
   url.hash = ''; url.search = ''
@@ -44,24 +50,26 @@ export function canonicalPath(path: string, requestUrl: string) {
   // on their own noindex URLs; remove tracking/preview parameters everywhere.
   if (['/column', '/notice', '/cases/gallery'].includes(url.pathname)) {
     const query = new URL(requestUrl).searchParams
-    for (const key of ['doctor', 'treatment']) {
-      if (url.pathname !== '/notice' && query.get(key)) url.searchParams.set(key, query.get(key)!)
+    const facets = url.pathname === '/cases/gallery' ? ['doctor', 'treatment'] : url.pathname === '/column' ? ['treatment'] : []
+    for (const key of facets) {
+      if (query.get(key)) url.searchParams.set(key, query.get(key)!)
     }
-    const page = Number(query.get('page'))
-    if (Number.isSafeInteger(page) && page > 1) url.searchParams.set('page', String(page))
+    const page = paginationPage(query.get('page'))
+    if (page > 1) url.searchParams.set('page', String(page))
   }
   return url.pathname + url.search
 }
 export function isoDate(value?: string | null): string | undefined {
   if (!value) return undefined
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    const date = new Date(value + 'T00:00:00Z')
-    return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value ? value : undefined
-  }
   let text = value.trim().replace(' ', 'T')
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(text)) text += 'Z' // D1 CURRENT_TIMESTAMP is UTC.
-  const date = new Date(text)
-  return Number.isFinite(date.getTime()) ? date.toISOString() : undefined
+  if (!/^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})?)?$/.test(text)) return undefined
+  const day = text.slice(0, 10)
+  const date = new Date(day + 'T00:00:00Z')
+  if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== day) return undefined
+  if (text === day) return day
+  if (!/(?:Z|[+-]\d{2}:\d{2})$/.test(text)) text += 'Z' // D1 CURRENT_TIMESTAMP is UTC.
+  const timestamp = new Date(text)
+  return Number.isFinite(timestamp.getTime()) ? timestamp.toISOString() : undefined
 }
 export const xmlEscape = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
 
@@ -107,13 +115,15 @@ export function websiteLd(clinic: Clinic, siteUrl: string) {
 }
 export function webpageLd(meta: PageMeta, siteUrl: string, path: string) {
   const medical = /^\/(treatments|encyclopedia)\/.+/.test(meta.path)
+  const article = meta.jsonld?.find(node => (node as Record<string, unknown>)['@type'] === 'Article') as Record<string, unknown> | undefined
   return {
     '@context': 'https://schema.org', '@type': medical ? 'MedicalWebPage' : meta.type === 'profile' ? 'ProfilePage' : 'WebPage',
     '@id': absUrl(siteUrl, path + '#webpage'), url: absUrl(siteUrl, path), name: meta.title,
     description: meta.description, inLanguage: 'ko-KR', isPartOf: { '@id': siteUrl + '/#website' },
     publisher: { '@id': siteUrl + '/#clinic' },
     breadcrumb: meta.crumbs && meta.crumbs.length > 1 ? { '@id': absUrl(siteUrl, path + '#breadcrumb') } : undefined,
-    mainEntity: meta.type === 'profile' ? { '@id': absUrl(siteUrl, meta.path + '#person') } : meta.path.startsWith('/treatments/') ? { '@id': absUrl(siteUrl, meta.path + '#procedure') } : meta.path.startsWith('/encyclopedia/') ? { '@id': absUrl(siteUrl, meta.path + '#term') } : undefined,
+    mainEntity: meta.type === 'profile' ? { '@id': absUrl(siteUrl, meta.path + '#person') } : meta.path.startsWith('/treatments/') ? { '@id': absUrl(siteUrl, meta.path + '#procedure') } : meta.path.startsWith('/encyclopedia/') ? { '@id': absUrl(siteUrl, meta.path + '#term') } : article ? { '@id': article['@id'] } : undefined,
+    author: meta.author ? { '@id': absUrl(siteUrl, `/doctors/${meta.author.slug}#person`) } : undefined,
     reviewedBy: meta.reviewer ? { '@id': absUrl(siteUrl, `/doctors/${meta.reviewer.slug}#person`) } : undefined,
     lastReviewed: isoDate(meta.reviewedAt), datePublished: isoDate(meta.publishedAt), dateModified: isoDate(meta.modifiedAt),
   }
@@ -139,12 +149,13 @@ export function breadcrumbLd(crumbs: Crumb[], siteUrl: string, path?: string) {
     itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: absUrl(siteUrl, c.href) })),
   }
 }
-export function articleLd(a: { title: string; description: string; path: string; image?: string; author: string; authorPath: string; publishedAt: string; modifiedAt?: string }, clinic: Clinic, siteUrl: string) {
+export function articleLd(a: { title: string; description: string; path: string; image?: string; author?: string; authorPath?: string; publishedAt: string; modifiedAt?: string }, clinic: Clinic, siteUrl: string) {
   return {
     '@context': 'https://schema.org', '@type': 'Article', '@id': absUrl(siteUrl, a.path + '#article'),
     headline: a.title, description: a.description, inLanguage: 'ko-KR',
     image: a.image ? absUrl(siteUrl, a.image) : undefined,
-    author: { '@type': 'Person', '@id': absUrl(siteUrl, a.authorPath + '#person'), name: a.author, url: absUrl(siteUrl, a.authorPath) },
+    // Editorial columns name their doctor; clinic notices use the publishing organization.
+    author: a.author && a.authorPath ? { '@type': 'Person', '@id': absUrl(siteUrl, a.authorPath + '#person'), name: a.author, url: absUrl(siteUrl, a.authorPath) } : { '@id': absUrl(siteUrl, '/#clinic') },
     publisher: { '@id': absUrl(siteUrl, '/#clinic') },
     datePublished: isoDate(a.publishedAt), dateModified: isoDate(a.modifiedAt || a.publishedAt),
     mainEntityOfPage: { '@id': absUrl(siteUrl, a.path + '#webpage') },

@@ -15,6 +15,7 @@ import conversions from './lib/conversions'
 
 import { firstVisitPage } from './pages/journey'
 import { homePage } from './pages/home'
+import { handoverPage } from './pages/handover'
 import { treatmentsIndex, treatmentDetail } from './pages/treatments'
 import { doctorsIndex, doctorDetail, missionPage, floorGuidePage } from './pages/about'
 import {
@@ -62,7 +63,7 @@ app.use('*', async (c, next) => {
   await next()
   // page view tracking for public HTML GET responses
   if (c.req.method === 'GET' && c.res.status === 200 && (c.res.headers.get('content-type') || '').includes('text/html')
-    && !url.pathname.startsWith('/admin') && !url.pathname.startsWith('/auth')) {
+    && !url.pathname.startsWith('/admin') && !url.pathname.startsWith('/auth') && url.pathname !== '/handover') {
     try { await trackView(c, 'page', null) } catch {}
   }
 })
@@ -76,6 +77,7 @@ app.route('/', content)
 // ---------- Public pages ----------
 app.get('/', (c) => homePage(c))
 app.get('/first-visit', (c) => firstVisitPage(c))
+app.get('/handover', (c) => handoverPage(c))
 app.get('/mission', (c) => missionPage(c))
 app.get('/floor-guide', (c) => floorGuidePage(c))
 
@@ -141,7 +143,11 @@ app.get('/sitemap.xml', async (c) => {
     for (const r of cases.results || []) add(`/cases/gallery/${r.slug}`, '0.6', 'monthly', String(r.updated_at || ''))
     for (const r of cols.results || []) add(`/column/${r.slug}`, '0.7', 'monthly', String(r.updated_at || ''))
     for (const r of notes.results || []) add(`/notice/${r.id}`, '0.4', 'monthly', String(r.updated_at || ''))
-  } catch {}
+  } catch {
+    // A transient DB failure must not publish/cache an incomplete sitemap.
+    c.header('X-Robots-Tag', 'noindex')
+    return c.text('Sitemap temporarily unavailable', 503, { 'Cache-Control': 'no-store', 'Retry-After': '60' })
+  }
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -206,7 +212,7 @@ ${treatments.map(t => `- [${t.name}](${site}/treatments/${t.slug}): ${t.short}`)
 ${getNaverBookingUrl(clinic) ? `- [공식 네이버 예약](${getNaverBookingUrl(clinic)}): 외부 예약 페이지` : ''}
 
 ## 이용 시 주의
-- 이 파일은 참고용 목차이며 검색 순위나 AI 답변 인용을 보장하는 표준이 아닙니다.
+- 이 파일은 참고용 목차이며 검색 순위나 AI 답변 인용을 보장하는 표준이 아닙니다. Google 검색에는 llms.txt가 필요하지 않습니다.
 - 구체적인 치료 정보·주의사항·검토일은 연결된 공개 본문을 확인하세요.
 - 의료 정보는 일반 안내이며 개인의 진단·치료를 대신하지 않습니다.
 - 회원 정보·예약 정보·회원 전용 치료 후 사진은 공개 답변의 근거로 사용하지 마세요.

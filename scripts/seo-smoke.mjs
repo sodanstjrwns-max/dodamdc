@@ -1,10 +1,14 @@
-// Local verification: raw SSR HTML, metadata, headings, schema relationships and crawl policy.
-// Does not submit forms, publish content, or contact production.
+// Read-only SSR audit. SEO_BASE_URL explicitly opts into live verification.
+// Never submits forms or loads analytics; audit requests use a bot user-agent.
 import { chromium } from '@playwright/test'
 import { build } from 'esbuild'
 import { mkdir, writeFile } from 'node:fs/promises'
 import assert from 'node:assert/strict'
-const base = 'http://localhost:3000'
+const base = process.env.SEO_BASE_URL || 'http://localhost:3000'
+const live = base === 'https://seoul-dodam-dental.pages.dev'
+if (!live && base !== 'http://localhost:3000') throw new Error('Unsupported audit origin')
+const request = (url, options = {}) => fetch(url, { ...options, headers: { 'User-Agent': 'DodamDeliveryAuditBot/1.0', DNT: '1', ...options.headers }, signal: AbortSignal.timeout(30000) })
+const reportPath = `.artifacts/seo-${live ? 'production' : 'audit'}.json`
 await mkdir('.artifacts', { recursive: true })
 const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-webgl'] })
 const parser = await browser.newPage()
@@ -24,32 +28,42 @@ async function inspect(html) {
       schemas: [...doc.querySelectorAll('script[type="application/ld+json"]')].map(e => JSON.parse(e.textContent)),
       faqs: [...doc.querySelectorAll('.faq-item')].map(e => ({ q: e.querySelector('.q')?.textContent.trim(), a: e.querySelector('.faq-a')?.textContent.trim() })),
       images: [...doc.querySelectorAll('main img')].map(e => ({ src: e.getAttribute('src'), alt: e.getAttribute('alt'), width: e.getAttribute('width'), height: e.getAttribute('height'), srcset: e.getAttribute('srcset') })),
-      links: [...doc.querySelectorAll('main a[href]')].map(e => e.getAttribute('href')),
+      links: [...doc.querySelectorAll('a[href]')].map(e => e.getAttribute('href')),
+      ids: [...doc.querySelectorAll('[id]')].map(e => e.id),
+      verification: !!doc.querySelector('meta[name="google-site-verification"]'),
+      naverVerification: !!doc.querySelector('meta[name="naver-site-verification"]'),
     }
   }, html)
 }
 try {
-  const sitemapText = await (await fetch(base + '/sitemap.xml')).text()
+  const sitemapText = await (await request(base + '/sitemap.xml')).text()
   const locs = [...sitemapText.matchAll(/<loc>(.*?)<\/loc>/g)].map(m => m[1].replaceAll('&amp;', '&'))
   const site = new URL(locs[0]).origin
   check(site === 'https://seoul-dodam-dental.pages.dev', 'Production canonical origin must not be localhost/sandbox')
   check(locs.length === new Set(locs).size, 'Duplicate sitemap URLs')
   const rootEntry = sitemapText.match(/<url><loc>[^<]+\/<\/loc>(.*?)<\/url>/)?.[1] || ''
   check(!rootEntry.includes('<lastmod>'), 'Static sitemap must not fabricate daily modification dates')
-  const paths = [...new Set([...locs.map(url => new URL(url).pathname), '/privacy', '/terms', '/sitemap', '/area'])]
+  const paths = [...new Set([...locs.map(url => new URL(url).pathname), '/privacy', '/terms', '/sitemap', '/area', ...(process.env.SEO_BASELINE ? [] : ['/handover'])])]
   const seenTitles = new Map(), seenDescriptions = new Map()
+  const images = new Set(), documents = new Map()
   for (const path of paths) {
-    const response = await fetch(base + path)
+    const response = await request(base + path)
     const data = await inspect(await response.text())
     check(response.status === 200, `${path}: HTTP ${response.status}`)
     check(data.lang === 'ko', `${path}: document language`)
+    check(data.ids.length === new Set(data.ids).size, `${path}: duplicate HTML IDs`)
+    documents.set(path, data)
+    for (const src of [...data.images.map(image => image.src), data.ogImage]) if (src) images.add(new URL(src, site).href)
     check(data.titles.length === 1 && !!data.titles[0], `${path}: unique title tag`)
     check(data.descriptions.length === 1 && !!data.descriptions[0], `${path}: unique meta description`)
     check(data.headings.filter(h => h.level === 1).length === 1, `${path}: one H1 in main`)
     check(data.headings.every(h => h.text), `${path}: empty heading`)
     check(data.canonicals.length === 1 && data.canonicals[0] === site + path, `${path}: canonical mismatch`)
     check(data.ogUrl === data.canonicals[0] && data.ogTitle === data.titles[0] && data.ogDescription === data.descriptions[0], `${path}: OG metadata mismatch`)
-    check(data.robots[0]?.includes('noindex') && response.headers.get('x-robots-tag')?.includes('noindex'), `${path}: preview index protection`)
+    const indexed = live && !['/area', '/handover'].includes(path) // Intentional non-search directories/guides.
+    check(data.robots[0]?.startsWith(indexed ? 'index,' : 'noindex,') && response.headers.get('x-robots-tag')?.startsWith(indexed ? 'index,' : 'noindex,'), `${path}: indexing policy`)
+    const head = await request(base + path, { method: 'HEAD' })
+    check(head.status === response.status && head.headers.get('x-robots-tag') === response.headers.get('x-robots-tag'), `${path}: GET/HEAD status or indexing mismatch`)
     check(data.viewport[0]?.includes('width=device-width') && !data.viewport[0]?.includes('user-scalable=no'), `${path}: scalable mobile viewport`)
     const schemaTypes = data.schemas.map(s => s['@type'])
     check(schemaTypes.filter(t => t === 'Dentist').length === 1, `${path}: one clinic entity`)
@@ -78,16 +92,36 @@ try {
     }
     report.pages.push({ path, title: data.titles[0], descriptionLength: data.descriptions[0]?.length, canonical: data.canonicals[0], headings: data.headings, schemaTypes })
   }
-  const robots = await (await fetch(base + '/robots.txt')).text()
+  for (const src of images) {
+    const url = new URL(src)
+    if (url.origin !== site) { report.warnings.push('External image not fetched: ' + src); continue }
+    const response = await request(base + url.pathname + url.search)
+    check(response.status === 200 && response.headers.get('content-type')?.startsWith('image/'), 'Public image unavailable: ' + url.pathname)
+    await response.body?.cancel()
+  }
+  for (const [path, data] of documents) {
+    for (const href of data.links) {
+      const url = new URL(href, site + path)
+      if (url.origin !== site || !documents.has(url.pathname)) continue
+      if (url.hash) {
+        // Browsers resolve the literal fragment first, then its percent-decoded form.
+        const ids = documents.get(url.pathname).ids
+        check(ids.includes(url.hash.slice(1)) || ids.includes(decodeURIComponent(url.hash.slice(1))), `${path}: broken section link ${href}`)
+      }
+    }
+  }
+  report.assets = { publicImages: images.size }
+  report.registration = { googleMetaPresent: documents.get('/')?.verification, naverMetaPresent: documents.get('/')?.naverVerification, note: 'Tag presence is not verified search-service ownership or submission.' }
+  const robots = await (await request(base + '/robots.txt')).text()
   check((robots.match(/^User-agent:/gm) || []).length === 1, 'Bot-specific groups must not bypass common exclusions')
   for (const path of ['/admin', '/auth', '/api', '/files/cases/']) check(robots.includes('Disallow: ' + path), 'Missing crawl exclusion: ' + path)
   check(!robots.includes('Disallow: /files/\n'), 'Public article images should remain crawlable')
-  const llms = await (await fetch(base + '/llms.txt')).text()
+  const llms = await (await request(base + '/llms.txt')).text()
   check(llms.indexOf('MTA 생활치수치료') < llms.indexOf('임플란트'), 'AI reference index should follow preservation-first care')
   check(!llms.includes('리뷰:'), 'Do not treat historical review counts as current AI facts')
-  const redirect = await fetch(base + '/treatments/implant/?utm_source=test', { redirect: 'manual' })
+  const redirect = await request(base + '/treatments/implant/?utm_source=test', { redirect: 'manual' })
   check(redirect.status === 301 && redirect.headers.get('location') === '/treatments/implant?utm_source=test', 'Trailing slash redirect')
-  const missing = await fetch(base + '/treatments/does-not-exist')
+  const missing = await request(base + '/treatments/does-not-exist')
   check(missing.status === 404, 'Missing pages must not be soft 404s')
 
   // Exercise production indexing logic in-process, never against the live site.
@@ -99,6 +133,7 @@ try {
     ['/?utm_source=test', '/', true], ['/treatments/implant?v=11', '/treatments/implant', true],
     ['/column?treatment=implant&page=2&utm_source=test', '/column?treatment=implant&page=2', false],
     ['/reservation?ok=1', '/reservation', false], ['/auth/login', '/auth/login', false],
+    ['/handover', '/handover', false], ['/column?doctor=han-hwirim', '/column', true],
   ]) {
     const response = await app.request(site + path, {}, env)
     const data = await inspect(await response.text())
@@ -114,10 +149,38 @@ try {
   const articleNode = articlePage.schemas.find(s => s['@type'] === 'Article')
   check(articleNode?.datePublished === '2026-09-01T09:00:00.000Z' && articleNode?.dateModified === '2026-09-03T10:00:00.000Z', 'CMS Article timestamps must be valid ISO dates')
   check(articleNode?.author?.['@id'] === site + '/doctors/han-hwirim#person', 'CMS article author identity')
+  const notice = { id: 1, title: '병원 일정 안내', content_html: '<h1>일정 안내</h1><p>진료 일정을 확인해 주세요.</p>', created_at: '2026-09-01 09:00:00', updated_at: '2026-09-03 10:00:00' }
+  const noticeDB = { prepare(sql) { return { bind() { return this }, all: async () => ({ results: [] }), first: async () => sql.includes('SELECT * FROM notices') ? notice : null, run: async () => ({ success: true }) } } }
+  const noticePage = await inspect(await (await app.request(site + '/notice/1', {}, { ...env, DB: noticeDB })).text())
+  const noticeNode = noticePage.schemas.find(s => s['@type'] === 'Article')
+  check(noticeNode?.author?.['@id'] === site + '/#clinic' && noticeNode?.datePublished === '2026-09-01T09:00:00.000Z', 'Notice organization authorship and real publication date')
+  check(noticePage.headings.filter(h => h.level === 1).length === 1, 'Notice body must not add H1')
+  let headWrites = 0
+  await app.request(site + '/column/qa-only', { method: 'HEAD' }, { ...env, DB: { ...fixtureDB, batch: async () => { headWrites++; return [] } } })
+  check(headWrites === 0, 'HEAD must not increment article views or page views')
   const pageTwo = await inspect(await (await app.request(site + '/column?page=2', {}, { ...env, DB: fixtureDB })).text())
   check(pageTwo.canonicals[0] === site + '/column?page=2' && pageTwo.robots[0]?.startsWith('index,'), 'Populated pagination stays self-canonical and indexable')
+  for (const [input, normalized] of [['02', '2'], ['2.9', '2'], ['10001', '10000'], ['Infinity', null], ['-1', null], ['bad', null]]) {
+    const response = await app.request(site + '/column?page=' + input, {}, { ...env, DB: fixtureDB })
+    const data = await inspect(await response.text())
+    check(data.canonicals[0] === site + '/column' + (normalized ? '?page=' + normalized : ''), 'Normalized pagination canonical: ' + input)
+    check(normalized ? data.titles[0].endsWith(` · ${normalized}페이지`) : !data.titles[0].includes('페이지'), 'Normalized pagination title: ' + input)
+  }
+  const get = await app.request(site + '/', {}, env)
+  const head = await app.request(site + '/', { method: 'HEAD' }, env)
+  check(head.headers.get('x-robots-tag') === get.headers.get('x-robots-tag'), 'Production GET/HEAD indexing parity')
+  const helpers = await build({ entryPoints: ['src/lib/seo.ts'], bundle: true, write: false, format: 'esm', platform: 'node' })
+  const { isoDate } = await import('data:text/javascript;base64,' + Buffer.from(helpers.outputFiles[0].text).toString('base64'))
+  for (const invalid of ['2026-02-30', '2026-02-30 09:00:00', '09/12/2026', '2026-13-01', 'not a date']) check(isoDate(invalid) === undefined, 'Reject invalid or ambiguous date: ' + invalid)
+  check(isoDate('2024-02-29') === '2024-02-29' && isoDate('2026-09-12 09:00:00') === '2026-09-12T09:00:00.000Z', 'Valid dates and D1 UTC dates preserved')
+  const unavailableDB = { prepare() { throw new Error('isolated unavailable DB') } }
+  const unavailable = await app.request(site + '/sitemap.xml', {}, { ...env, DB: unavailableDB })
+  check(unavailable.status === 503 && unavailable.headers.get('cache-control') === 'no-store', 'DB outage must not publish a partial sitemap')
+  check(!locs.some(url => /\/(handover|admin|auth)(\/|$)/.test(new URL(url).pathname)), 'Private/utility routes excluded from sitemap')
+  check(articlePage.schemas.find(s => s['@type'] === 'WebPage')?.reviewedBy === undefined, 'Authorship must not invent a medical review')
+  check(articlePage.schemas.find(s => s['@type'] === 'WebPage')?.mainEntity?.['@id'] === articleNode?.['@id'], 'Article main entity relation')
   report.checks.push('SSR metadata, H1, canonical, OG, schema IDs, FAQ parity, images, preview noindex, robots, sitemap, production policy, isolated CMS fixture')
 } catch (error) { report.errors.push(error.stack || String(error)) }
-finally { await browser.close(); await writeFile('.artifacts/seo-audit.json', JSON.stringify(report, null, 2)) }
-console.log(JSON.stringify({ pages: report.pages.length, errors: report.errors, warnings: report.warnings }, null, 2))
+finally { await browser.close(); await writeFile(reportPath, JSON.stringify(report, null, 2)) }
+console.log(JSON.stringify({ pages: report.pages.length, assets: report.assets, registration: report.registration, errors: report.errors, warnings: report.warnings }, null, 2))
 assert.equal(report.errors.length, 0, 'SEO audit failed; inspect .artifacts/seo-audit.json')

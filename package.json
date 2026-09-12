@@ -10,6 +10,7 @@
     "test:design": "node scripts/design-smoke.mjs",
     "test:kinetic": "node scripts/kinetic-smoke.mjs",
     "test:seo": "node scripts/seo-smoke.mjs",
+    "test:delivery": "node scripts/delivery-smoke.mjs",
     "test:mobile": "node scripts/mobile-smoke.mjs",
     "test:journey": "node scripts/journey-smoke.mjs",
     "typecheck": "tsc --noEmit",

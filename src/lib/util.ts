@@ -15,7 +15,7 @@ export const stripTags = (html: string) => html.replace(/<[^>]+>/g, ' ').replace
 // 조회수 기록 (봇 제외) — page_views 로그 + 엔티티 views 증가
 export async function trackView(c: Context<Env>, entityType: 'case' | 'column' | 'notice' | 'page', entityId: number | null, table?: 'cases' | 'columns' | 'notices') {
   const db = c.env.DB
-  if (!db) return
+  if (!db || c.req.method !== 'GET') return
   const ua = c.req.header('user-agent') || ''
   const bot = isBot(ua) || !ua
   try {
