@@ -74,7 +74,7 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="preload" href="/static/fonts/WantedSansCore-v2.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/fonts/wanted-subsets.css?v=2">
 <link rel="stylesheet" href="/static/style.css?v=8">
-<link rel="stylesheet" href="/static/kinetic.css?v=16">
+<link rel="stylesheet" href="/static/kinetic.css?v=17">
 ${meta.path === '/handover' ? html`<link rel="stylesheet" href="/static/handover.css?v=1">` : ''}
 <link rel="alternate" type="application/rss+xml" title="${clinic.shortName} 원장 칼럼" href="/column/rss.xml">
 ${lds.map((l) => raw(`<script type="application/ld+json">${JSON.stringify(l).replace(/</g, '\\u003c')}</script>`))}

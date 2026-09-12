@@ -4,8 +4,11 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
+  var pendingUploads = 0;
+  var uploadTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
   /* ---------- 업로드 공통 ---------- */
   function upload(url, prefix, file) {
+    if (uploadTypes.indexOf(file.type) < 0 || file.size > 8 * 1024 * 1024) return Promise.reject(new Error('8MB 이하 JPG·PNG·WebP·GIF만 가능합니다. HEIC는 JPG로 변환해 주세요.'));
     var fd = new FormData();
     fd.append('file', file);
     fd.append('prefix', prefix || 'uploads');
@@ -38,10 +41,12 @@
         var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
       }
       hidden.value = clean(editor.innerHTML);
+      if (typeof count === 'function' && counter) count();
+      editor.dispatchEvent(new CustomEvent('editor-synced', { bubbles: true }));
     }
     function clean(h) {
       if (!window.AdminSanitizer) { var text = document.createElement('span'); text.textContent = h; return text.innerHTML; }
-      h = window.AdminSanitizer.clean(h);
+      h = window.AdminSanitizer.clean(h.replace(/<(\/?)(h1)(?=[\s>])/gi, '<$1h2'));
       // Keep only safe, simple editor formatting.
       return h
         .replace(/\s(style|class|dir|data-[\w-]+)="[^"]*"/gi, function (m, a) { return /^data-(key|src)$/i.test(a) ? m : ''; })
@@ -61,35 +66,44 @@
       }
     });
 
-    function exec(cmd, val) { document.execCommand(cmd, false, val || null); editor.focus(); sync(); }
+    var savedRange;
+    document.addEventListener('selectionchange', function () { var s = window.getSelection(); if (s.rangeCount && editor.contains(s.anchorNode) && editor.contains(s.focusNode)) savedRange = s.getRangeAt(0).cloneRange(); });
+    function restoreRange() { editor.focus(); if (savedRange && editor.contains(savedRange.commonAncestorContainer)) { var s = window.getSelection(); s.removeAllRanges(); s.addRange(savedRange); } }
+    function exec(cmd, val) { restoreRange(); document.execCommand(cmd, false, val || null); editor.focus(); sync(); }
     function block(tag) {
+      restoreRange();
       try { document.execCommand('formatBlock', false, tag); } catch (e) { }
       editor.focus(); sync();
     }
     function insertHtml(h) {
       h = clean(h);
-      editor.focus();
+      restoreRange();
       if (!document.execCommand('insertHTML', false, h)) {
         editor.insertAdjacentHTML('beforeend', h);
       }
       sync();
     }
     function insertImage(js) {
-      var alt = prompt('이미지 설명(alt) — 검색 노출에 도움이 됩니다', '') || '';
-      insertHtml('<figure><img src="' + js.url + '" alt="' + alt.replace(/"/g, '&quot;') + '" loading="lazy">' + (alt ? '<figcaption>' + alt.replace(/</g, '&lt;') + '</figcaption>' : '') + '</figure><p></p>');
+      var alt = prompt('이미지의 내용을 설명해 주세요. 개인정보는 입력하지 마세요.', '') || '';
+      var figure = document.createElement('figure'), image = document.createElement('img');
+      image.src = js.url; image.alt = alt; image.loading = 'lazy'; image.width = 960; image.height = 640; figure.appendChild(image);
+      if (alt) { var caption = document.createElement('figcaption'); caption.textContent = alt; figure.appendChild(caption); }
+      insertHtml(figure.outerHTML + '<p><br></p>');
+      var probe = new Image(); probe.onload = function () { $$('img', editor).forEach(function (img) { if (img.getAttribute('src') === js.url) { img.width = probe.naturalWidth; img.height = probe.naturalHeight; } }); sync(); }; probe.src = js.url;
     }
     function uploadAndInsert(files) {
       Array.prototype.forEach.call(files, function (f) {
-        if (!/^image\//.test(f.type)) return;
+        if (uploadTypes.indexOf(f.type) < 0) { toast('JPG·PNG·WebP·GIF만 지원합니다. HEIC는 JPG로 변환해 주세요.', true); return; }
         if (f.size > 8 * 1024 * 1024) { toast('8MB 이하 이미지만 올릴 수 있습니다', true); return; }
-        var ph = document.createElement('p'); ph.className = 'uploading'; ph.textContent = '이미지 업로드 중…'; editor.appendChild(ph);
+        pendingUploads++;
+        var ph = document.createElement('p'); ph.className = 'uploading'; ph.textContent = '이미지 업로드 중…'; editor.parentNode.appendChild(ph);
         upload(uploadUrl, prefix, f).then(function (js) {
           ph.remove();
           insertImage(js); toast('이미지가 추가되었습니다');
         }).catch(function (err) {
           ph.remove();
           toast(err.message, true);
-        });
+        }).finally(function () { pendingUploads--; });
       });
     }
 
@@ -99,6 +113,7 @@
         var cmd = btn.getAttribute('data-cmd');
         switch (cmd) {
           case 'h2': case 'h3': case 'p': block(cmd); break;
+          case 'undo': case 'redo': case 'unlink': exec(cmd); break;
           case 'bold': exec('bold'); break;
           case 'italic': exec('italic'); break;
           case 'ul': exec('insertUnorderedList'); break;
@@ -121,7 +136,7 @@
           }
           case 'image': {
             var inp = document.createElement('input');
-            inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
+            inp.type = 'file'; inp.accept = uploadTypes.join(','); inp.multiple = false; inp.setAttribute('aria-label', '본문 이미지 선택');
             inp.onchange = function () { uploadAndInsert(inp.files); };
             inp.click();
             break;
@@ -178,6 +193,7 @@
       counter.textContent = t.length.toLocaleString() + '자 · 이미지 ' + $$('img', editor).length + '장 · H2 ' + $$('h2', editor).length + '개';
     }
     editor.addEventListener('input', count); count();
+    editor._sync = sync;
     sync();
   }
 
@@ -189,11 +205,12 @@
     if (!file) return;
     function preview(f) {
       if (!f) return;
-      if (!/^image\//.test(f.type)) { toast('이미지 파일만 가능합니다', true); file.value = ''; return; }
+      if (uploadTypes.indexOf(f.type) < 0) { toast('JPG·PNG·WebP·GIF만 가능합니다. HEIC는 JPG로 변환해 주세요.', true); file.value = ''; return; }
       if (f.size > 8 * 1024 * 1024) { toast('8MB 이하 이미지만 올릴 수 있습니다', true); file.value = ''; return; }
       var img = $('img', slot);
       if (!img) { img = document.createElement('img'); img.alt = ''; img.width = 240; img.height = 160; var e = $('.upload-empty', slot); if (e) e.replaceWith(img); else slot.insertBefore(img, file); }
-      img.src = URL.createObjectURL(f);
+      if (slot._objectUrl) URL.revokeObjectURL(slot._objectUrl);
+      slot._objectUrl = URL.createObjectURL(f); img.src = slot._objectUrl; img.alt = file.getAttribute('aria-label') || '선택한 이미지 미리보기';
       slot.classList.add('has');
       if (clearBox) clearBox.checked = false;
       var name = $('.upload-name', slot);
@@ -212,8 +229,8 @@
       e.preventDefault();
       var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
       if (!f) return;
-      try { var dt = new DataTransfer(); dt.items.add(f); file.files = dt.files; } catch (err) { }
-      preview(f);
+      try { var dt = new DataTransfer(); dt.items.add(f); file.files = dt.files; } catch (err) { toast('이 브라우저에서는 파일 선택 버튼을 사용해 주세요.', true); return; }
+      preview(f); file.dispatchEvent(new Event('change', { bubbles: true }));
     });
     if (clearBox) clearBox.addEventListener('change', function () {
       slot.classList.toggle('cleared', clearBox.checked);
@@ -221,6 +238,80 @@
     });
     void hiddenKey;
   });
+
+  /* ---------- CMS workspace: previews, recoverable saving and unsaved changes ---------- */
+  var cmsForm = $('[data-cms-form]');
+  if (cmsForm) {
+    var dirty = false, saving = false;
+    var status = document.createElement('p'); status.className = 'cms-save-status'; status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
+    status.textContent = '새 글은 비공개로 시작합니다. 저장 전에는 서버에 반영되지 않습니다.';
+    cmsForm.prepend(status);
+    $$('input,textarea,select', cmsForm).forEach(function (field, index) {
+      if (field.type === 'hidden' || field.hidden || field.labels && field.labels.length) return;
+      field.id = field.id || 'cms-field-' + index;
+      var label = field.closest('.field') && $('label', field.closest('.field'));
+      if (label && !label.htmlFor) label.htmlFor = field.id;
+      if (field.type === 'file' && !field.hasAttribute('aria-label')) field.setAttribute('aria-label', label ? label.textContent + ' 파일 선택' : '이미지 파일 선택');
+    });
+    function markDirty() { dirty = true; if (!saving) { status.textContent = '저장하지 않은 변경사항이 있습니다.'; status.classList.remove('error'); } }
+    cmsForm.addEventListener('input', markDirty); cmsForm.addEventListener('change', markDirty); cmsForm.addEventListener('editor-synced', markDirty);
+    window.addEventListener('beforeunload', function (event) { if (dirty) { event.preventDefault(); event.returnValue = ''; } });
+    window.addEventListener('pageshow', function () { saving = false; cmsForm.inert = false; cmsForm.removeAttribute('aria-busy'); });
+    cmsForm.addEventListener('keydown', function (event) { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); cmsForm.requestSubmit(); } });
+    cmsForm.addEventListener('submit', async function (event) {
+      if (event.defaultPrevented) return;
+      event.preventDefault();
+      if (saving) return;
+      if (pendingUploads) { status.textContent = '이미지 업로드가 끝난 뒤 저장해 주세요.'; return; }
+      if (!cmsForm.reportValidity()) return;
+      var text = editor ? editor.textContent.trim() : '';
+      if (cmsForm.dataset.cmsForm === 'column' && text.length < 20) { status.textContent = '칼럼 본문을 20자 이상 입력해 주세요.'; status.classList.add('error'); editor.focus(); return; }
+      var body = new FormData(cmsForm), token = $('meta[name="csrf-token"]');
+      saving = true; cmsForm.inert = true; cmsForm.setAttribute('aria-busy', 'true'); status.textContent = '저장 중입니다. 잠시만 기다려 주세요.';
+      try {
+        var response = await fetch(cmsForm.action || location.href, { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-Token': token ? token.content : '', 'X-CMS-Request': '1', Accept: 'application/json' }, body: body });
+        if (!(response.headers.get('content-type') || '').includes('application/json')) throw new Error('로그인 상태 또는 저장 결과를 확인해 주세요. 입력 내용은 이 화면에 남아 있습니다.');
+        var data = await response.json();
+        if (!response.ok || !data.ok) throw new Error(data.error || '저장하지 못했습니다. 입력 내용을 유지했습니다.');
+        var target = new URL(data.redirect, location.origin);
+        if (target.origin !== location.origin || !/^\/admin\/(cases|columns|notices)$/.test(target.pathname)) throw new Error('저장 결과를 목록에서 확인해 주세요.');
+        dirty = false; status.textContent = '저장되었습니다. 목록으로 이동합니다.'; location.assign(target.href);
+      } catch (error) {
+        saving = false; cmsForm.inert = false; cmsForm.removeAttribute('aria-busy');
+        status.textContent = error instanceof TypeError ? '연결이 끊겨 저장 결과를 확인하지 못했습니다. 입력 내용은 유지됩니다. 중복 등록을 피하려면 목록을 먼저 확인해 주세요.' : error.message;
+        status.classList.add('error'); toast(status.textContent, true); status.scrollIntoView({ block: 'nearest' });
+      }
+    });
+    var previewButton = $('[data-cms-preview]', cmsForm);
+    if (previewButton) previewButton.addEventListener('click', function () {
+      var modal = document.createElement('dialog'); modal.className = 'cms-preview'; modal.setAttribute('aria-label', '작성 내용 미리보기');
+      var controls = document.createElement('div'); controls.className = 'cms-preview-controls';
+      var article = document.createElement('article'); article.className = 'cms-preview-article prose';
+      [['모바일 폭', 'mobile'], ['PC 폭', 'desktop'], ['닫기', 'close']].forEach(function (entry) { var button = document.createElement('button'); button.type = 'button'; button.textContent = entry[0]; button.className = 'btn btn-outline btn-sm'; button.addEventListener('click', function () { if (entry[1] === 'close') modal.close(); else article.classList.toggle('mobile-preview', entry[1] === 'mobile'); }); controls.appendChild(button); });
+      var note = document.createElement('p'); note.className = 'cms-guidance'; note.textContent = cmsForm.dataset.cmsForm === 'case' ? '직원 사진 점검 화면입니다. 치료 후 사진은 공개 방문자에게 표시되지 않습니다.' : '저장 전 본문 미리보기입니다. 자동 용어 링크·공개 페이지의 전체 레이아웃과는 다를 수 있습니다.';
+      var heading = document.createElement('h1'); heading.textContent = $('[name=title]', cmsForm).value || '제목을 입력해 주세요'; article.appendChild(heading);
+      if (editor && window.AdminSanitizer) { var content = document.createElement('div'); content.innerHTML = window.AdminSanitizer.clean(editor.innerHTML); article.appendChild(content); }
+      else { var description = document.createElement('p'); description.className = 'cms-case-description'; description.textContent = $('[name=description]', cmsForm)?.value || ''; article.appendChild(description); }
+      $$('.upload-slot', cmsForm).forEach(function (slot) { var source = $('img', slot), clear = $('input[type=checkbox]', slot); if (!source || clear && clear.checked) return; var figure = document.createElement('figure'); var image = source.cloneNode(); image.removeAttribute('width'); image.removeAttribute('height'); var caption = document.createElement('figcaption'); caption.textContent = $('label', slot)?.textContent || '대표 이미지'; figure.append(image, caption); article.appendChild(figure); });
+      article.addEventListener('click', function (event) { if (event.target.closest('a')) event.preventDefault(); });
+      modal.append(controls, note, article); document.body.appendChild(modal); modal.addEventListener('close', function () { modal.remove(); previewButton.focus(); }); modal.showModal();
+    });
+    // Explicit image editing instead of leaving an inserted photo unmanageable.
+    if (editor) {
+      var imageTools = document.createElement('div'); imageTools.className = 'cms-image-tools'; imageTools.hidden = true;
+      var altInput = document.createElement('input'); altInput.type = 'text'; altInput.maxLength = 250; altInput.setAttribute('aria-label', '선택 이미지 설명');
+      var selectedImage;
+      var apply = document.createElement('button'); apply.type = 'button'; apply.textContent = '설명 적용';
+      var remove = document.createElement('button'); remove.type = 'button'; remove.textContent = '이미지 삭제';
+      imageTools.append(altInput, apply, remove); editor.after(imageTools);
+      editor.addEventListener('click', function (event) { if (event.target.tagName !== 'IMG') return; selectedImage = event.target; altInput.value = selectedImage.alt; imageTools.hidden = false; });
+      apply.addEventListener('click', function () { if (!selectedImage || !editor.contains(selectedImage)) return; selectedImage.alt = altInput.value; var caption = selectedImage.closest('figure')?.querySelector('figcaption'); if (caption) caption.textContent = altInput.value; editor._sync(); markDirty(); toast('이미지 설명을 적용했습니다. 저장하면 반영됩니다.'); });
+      remove.addEventListener('click', function () { if (!selectedImage || !editor.contains(selectedImage)) return; (selectedImage.closest('figure') || selectedImage).remove(); imageTools.hidden = true; editor._sync(); markDirty(); });
+    }
+  }
+  if (new URLSearchParams(location.search).get('saved') === '1') { var saved = document.createElement('p'); saved.className = 'alert-ok'; saved.setAttribute('role','status'); saved.textContent = '저장되었습니다. 공개/비공개 상태와 게시물을 확인해 주세요.'; $('.admin-main')?.prepend(saved); }
+  // Tables scroll inside their own region rather than widening the mobile page.
+  $$('.admin-table').forEach(function (table) { if (table.closest('.table-wrap')) return; var wrap = document.createElement('div'); wrap.className = 'table-wrap cms-table-scroll'; wrap.tabIndex = 0; wrap.setAttribute('role','region'); wrap.setAttribute('aria-label','관리 목록, 좌우로 이동할 수 있습니다'); table.before(wrap); wrap.appendChild(table); });
 
   /* ---------- 글자수 카운터 ---------- */
   $$('[data-count]').forEach(function (el) {
@@ -286,7 +377,7 @@
   });
 
   /* ---------- 중복 제출 방지 ---------- */
-  $$('form[data-once]').forEach(function (f) {
+  $$('form[data-once]:not([data-cms-form])').forEach(function (f) {
     f.addEventListener('submit', function () {
       if (f.getAttribute('data-submitted')) return;
       f.setAttribute('data-submitted', '1');

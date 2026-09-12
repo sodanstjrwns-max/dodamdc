@@ -15,6 +15,7 @@ import { treatments, getTreatment } from '../data/treatments'
 import { doctors } from '../data/doctors'
 import { formData, slugify, fmtDate, stripTags, esc } from '../lib/util'
 import { alertBox } from '../lib/ui'
+import { isoDate } from '../lib/seo'
 import { loadFeeGroupsForAdmin } from '../lib/fees'
 import { AdminStats, fetchSiteStats } from '../lib/stats-page'
 
@@ -71,7 +72,7 @@ admin.use('/*', async (c, next) => {
   if (!c.get('admin')) return c.req.method === 'GET' ? c.redirect('/admin/login') : c.text('Unauthorized', 401)
   if (!canAccessStaff(c.get('staff'), c.req.path)) return c.text('이 작업에 접근할 권한이 없습니다.', 403)
   await next()
-  if (c.req.method === 'POST' && ([302,303].includes(c.res.status) || (c.req.path === '/admin/api/upload' && c.res.status === 200)) && !/^\/admin\/(staff|reservations|privacy)/.test(c.req.path)) {
+  if (c.req.method === 'POST' && ([302,303].includes(c.res.status) || (c.res.status === 200 && (c.req.path === '/admin/api/upload' || c.req.path === '/admin/api/fees' || c.req.header('x-cms-request') === '1'))) && !/^\/admin\/(staff|reservations|privacy)/.test(c.req.path)) {
     await auditStatement(c.env.DB,c.get('staff')?.id || null,'admin.change',null,{route:c.req.path}).run()
   }
 })
@@ -128,17 +129,30 @@ admin.post('/api/upload', async (c) => {
   } catch (e: any) { return c.json({ error: e.message }, 400) }
 })
 
+// Fetch saves keep browser fields/files intact on errors; native forms remain supported.
+function cmsSaved(c: Context<Env>, target: string) {
+  return c.req.header('x-cms-request') === '1' ? c.json({ ok: true, redirect: target + '?saved=1' }) : c.redirect(target + '?saved=1')
+}
+function cmsError(c: Context<Env>, error: unknown) {
+  const message = error instanceof Error ? error.message : ''
+  const safe = /제목|본문|내용|이미지|파일|8MB|형식|게시일/.test(message) ? message : /UNIQUE/i.test(message) ? '이미 사용 중인 URL입니다. 슬러그를 변경한 뒤 다시 저장해 주세요.' : '저장하지 못했습니다. 입력 내용은 유지됩니다. 다시 시도해 주세요.'
+  return c.json({ error: safe }, 400)
+}
+function editorToolbar() {
+  return html`<div class="editor-toolbar" role="toolbar" aria-label="본문 서식 도구">
+    ${[['undo','실행 취소'],['redo','다시 실행'],['h2','큰 소제목'],['h3','작은 소제목'],['p','본문'],['bold','굵게'],['italic','기울임'],['ul','글머리 목록'],['ol','번호 목록'],['quote','인용'],['link','링크'],['unlink','링크 해제'],['image','이미지'],['hr','구분선'],['clear','서식 지우기']].map(([k,l])=>html`<button type="button" data-cmd="${k}" aria-label="${l}" title="${l}">${l}</button>`)}</div>`
+}
 // ── 치료 전후 ────────────────────────────────────────────
 const AGES = ['10대', '20대', '30대', '40대', '50대', '60대', '70대 이상']
 function caseForm(c: any, k: any = {}, err?: string) {
   const slot = (name: string, label: string) => html`<div class="upload-slot ${k[name] ? 'has' : ''}" data-slot="${name}">
     <label>${label}</label>
     ${k[name] ? html`<img src="/files/${k[name]}" alt="" width="240" height="160">` : html`<span class="upload-empty">클릭 또는 드래그하여 업로드</span>`}
-    <input type="file" name="${name}_file" accept="image/*">
+    <input type="file" aria-label="${label} 파일 선택" name="${name}_file" accept="image/jpeg,image/png,image/webp,image/gif">
     <input type="hidden" name="${name}" value="${k[name] || ''}">
     <label class="check small"><input type="checkbox" name="${name}_clear" value="1"> 삭제</label>
   </div>`
-  const body = html`${alertBox(err)}<form method="post" enctype="multipart/form-data" class="admin-form" data-once>
+  const body = html`${alertBox(err)}<form method="post" enctype="multipart/form-data" class="admin-form cms-form" data-cms-form="case" data-once>
   <div class="form-row"><div class="field"><label>제목 *</label><input name="title" required value="${k.title || ''}" placeholder="예: 깊은 충치, 신경 살려 크라운으로 마무리"></div><div class="field"><label>슬러그 (URL)</label><input name="slug" value="${k.slug || ''}" placeholder="비우면 자동 생성"></div></div>
   <div class="form-row">
     <div class="field"><label>진료 *</label><select name="treatment_slug" required>${treatments.map((t) => html`<option value="${t.slug}" ${k.treatment_slug === t.slug ? 'selected' : ''}>${t.name}</option>`)}</select></div>
@@ -151,10 +165,10 @@ function caseForm(c: any, k: any = {}, err?: string) {
     <div class="field"><label>치료 기간</label><input name="duration" value="${k.duration || ''}" placeholder="예: 3주 (2회 내원)"></div>
   </div>
   <div class="field"><label>치료 설명</label><textarea name="description" rows="6" placeholder="어떤 상태였고, 왜 이 치료를 선택했고, 어떻게 진행했는지. 효과 보장·비교·과장 표현 금지.">${k.description || ''}</textarea></div>
-  <h3 class="h3">사진 (없는 항목은 비워두면 표시되지 않습니다)</h3>
+  <h2 class="h3">전·후 사진 등록</h2><p class="cms-guidance">치료 전 사진은 게시 후 공개되며, 치료 후 사진은 회원 전용입니다. 환자 동의·비식별화·촬영정보를 확인하세요. JPG·PNG·WebP·GIF, 파일당 8MB까지 지원합니다. HEIC는 JPG로 변환해 주세요.</p>
   <div class="grid-2">${slot('intra_before', '구내 사진 · 치료 전 (공개)')}${slot('intra_after', '구내 사진 · 치료 후 (회원 전용)')}${slot('pano_before', '파노라마 · 치료 전 (공개)')}${slot('pano_after', '파노라마 · 치료 후 (회원 전용)')}</div>
-  <label class="check"><input type="checkbox" name="published" value="1" ${k.published === 0 ? '' : 'checked'}> 공개</label>
-  <div class="admin-toolbar"><button type="submit" class="btn btn-primary" data-loading="저장 중…">저장</button><a href="/admin/cases" class="btn btn-outline">목록</a>${k.id ? html`<button type="submit" form="del" class="btn btn-danger" onclick="return confirm('삭제할까요?')">삭제</button>` : ''}</div>
+  <label class="check"><input type="checkbox" name="published" value="1" ${k.published ? 'checked' : ''}> 공개</label>
+  <div class="admin-toolbar"><button type="submit" class="btn btn-primary" data-loading="저장 중…">저장</button><button type="button" class="btn btn-outline" data-cms-preview>작성 내용 미리보기</button><a href="/admin/cases" class="btn btn-outline">목록</a>${k.id ? html`<button type="submit" form="del" class="btn btn-danger" onclick="return confirm('삭제할까요?')">삭제</button>` : ''}</div>
 </form>${k.id ? html`<form id="del" method="post" action="/admin/cases/${k.id}/delete"></form>` : ''}`
   return shell(c, k.id ? '치료 전후 수정' : '치료 전후 등록', body, 'cases')
 }
@@ -169,6 +183,9 @@ async function saveCase(c: Context<Env>, id?: number) {
   const fd = await c.req.formData()
   const g = (k: string) => String(fd.get(k) || '').trim()
   const cur = id ? await c.env.DB.prepare('SELECT * FROM cases WHERE id=?').bind(id).first<any>() : {}
+  if (id && !cur) throw new Error('수정할 게시물을 찾을 수 없습니다.')
+  const title = g('title'); if (!title || title.length > 160) throw new Error('제목은 1~160자로 입력해 주세요.')
+  for (const key of ['intra_before','intra_after','pano_before','pano_after']) { const file = fd.get(key + '_file'); if (file instanceof File && file.size) await checkedImage(file) }
   const photos: Record<string, string | null> = {}
   for (const s of ['intra_before', 'intra_after', 'pano_before', 'pano_after']) {
     const f = fd.get(`${s}_file`)
@@ -176,42 +193,39 @@ async function saveCase(c: Context<Env>, id?: number) {
     else if (fd.get(`${s}_clear`)) photos[s] = null
     else photos[s] = cur?.[s] || null
   }
-  const title = g('title'); if (!title) throw new Error('제목을 입력해 주세요.')
   const slug = g('slug') ? slugify(g('slug')) : (id && cur?.slug) ? cur.slug : `${g('treatment_slug') || 'case'}-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${crypto.randomUUID().slice(0, 4)}`
   const vals = [slug, title, g('description') || null, g('treatment_slug'), g('doctor_slug') || 'han-hwirim', g('age_group') || null, g('gender') || null, g('region') || null, g('duration') || null, photos.pano_before, photos.pano_after, photos.intra_before, photos.intra_after, fd.get('published') ? 1 : 0]
   if (id) await c.env.DB.prepare('UPDATE cases SET slug=?,title=?,description=?,treatment_slug=?,doctor_slug=?,age_group=?,gender=?,region=?,duration=?,pano_before=?,pano_after=?,intra_before=?,intra_after=?,published=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(...vals, id).run()
   else await c.env.DB.prepare('INSERT INTO cases (slug,title,description,treatment_slug,doctor_slug,age_group,gender,region,duration,pano_before,pano_after,intra_before,intra_after,published) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(...vals).run()
 }
-admin.post('/cases/new', async (c) => { try { await saveCase(c); return c.redirect('/admin/cases') } catch (e: any) { return caseForm(c, {}, e.message) } })
-admin.post('/cases/:id', async (c) => { const id = Number(c.req.param('id')); try { await saveCase(c, id); return c.redirect('/admin/cases') } catch (e: any) { return caseForm(c, { ...(await c.env.DB.prepare('SELECT * FROM cases WHERE id=?').bind(id).first<any>()) }, e.message) } })
+admin.post('/cases/new', async (c) => { try { await saveCase(c); return cmsSaved(c, '/admin/cases') } catch (e: any) { if (c.req.header('x-cms-request') === '1') return cmsError(c,e); return caseForm(c, {}, e.message) } })
+admin.post('/cases/:id', async (c) => { const id = Number(c.req.param('id')); try { await saveCase(c, id); return cmsSaved(c, '/admin/cases') } catch (e: any) { if (c.req.header('x-cms-request') === '1') return cmsError(c,e); return caseForm(c, { ...(await c.env.DB.prepare('SELECT * FROM cases WHERE id=?').bind(id).first<any>()) }, e.message) } })
 admin.post('/cases/:id/delete', async (c) => { await c.env.DB.prepare('DELETE FROM cases WHERE id=?').bind(c.req.param('id')).run(); return c.redirect('/admin/cases') })
 
 // ── 원장 칼럼 (SEO 에디터) ───────────────────────────────
 const editorialImageNotice = html`<aside class="ops-panel" aria-label="이미지 공개 안내"><h2 class="h3">게시 전에 이미지 공개 범위를 확인하세요</h2><p>공개 칼럼·공지에 연결한 일반 이미지는 누구나 볼 수 있고, 운영 사이트에서는 검색 대상이 될 수 있습니다. 업로드만 했거나 비공개 글에만 연결된 이미지는 담당 직원만 확인할 수 있습니다.</p><p>치료 후 사진을 칼럼·공지용으로 다시 업로드하지 마세요. 동일 사진을 새 파일로 올린 경우 자동으로 식별하지 못합니다. 환자 동의·비식별화·촬영 메타데이터는 게시자가 확인해야 합니다.</p><p class="hint">다른 공개 글에서도 쓰는 이미지는 한 글만 비공개로 바꿔도 계속 공개됩니다. 검색 결과·외부 복제본의 즉시 삭제를 보장하지 않습니다.</p></aside>`
 function columnForm(c: any, p: any = {}, err?: string) {
-  const body = html`${alertBox(err)}${editorialImageNotice}<form method="post" enctype="multipart/form-data" class="admin-form" data-once id="column-form">
+  const body = html`${alertBox(err)}${editorialImageNotice}<form method="post" enctype="multipart/form-data" class="admin-form cms-form" data-cms-form="column" data-once id="column-form">
   <div class="field"><label>제목 (H1) *</label><input name="title" required value="${p.title || ''}" maxlength="80" data-count></div>
   <div class="form-row"><div class="field"><label>슬러그 (URL)</label><input name="slug" value="${p.slug || ''}" placeholder="비우면 제목에서 자동 생성"></div><div class="field"><label>작성자</label><select name="author_slug">${doctors.map((d) => html`<option value="${d.slug}" ${(p.author_slug || 'han-hwirim') === d.slug ? 'selected' : ''}>${d.name} ${d.title}</option>`)}</select></div><div class="field"><label>관련 진료 (인링크)</label><select name="treatment_slug"><option value="">없음</option>${treatments.map((t) => html`<option value="${t.slug}" ${p.treatment_slug === t.slug ? 'selected' : ''}>${t.name}</option>`)}</select></div></div>
   <div class="field"><label>요약 (excerpt · 목록·OG에 사용)</label><textarea name="excerpt" rows="2" maxlength="200" data-count>${p.excerpt || ''}</textarea></div>
   <div class="field"><label>본문 *</label>
-    <div class="editor-toolbar" role="toolbar" aria-label="서식">
-      ${[['h2', 'H2'], ['h3', 'H3'], ['p', '본문'], ['bold', 'B'], ['italic', 'I'], ['ul', '• 목록'], ['ol', '1. 목록'], ['quote', '인용'], ['link', '링크'], ['image', '이미지'], ['hr', '구분선'], ['clear', '서식 지우기']].map(([k, l]) => html`<button type="button" data-cmd="${k}">${l}</button>`)}
-      <span class="editor-hint">이미지는 드래그하거나 붙여넣기(Ctrl+V)로도 넣을 수 있습니다</span>
-    </div>
-    <div class="editor" id="editor" contenteditable="true" data-upload="/admin/api/upload" data-prefix="columns">${raw(sanitizeArticle(p.content_html || '<p></p>'))}</div>
+    ${editorToolbar()}
+    <p class="hint">H1은 제목에 자동 적용됩니다. 본문은 큰 소제목(H2)부터 작성하세요. 이미지 업로드 후 설명을 입력할 수 있습니다.</p>
+    <div class="editor" id="editor" role="textbox" aria-label="게시물 본문" aria-multiline="true" contenteditable="true" spellcheck="true" data-upload="/admin/api/upload" data-prefix="columns">${raw(sanitizeArticle(p.content_html || '<p></p>'))}</div>
     <textarea name="content_html" id="content_html" hidden>${p.content_html || ''}</textarea>
   </div>
   <div class="form-row">
-    <div class="field"><label>대표 이미지 (썸네일·OG)</label><div class="upload-slot ${p.thumbnail ? 'has' : ''}">${p.thumbnail ? html`<img src="/files/${p.thumbnail}" alt="" width="240" height="160">` : html`<span class="upload-empty">클릭 또는 드래그</span>`}<input type="file" name="thumbnail_file" accept="image/*"><input type="hidden" name="thumbnail" value="${p.thumbnail || ''}"><label class="check small"><input type="checkbox" name="thumbnail_clear" value="1"> 삭제</label></div></div>
+    <div class="field"><label>대표 이미지 (썸네일·OG)</label><div class="upload-slot ${p.thumbnail ? 'has' : ''}">${p.thumbnail ? html`<img src="/files/${p.thumbnail}" alt="" width="240" height="160">` : html`<span class="upload-empty">클릭 또는 드래그</span>`}<input type="file" name="thumbnail_file" accept="image/jpeg,image/png,image/webp,image/gif"><input type="hidden" name="thumbnail" value="${p.thumbnail || ''}"><label class="check small"><input type="checkbox" name="thumbnail_clear" value="1"> 삭제</label></div></div>
     <div>
       <div class="field"><label>SEO 제목 <small>(비우면 제목 사용, 60자 이내 권장)</small></label><input name="meta_title" value="${p.meta_title || ''}" maxlength="70" data-count></div>
       <div class="field"><label>SEO 설명 <small>(155자 이내 권장)</small></label><textarea name="meta_description" rows="2" maxlength="160" data-count>${p.meta_description || ''}</textarea></div>
       <div class="field"><label>태그 (쉼표 구분)</label><input name="tags" value="${p.tags || ''}" placeholder="신경치료, MTA, 자연치아"></div>
-      <div class="field"><label>게시일</label><input type="datetime-local" name="published_at" value="${p.published_at ? String(p.published_at).replace(' ', 'T').slice(0, 16) : ''}"></div>
+      <div class="field"><label>게시일 (한국시간 · 표시용, 예약발행 아님)</label><input type="datetime-local" name="published_at" value="${isoDate(p.published_at) ? new Date(new Date(isoDate(p.published_at)!).getTime() + 9 * 3600e3).toISOString().slice(0,16) : ''}"></div>
     </div>
   </div>
-  <label class="check"><input type="checkbox" name="published" value="1" ${p.published === 0 ? '' : 'checked'}> 공개</label>
-  <div class="admin-toolbar"><button type="submit" class="btn btn-primary" data-loading="저장 중…">저장</button><a href="/admin/columns" class="btn btn-outline">목록</a>${p.id ? html`<a href="/column/${p.slug}" target="_blank" class="btn btn-outline">미리보기 ↗</a><button type="submit" form="del" class="btn btn-danger" onclick="return confirm('삭제할까요?')">삭제</button>` : ''}</div>
+  <label class="check"><input type="checkbox" name="published" value="1" ${p.published ? 'checked' : ''}> 공개</label>
+  <div class="admin-toolbar"><button type="submit" class="btn btn-primary" data-loading="저장 중…">저장</button><button type="button" class="btn btn-outline" data-cms-preview>작성 내용 미리보기</button><a href="/admin/columns" class="btn btn-outline">목록</a>${p.id ? html`<a href="/column/${p.slug}" target="_blank" class="btn btn-outline">저장된 공개 화면 ↗</a><button type="submit" form="del" class="btn btn-danger" onclick="return confirm('삭제할까요?')">삭제</button>` : ''}</div>
 </form>${p.id ? html`<form id="del" method="post" action="/admin/columns/${p.id}/delete"></form>` : ''}`
   return shell(c, p.id ? '칼럼 수정' : '칼럼 작성', body, 'columns')
 }
@@ -227,29 +241,33 @@ async function saveColumn(c: Context<Env>, id?: number) {
   const cur = id ? await c.env.DB.prepare('SELECT * FROM columns WHERE id=?').bind(id).first<any>() : {}
   if (g('content_html').length > 200000) throw new Error('본문이 너무 깁니다.')
   const title = g('title'); const content = sanitizeArticle(g('content_html'))
-  if (!title || stripTags(content).length < 20) throw new Error('제목과 본문(20자 이상)을 입력해 주세요.')
+  if (id && !cur) throw new Error('수정할 게시물을 찾을 수 없습니다.')
+  if (!title || title.length > 80 || stripTags(content).length < 20) throw new Error('제목과 본문(20자 이상)을 입력해 주세요.')
   let thumb = cur?.thumbnail || null
   const tf = fd.get('thumbnail_file'); if (tf instanceof File && tf.size) thumb = await putFile(c, tf, 'columns'); else if (fd.get('thumbnail_clear')) thumb = null
   const slug = g('slug') ? slugify(g('slug')) : (id && cur?.slug) ? cur.slug : (/^[\x00-\x7F]+$/.test(title) ? slugify(title) : `column-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${crypto.randomUUID().slice(0, 4)}`)
-  const pub = g('published_at') ? g('published_at').replace('T', ' ') + ':00' : cur?.published_at || new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 19).replace('T', ' ')
+  const enteredDate = g('published_at')
+  const parsedDate = enteredDate ? isoDate(enteredDate + '+09:00') : undefined
+  if (enteredDate && !parsedDate) throw new Error('게시일 형식을 확인해 주세요.')
+  const pub = parsedDate ? parsedDate.slice(0,19).replace('T',' ') : cur?.published_at || new Date().toISOString().slice(0,19).replace('T',' ')
   const excerpt = g('excerpt') || stripTags(content).slice(0, 150)
   const vals = [slug, title, excerpt, content, thumb, g('author_slug') || 'han-hwirim', g('treatment_slug') || null, g('meta_title') || null, g('meta_description') || null, g('tags') || null, fd.get('published') ? 1 : 0, pub]
   if (id) await c.env.DB.prepare('UPDATE columns SET slug=?,title=?,excerpt=?,content_html=?,thumbnail=?,author_slug=?,treatment_slug=?,meta_title=?,meta_description=?,tags=?,published=?,published_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(...vals, id).run()
   else await c.env.DB.prepare('INSERT INTO columns (slug,title,excerpt,content_html,thumbnail,author_slug,treatment_slug,meta_title,meta_description,tags,published,published_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(...vals).run()
 }
-admin.post('/columns/new', async (c) => { try { await saveColumn(c); return c.redirect('/admin/columns') } catch (e: any) { return columnForm(c, {}, e.message) } })
-admin.post('/columns/:id', async (c) => { const id = Number(c.req.param('id')); try { await saveColumn(c, id); return c.redirect('/admin/columns') } catch (e: any) { return columnForm(c, await c.env.DB.prepare('SELECT * FROM columns WHERE id=?').bind(id).first(), e.message) } })
+admin.post('/columns/new', async (c) => { try { await saveColumn(c); return cmsSaved(c, '/admin/columns') } catch (e: any) { if (c.req.header('x-cms-request') === '1') return cmsError(c,e); return columnForm(c, {}, e.message) } })
+admin.post('/columns/:id', async (c) => { const id = Number(c.req.param('id')); try { await saveColumn(c, id); return cmsSaved(c, '/admin/columns') } catch (e: any) { if (c.req.header('x-cms-request') === '1') return cmsError(c,e); return columnForm(c, await c.env.DB.prepare('SELECT * FROM columns WHERE id=?').bind(id).first(), e.message) } })
 admin.post('/columns/:id/delete', async (c) => { await c.env.DB.prepare('DELETE FROM columns WHERE id=?').bind(c.req.param('id')).run(); return c.redirect('/admin/columns') })
 
 // ── 공지사항 ─────────────────────────────────────────────
 function noticeForm(c: any, n: any = {}, err?: string) {
-  const body = html`${alertBox(err)}${editorialImageNotice}<form method="post" enctype="multipart/form-data" class="admin-form" data-once>
+  const body = html`${alertBox(err)}${editorialImageNotice}<form method="post" enctype="multipart/form-data" class="admin-form cms-form" data-cms-form="notice" data-once>
   <div class="field"><label>제목 *</label><input name="title" required value="${n.title || ''}"></div>
-  <div class="field"><label>내용 *</label><div class="editor-toolbar">${[['h3', 'H3'], ['p', '본문'], ['bold', 'B'], ['ul', '• 목록'], ['link', '링크'], ['image', '이미지']].map(([k, l]) => html`<button type="button" data-cmd="${k}">${l}</button>`)}</div><div class="editor" id="editor" contenteditable="true" data-upload="/admin/api/upload" data-prefix="notices">${raw(sanitizeArticle(n.content_html || '<p></p>'))}</div><textarea name="content_html" id="content_html" hidden>${n.content_html || ''}</textarea></div>
-  <div class="field"><label>이미지 (선택)</label><div class="upload-slot ${n.image ? 'has' : ''}">${n.image ? html`<img src="/files/${n.image}" alt="" width="240" height="160">` : html`<span class="upload-empty">클릭 또는 드래그</span>`}<input type="file" name="image_file" accept="image/*"><input type="hidden" name="image" value="${n.image || ''}"><label class="check small"><input type="checkbox" name="image_clear" value="1"> 삭제</label></div></div>
+  <div class="field"><label>내용 *</label>${editorToolbar()}<div class="editor" id="editor" role="textbox" aria-label="게시물 본문" aria-multiline="true" contenteditable="true" spellcheck="true" data-upload="/admin/api/upload" data-prefix="notices">${raw(sanitizeArticle(n.content_html || '<p></p>'))}</div><textarea name="content_html" id="content_html" hidden>${n.content_html || ''}</textarea></div>
+  <div class="field"><label>이미지 (선택)</label><div class="upload-slot ${n.image ? 'has' : ''}">${n.image ? html`<img src="/files/${n.image}" alt="" width="240" height="160">` : html`<span class="upload-empty">클릭 또는 드래그</span>`}<input type="file" name="image_file" accept="image/jpeg,image/png,image/webp,image/gif"><input type="hidden" name="image" value="${n.image || ''}"><label class="check small"><input type="checkbox" name="image_clear" value="1"> 삭제</label></div></div>
   <label class="check"><input type="checkbox" name="pinned" value="1" ${n.pinned ? 'checked' : ''}> 대표 공지 (홈 상단 노출)</label>
-  <label class="check"><input type="checkbox" name="published" value="1" ${n.published === 0 ? '' : 'checked'}> 공개</label>
-  <div class="admin-toolbar"><button type="submit" class="btn btn-primary">저장</button><a href="/admin/notices" class="btn btn-outline">목록</a>${n.id ? html`<button type="submit" form="del" class="btn btn-danger" onclick="return confirm('삭제할까요?')">삭제</button>` : ''}</div>
+  <label class="check"><input type="checkbox" name="published" value="1" ${n.published ? 'checked' : ''}> 공개</label>
+  <div class="admin-toolbar"><button type="submit" class="btn btn-primary">저장</button><button type="button" class="btn btn-outline" data-cms-preview>작성 내용 미리보기</button><a href="/admin/notices" class="btn btn-outline">목록</a>${n.id ? html`<button type="submit" form="del" class="btn btn-danger" onclick="return confirm('삭제할까요?')">삭제</button>` : ''}</div>
 </form>${n.id ? html`<form id="del" method="post" action="/admin/notices/${n.id}/delete"></form>` : ''}`
   return shell(c, n.id ? '공지 수정' : '공지 작성', body, 'notices')
 }
@@ -262,18 +280,19 @@ admin.get('/notices/:id', async (c) => { const n = await c.env.DB.prepare('SELEC
 async function saveNotice(c: Context<Env>, id?: number) {
   const fd = await c.req.formData(); const g = (k: string) => String(fd.get(k) || '').trim()
   const cur = id ? await c.env.DB.prepare('SELECT * FROM notices WHERE id=?').bind(id).first<any>() : {}
-  if (!g('title') || !stripTags(g('content_html'))) throw new Error('제목과 내용을 입력해 주세요.')
+  if (id && !cur) throw new Error('수정할 게시물을 찾을 수 없습니다.')
+  if (g('content_html').length > 200000) throw new Error('본문이 너무 깁니다.')
+  const content = sanitizeArticle(g('content_html'))
+  if (!g('title') || g('title').length > 160 || !stripTags(content).trim()) throw new Error('제목과 내용을 입력해 주세요. 제목은 160자까지입니다.')
   let img = cur?.image || null
   const f = fd.get('image_file'); if (f instanceof File && f.size) img = await putFile(c, f, 'notices'); else if (fd.get('image_clear')) img = null
   const pinned = fd.get('pinned') ? 1 : 0
-  if (pinned) await c.env.DB.prepare('UPDATE notices SET pinned=0').run()
-  if (g('content_html').length > 200000) throw new Error('본문이 너무 깁니다.')
-  const vals = [g('title'), sanitizeArticle(g('content_html')), img, pinned, fd.get('published') ? 1 : 0]
-  if (id) await c.env.DB.prepare('UPDATE notices SET title=?,content_html=?,image=?,pinned=?,published=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(...vals, id).run()
-  else await c.env.DB.prepare('INSERT INTO notices (title,content_html,image,pinned,published) VALUES (?,?,?,?,?)').bind(...vals).run()
+  const vals = [g('title'), content, img, pinned, fd.get('published') ? 1 : 0]
+  const write = id ? c.env.DB.prepare('UPDATE notices SET title=?,content_html=?,image=?,pinned=?,published=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(...vals, id) : c.env.DB.prepare('INSERT INTO notices (title,content_html,image,pinned,published) VALUES (?,?,?,?,?)').bind(...vals)
+  await c.env.DB.batch([...(pinned ? [c.env.DB.prepare('UPDATE notices SET pinned=0')] : []), write])
 }
-admin.post('/notices/new', async (c) => { try { await saveNotice(c); return c.redirect('/admin/notices') } catch (e: any) { return noticeForm(c, {}, e.message) } })
-admin.post('/notices/:id', async (c) => { const id = Number(c.req.param('id')); try { await saveNotice(c, id); return c.redirect('/admin/notices') } catch (e: any) { return noticeForm(c, await c.env.DB.prepare('SELECT * FROM notices WHERE id=?').bind(id).first(), e.message) } })
+admin.post('/notices/new', async (c) => { try { await saveNotice(c); return cmsSaved(c, '/admin/notices') } catch (e: any) { if (c.req.header('x-cms-request') === '1') return cmsError(c,e); return noticeForm(c, {}, e.message) } })
+admin.post('/notices/:id', async (c) => { const id = Number(c.req.param('id')); try { await saveNotice(c, id); return cmsSaved(c, '/admin/notices') } catch (e: any) { if (c.req.header('x-cms-request') === '1') return cmsError(c,e); return noticeForm(c, await c.env.DB.prepare('SELECT * FROM notices WHERE id=?').bind(id).first(), e.message) } })
 admin.post('/notices/:id/delete', async (c) => { await c.env.DB.prepare('DELETE FROM notices WHERE id=?').bind(c.req.param('id')).run(); return c.redirect('/admin/notices') })
 
 // ── 회원 ─────────────────────────────────────────────────

@@ -166,6 +166,12 @@ try {
     check(data.canonicals[0] === site + '/column' + (normalized ? '?page=' + normalized : ''), 'Normalized pagination canonical: ' + input)
     check(normalized ? data.titles[0].endsWith(` · ${normalized}페이지`) : !data.titles[0].includes('페이지'), 'Normalized pagination title: ' + input)
   }
+  for (const alias of ['https://www.dodamdc.kr', 'https://seoul-dodam-dental.pages.dev']) {
+    const redirect = await app.request(alias + '/treatments/implant?utm_source=fixture', {}, env)
+    check(redirect.status === 301 && redirect.headers.get('location') === site + '/treatments/implant?utm_source=fixture', 'Verified alias redirects to custom canonical domain: ' + alias)
+    const login = await app.request(alias + '/auth/login', {}, env)
+    check(login.status === 200, 'Do not migrate origin-bound auth sessions by redirect: ' + alias)
+  }
   const get = await app.request(site + '/', {}, env)
   const head = await app.request(site + '/', { method: 'HEAD' }, env)
   check(head.headers.get('x-robots-tag') === get.headers.get('x-robots-tag'), 'Production GET/HEAD indexing parity')
