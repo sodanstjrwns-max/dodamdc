@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { STATS_TOKEN, MASTER_KEY } from '../lib/stats-page'
 import { safeFileKey, hasPublishedEditorialImage } from '../lib/content-safety'
 import { canAccessStaff } from '../lib/security'
 import { conversionScope, conversionStatement, cleanupConversions } from '../lib/conversions'
@@ -14,6 +15,22 @@ import { getNaverBookingUrl } from '../data/clinic'
 import { fmtDate, trackView, stripTags, formData, isEmail, normPhone } from '../lib/util'
 
 const content = new Hono<Env>()
+
+// 중앙 대시보드 실예약 집계 — 최근 28일 vs 직전 28일 (created_at 은 UTC CURRENT_TIMESTAMP)
+content.get('/api/local-stats', async (c) => {
+  const key = c.req.query('key') || ''
+  if (key !== STATS_TOKEN && key !== MASTER_KEY) return c.notFound()
+  try {
+    const row = await c.env.DB.prepare(
+      `SELECT
+         SUM(CASE WHEN created_at >= datetime('now','-28 days') THEN 1 ELSE 0 END) AS cur,
+         SUM(CASE WHEN created_at >= datetime('now','-56 days') AND created_at < datetime('now','-28 days') THEN 1 ELSE 0 END) AS prev
+       FROM reservations`
+    ).first<{ cur: number | null; prev: number | null }>()
+    const cur = Number(row?.cur ?? 0), prev = Number(row?.prev ?? 0)
+    return c.json({ supported: true, tables: [{ name: 'reservations', cur, prev }], total: { cur, prev } })
+  } catch { return c.json({ supported: false }) }
+})
 const PER = 12
 
 // ── 파일 서빙 (R2) — 치료 후 사진은 로그인 필요 ──────────
