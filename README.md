@@ -3,7 +3,8 @@
 ## 최신 납품 마감 — SEO / 정식 도메인 / 모바일 CMS
 
 - **정식 홈페이지 / 안내 / 관리자**: https://dodamdc.kr/ · https://dodamdc.kr/handover · https://dodamdc.kr/admin/login
-- **상태**: 전체 기능 회귀 통과, 안내·개인정보 문구의 최종 재검사 후 운영 배포 준비. 아래 과거 릴리스 기록과 구분합니다.
+- **상태**: 운영 배포 및 실주소 검증 완료. 앱 소스 `11e1f9f`, 배포 `fcb5932c` (https://fcb5932c.seoul-dodam-dental.pages.dev). 기존 BYOK Pages 프로젝트의 main을 갱신했고 SITE_URL을 https://dodamdc.kr 로 설정했습니다. 운영 DB·R2·가격표는 변경하지 않았습니다.
+- **운영 검증**: https://dodamdc.kr 의 공개 HTML 706페이지와 이미지 36개, GET/HEAD·canonical·스키마·헤딩·내부 앵커 검사 오류·경고 0. www/기존 Pages 공개 경로 301, immutable 미리보기 noindex, 관리자 비로그인 302, 무인증 통계 API 404 확인. 납품 안내는 실제 운영 URL에서 Chromium/Linux WebKit 각각 320·390·1440px·인쇄 동작·JavaScript 오류 없음을 확인했습니다.
 - **회귀 결과**: 로컬 SEO 701페이지/이미지 36개 오류·경고 0; 디자인 80화면, 모바일 8그룹, 모션 9그룹, 예약 동선 8그룹, 보안 9그룹, 안내 6뷰, CMS 8그룹 통과. CMS는 실제 격리 Worker HTTP multipart를 통해 Chromium·Linux WebKit 모두 작성/오류 복구/저장/재조회/공개·비공개/본문 이미지 설명/전후 교체·삭제를 확인했습니다. 각 엔진별 작성 폼 12화면과 긴 본문·표 공개 화면 6개를 검사했습니다.
 - 인수 요약보다 최신이었던 GitHub `e7d9a0a`, `b732242`, `01e29be`를 보존·통합했습니다. 비급여 편집기, 통합통계 화면과 분석 연동을 덮어쓰지 않았습니다. 운영에는 이미 0004/0005 migration과 fees 테이블이 있음을 읽기 전용으로 확인했으며, 이번에 운영 migration을 재실행하거나 가격·환자 데이터를 변경하지 않습니다.
 - Cloudflare에 `dodamdc.kr`·`www.dodamdc.kr`이 이미 연결돼 있었지만 canonical은 Pages 주소, 정식 도메인은 noindex였음을 실제 응답으로 확인했습니다. `https://dodamdc.kr`을 대표주소로 정리하고 www/기존 Pages의 공개 GET·HEAD를 301 연결합니다. 인증·API·R2 경로의 origin-bound 세션은 강제 이동하지 않습니다. 기존 도메인 세션은 새 도메인에서 재로그인이 필요할 수 있습니다.
@@ -14,7 +15,7 @@
 - 비급여 공개 경계: 모든 항목 비공개/삭제 시 과거 기본 수가를 되살리지 않습니다. 명시적 빈 목록과 미설치 legacy 테이블을 구분하고, 잘못된 저장 payload·음수 금액·중복 그룹 ID를 거부합니다. DB 기반 수가에 과거 고정 기준일을 붙이지 않습니다.
 - **외부 통계 보안 후속조치 필요**: 통합한 외부 커밋에는 통계 접근 인증값이 코드에 포함돼 있었습니다. 현재 소스에서 제거하고 직원 세션을 요구하며, 서버간 집계는 `LOCAL_STATS_TOKEN` Bearer 헤더만 받습니다. 외부 통계 조회는 `STATS_API_TOKEN` secret 설정 후 작동합니다. 공개된 이전 인증값은 중앙 서비스에서 폐기·재발급해야 하며, 이 작업은 중앙 서비스의 키를 변경하거나 GitHub history를 강제 재작성하지 않았습니다. 과거 커밋에는 값이 남을 수 있으므로 일반 Git-history 백업 대신 현재 추적 소스만 별도 archive로 제공합니다. 로컬 조회·전환 통계는 계속 사용 가능합니다.
 - Clarity/방문 분석은 공개 운영 페이지에서만 유지하고 예약·회원·관리·사례·납품 안내/로그인 사용자/관리자/봇/DNT/GPC에 제외 조건을 적용했습니다. 개인정보 페이지의 외부 분석 안내를 보정했으며 위탁·이전·보유기간·동의 요건의 최종 검토는 병원 책임입니다.
-- 미설정: 자동 이메일 알림, Google OAuth, 재발급한 외부 통계 인증정보. GSC/Naver 소유확인 태그 미설정은 확인했으나 DNS 등 다른 방법의 등록 여부는 검색서비스 계정에서 별도 확인해야 합니다. 검색 순위·AI 인용·의료광고 적법성·네이티브 iPhone/Kakao 지원은 보장하지 않습니다.
+- 미설정: 자동 이메일 알림, Google OAuth, 재발급한 외부 통계 인증정보. 운영 GSC/Naver 소유확인 meta 태그는 모두 존재함을 확인했습니다(로컬 설정과 다름). 태그 존재만으로 소유확인 성공·사이트맵 제출·실제 색인을 확인할 수 없으므로 검색서비스 계정에서 별도 확인해야 합니다. 검색 순위·AI 인용·의료광고 적법성·네이티브 iPhone/Kakao 지원은 보장하지 않습니다.
 - `/handover`: 공개 가능한 내용만 담은 noindex 안내. 사이트맵에서 제외하고 분석 티켓·외부 분석을 넣지 않습니다. 납품 범위·직원 사용법·인수 체크리스트·미설정 연동·인쇄/PDF 저장을 제공합니다. noindex는 접근통제가 아닙니다.
 - 추가 검사: `TEST_WEBKIT=1 npm run test:cms`는 실제 multipart 전송을 받는 일회용 Miniflare Worker/D1/R2에서 작성·수정·이미지 업로드·오류 복구·공개/비공개·파일 접근권한을 브라우저로 검사합니다. WebKit의 route interception은 파일 bytes를 누락하므로 이를 앱 오류로 오인하지 않도록 실제 로컬 HTTP 전송을 사용합니다. 실운영 게시물·환자·사진을 시험 데이터로 변경하지 않습니다.
 - SEO 운영 검사: `SEO_BASE_URL=https://dodamdc.kr npm run test:seo`. 안내 브라우저 검사: `DELIVERY_BASE_URL=https://dodamdc.kr TEST_WEBKIT=1 npm run test:delivery`. 결과는 Git 제외 `.artifacts/`에 저장합니다.
