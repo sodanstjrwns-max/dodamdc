@@ -3,67 +3,129 @@ import type { Context } from 'hono'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
 
-/** Public, non-sensitive operator guide. No credentials, patient records or recovery details. */
+// The client explicitly requested the fee and bank account in both the page and message.
+export const deliveryMessage = `한휘림 원장님, 늦은 밤 죄송합니다.
+아래 설명서를 먼저 읽어주시면 감사하겠습니다.
+
+https://dodamdc.kr/handover
+
+서울도담치과 홈페이지가 완성되어, 이 밤에라도 전달드리고 싶었습니다.
+정말 하얗게 불태웠습니다.
+병원의 좋은 진료가 더 많은 환자에게 전해지고, 앞으로의 성장을 함께 만들어갈 홈페이지라고 자신합니다.
+
+이 홈페이지는 세 가지를 담고 있습니다.
+첫째 SEO, 검색엔진이 우리 병원의 정보를 잘 찾고 이해하도록.
+둘째 AEO, AI가 환자의 질문에 답할 때 참고할 수 있도록.
+셋째 체류시간, 사람이 실제로 보고 신뢰하며 내원을 결정할 수 있도록.
+
+그래서 겉으로 보이는 디자인뿐 아니라 제목, 대표주소, 구조화 데이터, 진료별 상세 설명과 콘텐츠 간 연결까지 신경 썼습니다. 글이 길고 페이지가 많은 이유도 여기에 있습니다. 모든 환자가 처음부터 끝까지 읽기보다는, 자신이 궁금했던 질문에 바로 도착할 수 있도록 만든 것입니다. 검색엔진과 AI도 그 내용을 이해할 수 있도록 구조를 갖췄습니다.
+
+다만 이 홈페이지를 앞으로 그냥 내버려두시면 안 됩니다.
+진료실에서 쌓이는 케이스와 환자분들이 자주 묻는 질문을 꾸준히 올려주세요. 사례 하나, 칼럼 한 편이 새로운 검색어로 우리 병원을 발견할 기회가 되고, 환자가 원장님을 믿을 수 있는 근거가 됩니다.
+저는 이 홈페이지가 납품 금액의 100배를 목표로 키워갈 만한 자산이라고 생각합니다. 물론 순위나 매출을 약속드리는 뜻은 아닙니다. 그만큼 오래, 제대로 써주셨으면 하는 마음입니다.
+
+이 홈페이지를 만드신 목적을 잊지 말아 주세요.
+예쁜 홈페이지 하나를 갖는 것이 아니라, 좋은 진료가 필요한 환자에게 발견되고 선택받는 것입니다.
+
+일단 밤이 늦었으니 편하게 둘러봐 주세요. 어떤 방식의 피드백도 환영합니다.
+그리고 당분간은 저와 함께 베타테스터가 되어주셔야 합니다 ㅎㅎ
+버그를 찾으려고 정말 열심히 확인했지만, 기기와 브라우저마다 반응이 달라 혼자 모든 경우를 확인할 수는 없습니다. 여러 페이지와 관리자 기능을 직접 써보시고 잘 안 되는 부분을 알려주시면 정말 감사하겠습니다.
+
+고치고 싶으신 부분이나 새로 넣고 싶으신 기능도 언제든 편하게 말씀해 주세요. 대부분의 사항은 수정하거나 구현할 방법을 함께 찾아볼 수 있습니다.
+딱 하나, 제게 없는 실제 사진을 만들어 넣어드릴 수는 없습니다 ㅎㅎ
+새로운 진료 사진이나 병원 사진, 멋진 영상이 생기면 전달해 주세요. 환자 동의와 공개 가능 여부를 확인한 자료라면 홈페이지에 잘 담아드리겠습니다.
+
+수정 기한이 언제까지냐면, 영원히입니다.
+어디 가지 않고 항상 있을 테니 걱정 마시고 편하게 연락 주세요.
+
+결제는 계좌이체로 부탁드립니다.
+농협 1085-02-007634 / 예금주 문석준
+납품 금액은 1,500만 원입니다.
+입금 확인 후 2주 이내에 세금계산서를 발급해 드립니다.
+본격적인 사업화보다는 직접 만드는 일에 집중하다 보니 다른 결제 수단이 준비되어 있지 않습니다. 너그러운 양해 부탁드립니다.
+
+아무쪼록 좋은 밤 되시고, 편하게 연락 주세요.
+감사합니다!
+
+문석준 드림
+https://dodamdc.kr`
+
 export function handoverPage(c: Context<Env>) {
-  const body = html`<article class="handover-document">
+  const body = html`<article class="handover-document handover-letter">
     <header class="handover-hero">
-      <p class="handover-eyebrow">SEOUL DODAM · WEBSITE HANDOVER</p>
-      <h1>좋은 진료가,<br><em>잘 전해지도록.</em></h1>
-      <p class="handover-intro">서울도담치과 홈페이지 납품 · 운영 안내</p>
-      <p>자연치아를 지키는 철학부터 예약 응대까지.<br>이 페이지에서 운영 방법과 납품 범위, 마지막 확인 사항을 살펴보세요.</p>
-      <div class="handover-actions"><a class="btn btn-primary" href="/">홈페이지 보기</a><a class="btn btn-outline" href="/admin/login">관리자 로그인</a><button class="btn btn-outline" type="button" id="handover-print">인쇄 · PDF 저장</button></div>
-      <p class="handover-caption">공개 가능한 운영 안내입니다. 검색 제외(noindex)는 접근 잠금이 아니므로, 이 페이지에 계정정보나 환자정보를 기록하지 마세요.</p>
+      <a class="handover-brand" href="/">SEOUL DODAM <span>서울도담치과</span></a>
+      <p class="handover-eyebrow">A LETTER FROM THE MAKER · 문석준 드림</p>
+      <h1>원장님,<br>정말 <em>하얗게 불태웠습니다.</em></h1>
+      <p class="handover-intro">서울도담치과의 다음 성장을 위해.<br>홈페이지가 아니라, 오래 쌓아갈 자산을 전합니다.</p>
+      <div class="handover-opening"><p>한휘림 원장님, 안녕하세요.<br>늦은 밤까지 한 줄 한 줄 다듬은 <strong>서울도담치과 공식 홈페이지</strong>를 전달드립니다.</p><p>그저 예쁜 화면을 만드는 것으로 끝내고 싶지 않았습니다. 원장님이 자연치아를 지키기 위해 고민하는 마음, 진료를 설명하는 방식, 환자가 안심하고 병원을 선택하는 과정까지 담고 싶었습니다.</p><p><strong>병원의 미래 성장을 함께 만들어갈 홈페이지라고 자신합니다.</strong><br>이 설명서에는 무엇을 만들었는지보다, 왜 이렇게 만들었고 앞으로 어떻게 써주셨으면 하는지를 담았습니다.</p></div>
+      <div class="handover-actions"><a class="btn btn-primary" href="/">완성된 홈페이지 보기</a><a class="btn btn-outline" href="#delivery-payment">결제 안내</a><button class="btn btn-outline" type="button" id="handover-print">설명서 인쇄 · PDF</button></div>
     </header>
-    <nav class="handover-toc" aria-label="납품 안내 목차"><a href="#delivery-scope">01 납품 범위</a><a href="#delivery-search">02 검색 최적화</a><a href="#delivery-operations">03 운영 방법</a><a href="#delivery-checklist">04 인수 확인</a><a href="#delivery-limits">05 운영 유의사항</a></nav>
+    <nav class="handover-toc" aria-label="납품 설명서 목차"><a href="#delivery-scope">세 가지 목적</a><a href="#delivery-search">숨은 설계</a><a href="#delivery-growth">앞으로의 운영</a><a href="#delivery-operations">관리자 사용법</a><a href="#delivery-limits">피드백 · 수정</a><a href="#delivery-payment">결제 안내</a></nav>
+
     <section id="delivery-scope" class="handover-section">
-      <p class="handover-eyebrow">01 / DELIVERED</p><h2>디자인만이 아닌,<br>운영을 위한 홈페이지.</h2>
-      <div class="handover-grid">
-        <section class="handover-card"><span class="handover-status">구현</span><h3>병원의 브랜드와 진료 철학</h3><p>실제 병원·의료진 사진, 자연치아 보존 중심의 소개, 3D 치아와 모션, 모바일 대응 및 모션 대체 화면.</p><a href="/mission">진료 철학 보기</a></section>
-        <section class="handover-card"><span class="handover-status">구현</span><h3>환자가 이해하는 진료 안내</h3><p>상황별 안내, 핵심 진료, 의료진, 첫 방문 준비, 진료시간·오시는 길·비급여·FAQ·치과 백과사전.</p><a href="/first-visit">첫 방문 안내 보기</a></section>
-        <section class="handover-card"><span class="handover-status">구현</span><h3>예약 신청과 응대 업무판</h3><p>네이버 예약 연결, 홈페이지 신청 저장, 담당자·연락 결과·재연락 일정·처리 이력 관리. 홈페이지 신청은 병원 확인 연락 후 확정합니다.</p><a href="/admin/reservations">예약 응대 업무판</a></section>
-        <section class="handover-card"><span class="handover-status">구현</span><h3>콘텐츠와 직원별 권한</h3><p>공지·칼럼·치료 사례·비급여 편집, 역할별 접근, 회원 본인 예약 확인, 공개/회원 전용 이미지 구분. 예약 만료 자료 삭제는 책임자 확인 후 별도로 진행합니다.</p><a href="/admin">관리자 홈</a></section>
+      <p class="handover-eyebrow">01 / CORE PURPOSE</p><h2>이 홈페이지는<br>세 가지를 담고 있습니다.</h2>
+      <div class="handover-pillars">
+        <section class="handover-card"><span class="pillar-number">01</span><h3>SEO<span>검색엔진이 찾고 이해하도록</span></h3><p>네이버·구글 등 검색엔진이 병원과 진료 내용을 수집하고, 각각의 페이지가 어떤 질문에 답하는지 이해할 수 있도록 설계했습니다.</p></section>
+        <section class="handover-card"><span class="pillar-number">02</span><h3>AEO<span>AI가 참고할 수 있도록</span></h3><p>환자가 AI에게 치과와 치료에 관해 물을 때 참고할 수 있는 공개 설명을 쌓았습니다. 질문·답변, 의료진과 진료 정보의 관계를 명확히 했습니다.</p></section>
+        <section class="handover-card"><span class="pillar-number">03</span><h3>체류시간<span>사람이 보고 내원을 결정하도록</span></h3><p>발견되는 것만으로는 부족합니다. 환자가 머물며 원장님을 이해하고, 신뢰를 쌓아 상담과 내원으로 이어질 수 있는 흐름을 만들었습니다.</p></section>
       </div>
+      <blockquote class="handover-quote">검색엔진과 AI가 이해하고,<br><strong>결국 사람이 선택하는 홈페이지.</strong></blockquote>
+      <p>이 세 가지 중 하나만 좋아서는 아쉽습니다. 검색에 발견되지만 읽고 싶지 않은 홈페이지도, 아름답지만 아무도 찾아오지 않는 홈페이지도 원한 결과가 아닙니다. <strong>발견 → 이해 → 신뢰 → 상담</strong>이 이어지도록 설계했습니다.</p>
     </section>
+
     <section id="delivery-search" class="handover-section">
-      <p class="handover-eyebrow">02 / SEARCH & ANSWERS</p><h2>검색엔진과 AI가<br>본문을 이해할 수 있게.</h2>
-      <p class="handover-lead">기술적 접근성, 정확한 대표주소, 일관된 병원 정보와 읽을 수 있는 설명을 기준으로 정리했습니다. 키워드 반복이나 가짜 후기·평점은 추가하지 않았습니다.</p>
-      <dl class="handover-specs">
-        <div><dt>제목 · H 태그</dt><dd>페이지별 title·description, 본문 H1 1개와 하위 제목 구조, 칼럼 본문 제목과 페이지 제목 분리.</dd></div>
-        <div><dt>Canonical · URL</dt><dd>운영 HTTPS 대표주소, 추적 매개변수 제거, 페이지 번호와 필터 기준 정합성, 후행 슬래시 301 정리.</dd></div>
-        <div><dt>구조화 데이터</dt><dd>Dentist·WebSite·WebPage·의료진·진료·Article·Breadcrumb·FAQ 정보를 본문과 연결. 작성자와 검토자 역할을 구분합니다.</dd></div>
-        <div><dt>검색 공개 정책</dt><dd>공개 페이지 GET/HEAD 응답 일치, 미리보기·회원·관리 화면 검색 제외, 이미지 공개 여부와 검색 허용을 별도로 적용.</dd></div>
-        <div><dt>수집 안내</dt><dd><a href="/sitemap.xml">XML 사이트맵</a> · <a href="/robots.txt">robots.txt</a> · <a href="/column/rss.xml">칼럼 RSS</a> · <a href="/llms.txt">AI 참고 목차</a>. 공개 게시물만 사이트맵에 포함하며 납품 안내는 제외합니다.</dd></div>
-        <div><dt>공유 · 이미지 · 모바일</dt><dd>Open Graph·Twitter 카드, 실제 사진의 대체텍스트·크기·반응형 소스, 폰트 경량화, 모바일 확대 허용, 키보드·모션 감소 대체 동작.</dd></div>
-      </dl>
-      <aside class="handover-note"><h3>검색 최적화와 검색 노출은 다릅니다.</h3><p>Google의 AI 검색은 별도 전용 스키마나 llms.txt를 요구하지 않습니다. FAQ 구조는 질문·답변의 의미를 설명하기 위해 유지하며, Google FAQ 리치결과는 2026년 5월 종료되어 노출을 약속하지 않습니다. 색인·순위·AI 인용은 각 검색 서비스의 판단입니다.</p></aside>
-      <section class="handover-verification"><h3>검증 기록</h3><p id="delivery-test-summary">배포 전 회귀 검사: 로컬 HTML 701페이지의 SEO 검사 오류·경고 0건. PC·모바일 디자인 80화면, 모바일 8그룹, 모션 9그룹, 예약 동선 8그룹, 보안 9그룹을 통과했습니다. CMS 실사용 8그룹은 Chromium·Linux WebKit에서 작성·저장·수정·공개/비공개·이미지 권한과 긴 본문·표의 모바일 화면을 확인했습니다. 납품 안내는 두 브라우저의 320·390·1440px와 인쇄 동작을 검사했습니다.</p><p>검사는 자동화된 기술 점검입니다. 의료 내용의 적법성 인증, 모든 실기기 지원 인증, 검색서비스 등록 완료를 의미하지 않습니다.</p></section>
-      <details class="handover-reference"><summary>적용 기준 · 공식 문서</summary><ul><li><a href="https://developers.google.com/search/docs/appearance/ai-features" target="_blank" rel="noopener noreferrer">Google AI 기능과 웹사이트</a></li><li><a href="https://developers.google.com/search/docs/updates#faq-deprecation" target="_blank" rel="noopener noreferrer">Google FAQ 리치결과 종료 안내</a></li><li><a href="https://developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading" target="_blank" rel="noopener noreferrer">Google 페이지 나눔과 canonical</a></li><li><a href="https://searchadvisor.naver.com/guide/seo-basic-intro" target="_blank" rel="noopener noreferrer">네이버 서치어드바이저 기본 가이드</a></li><li><a href="https://schema.org/Dentist" target="_blank" rel="noopener noreferrer">Schema.org Dentist</a></li></ul></details>
+      <p class="handover-eyebrow">02 / HIGHLIGHTS & HIDDEN GEMS</p><h2>말하지 않으면 모를,<br>이번 홈페이지의 자랑들.</h2>
+      <section class="handover-feature"><span class="pillar-number">01</span><div><h3>‘조금 다른 생각, 도담’이 먼저 전해집니다.</h3><p>자연치아를 살릴 수 있는 방법부터 고민하는 철학을 첫 화면부터 이어지게 했습니다. 실제 원장님과 병원 사진, 보존·치주·임플란트 순서의 진료 설명, 공간과 장비까지 하나의 이야기로 연결했습니다.</p><p>입체 치아 모형과 움직임도 장식만을 위한 것은 아닙니다. 첫인상을 만들되 본문 읽기를 방해하지 않도록 조정했고, 모션을 줄이거나 3D를 사용할 수 없는 환경에는 대체 화면을 준비했습니다.</p></div></section>
+      <section class="handover-feature"><span class="pillar-number">02</span><div><h3>길고 자세한 설명에는 이유가 있습니다.</h3><p>“왜 이렇게 글이 많지?” 싶은 페이지가 있을 겁니다. 모든 환자가 모든 글을 끝까지 읽을 것이라고 기대한 구성은 아닙니다. 어떤 분은 신경치료가 걱정되고, 어떤 분은 잇몸치료의 과정이나 임플란트의 주의사항이 궁금합니다.</p><p><strong>서로 다른 질문으로 들어온 환자가 필요한 답을 만날 수 있도록</strong> 진료 안내·FAQ·치과 백과사전·내원 안내를 나눴습니다. 검색엔진과 AI도 이 내용을 수집하고 이해할 수 있도록 제목, 대표주소, 구조화 데이터와 내부 링크를 정리했습니다.</p><p>단순히 페이지 수를 늘리는 것이 목적은 아닙니다. 환자의 질문에 정확히 답하는 내용이 쌓여야 진짜 자산이 됩니다.</p></div></section>
+      <section class="handover-feature"><span class="pillar-number">03</span><div><h3>케이스와 칼럼이 자라날 자리를 만들었습니다.</h3><p>사례와 칼럼을 게시하면 개별 페이지가 생기고 공개 게시물이 사이트맵에 반영됩니다. 칼럼은 작성 원장과 관련 진료를 연결하고, 검색용 제목·설명도 직접 관리할 수 있습니다.</p><p>편집 도구도 함께 손봤습니다. 이미지 설명 수정, 모바일·PC 폭 미리보기, 저장 오류 시 입력 유지, 전후 사진의 구분·교체·삭제까지 준비했습니다. <strong>원장님의 진료 경험을 꾸준히 남길 수 있는 공간</strong>입니다.</p></div></section>
+      <div class="handover-numbers"><div><strong>706</strong><span>운영 HTML 점검 페이지</span></div><div><strong>80</strong><span>PC·모바일 디자인 검사 화면</span></div><div><strong>3</strong><span>실사용 점검한 게시물 유형<br>사례 · 칼럼 · 공지</span></div></div>
+      <p class="handover-caption">직전 납품 릴리스의 기술 검사 기준입니다. 706은 점검한 HTML 수이며, 검색엔진에 실제 색인된 페이지 수를 뜻하지 않습니다.</p>
+      <details class="handover-reference"><summary>보이지 않는 기술 설계도 궁금하시다면</summary><dl class="handover-specs"><div><dt>검색 기본기</dt><dd>고유 제목·설명, H1과 하위 제목 구조, 정식 도메인 canonical, Open Graph, robots.txt와 XML 사이트맵.</dd></div><div><dt>의미를 연결하는 정보</dt><dd>병원·의료진·진료·칼럼·공지·FAQ·탐색 경로의 구조화 데이터와 공개 정보를 안내하는 llms.txt 목차.</dd></div><div><dt>모바일 · 읽기</dt><dd>반응형 사진·폰트 경량화·긴 글과 표의 가로 넘침 방지·확대 허용·모션 감소 대응.</dd></div><div><dt>예약 · 운영</dt><dd>네이버 예약 연결, 홈페이지 신청 저장, 직원별 권한과 예약 응대 업무판, 콘텐츠·비급여 관리.</dd></div></dl><p class="handover-caption">검색 순위·AI 인용·수집 시점은 각 서비스가 결정합니다. llms.txt는 Google 검색의 필수 요건이 아니며, FAQ 구조는 검색결과의 특정 노출 형식을 보장하지 않습니다.</p></details>
     </section>
+
+    <section id="delivery-growth" class="handover-section">
+      <p class="handover-eyebrow">03 / HOW TO GROW</p><h2>딱 하나, 부탁드립니다.<br><em>그냥 내버려두지 마세요.</em></h2>
+      <p class="handover-lead">홈페이지의 진짜 가치는 오늘 납품하는 순간보다,<br><strong>앞으로 무엇을 쌓아가느냐</strong>에 달려 있습니다.</p>
+      <p>진료실에서 좋은 케이스가 생기면 남겨주세요. 환자분께 같은 설명을 여러 번 하고 있다면 그 질문을 칼럼으로 적어주세요. 치료를 선택한 이유, 환자가 궁금해했던 점, 치료 후 주의할 사항이 모두 좋은 콘텐츠입니다.</p>
+      <div class="handover-grid"><section class="handover-card"><h3>케이스 하나는, 진료의 근거가 됩니다.</h3><p>왜 이 치료가 필요했는지, 무엇을 고려했는지 설명해 주세요. 사진만 있는 게시물보다 원장님의 판단이 담긴 사례가 환자에게 더 많은 것을 전할 수 있습니다. 환자 동의와 공개 가능 여부는 먼저 확인해 주세요.</p></section><section class="handover-card"><h3>칼럼 한 편은, 또 하나의 입구가 됩니다.</h3><p>‘찬물에 시린 치아’, ‘신경치료가 꼭 필요한가요’처럼 실제 질문에서 시작해 주세요. 구체적인 질문에 답하는 글은 새로운 검색어로 병원을 발견할 기회를 만듭니다.</p></section></div>
+      <aside class="handover-growth-note"><p>저는 이 홈페이지를<br><strong>돈값의 100배를 목표로 키워갈 만한 자산</strong>이라고 생각합니다.</p><p>순위나 매출을 보장한다는 뜻은 아닙니다. 그만큼 오래, 제대로 써주셨으면 하는 마음입니다. 검색 반영에는 시간이 걸리고 정해진 수확 시점도 없습니다. 그래서 더더욱 지금부터 차근차근 쌓는 일이 중요합니다.</p></aside>
+      <blockquote class="handover-quote">이 홈페이지를 만드신 목적을<br><strong>절대 잊지 말아 주세요.</strong></blockquote><p>예쁜 홈페이지를 갖는 것이 목적이 아닙니다. <strong>좋은 진료가 필요한 환자에게 발견되고 선택받는 것.</strong> 그 목적을 기억하며 케이스 하나, 글 한 편씩 함께 채워갔으면 합니다.</p>
+    </section>
+
     <section id="delivery-operations" class="handover-section">
-      <p class="handover-eyebrow">03 / DAILY OPERATIONS</p><h2>처음에는 이 순서로<br>시작하시면 됩니다.</h2>
-      <ol class="handover-steps">
-        <li><h3>개인 관리자 계정으로 로그인</h3><p><a href="/admin/login">관리자 로그인</a>에서 별도로 전달받은 계정을 사용하세요. 최초 설정 화면이 나오는 경우 안내에 따라 개인 관리책임자 계정을 먼저 만드세요. 계정이 이미 있으면 초기 설정을 반복하지 않습니다.</p></li>
-        <li><h3>직원별로 역할 부여</h3><p><a href="/admin/staff">직원 관리</a>에서 관리책임자·접수 담당·콘텐츠 담당을 구분합니다. 접수 담당은 예약 응대, 콘텐츠 담당은 칼럼·공지·사례 관리를 맡습니다. 계정 공유 대신 개인 계정을 사용하세요.</p></li>
-        <li><h3>새 접수를 업무판에서 확인</h3><p><a href="/admin/reservations">예약 업무판</a>에서 신청을 열고 담당자·연락 결과·상태·필요한 재연락 일정을 저장합니다. 다른 직원이 먼저 수정했다면 최신 내용을 다시 확인하세요. 네이버 예약은 네이버 관리자에서 별도로 확인합니다.</p></li>
-        <li><h3>공지 · 칼럼 · 사례 게시</h3><p><a href="/admin/notices">공지</a>, <a href="/admin/columns">칼럼</a>, <a href="/admin/cases">치료 사례</a>에서 작성·저장 후 게시 여부를 확인합니다. 환자 동의, 사진 비식별화, 의료광고 검토를 먼저 진행하고 치료 후 사진을 일반 칼럼 이미지로 재업로드하지 마세요.</p></li>
-        <li><h3>변경사항과 성과 확인</h3><p><a href="/admin/settings">병원 설정</a>에서 지원하는 정보만 수정합니다. 관리책임자는 <a href="/admin/fees">비급여 수가</a>에서 금액·항목별 공개 여부를 수정하고 저장 후 공개 화면을 확인할 수 있습니다. 진료 설명 등 코드로 관리하는 항목은 제작 담당자에게 변경을 요청하세요. <a href="/admin/stats">통계</a>의 클릭은 실제 내원이나 네이버 예약 완료 건수와 다릅니다.</p></li>
-      </ol>
-      <section class="handover-card"><h3>글쓰기 · 사진 편집 사용법</h3><p>새 사례·칼럼·공지는 기본 비공개 상태입니다. 제목과 본문을 작성한 뒤 ‘작성 내용 미리보기’에서 모바일 폭과 PC 폭을 비교하세요. 칼럼·공지는 큰 소제목(H2), 작은 소제목(H3), 목록·인용·링크·실행 취소 도구를 지원합니다.</p><p>본문 이미지를 선택하면 설명을 수정하거나 삭제할 수 있습니다. 전후사진은 ‘치료 전 / 치료 후’ 슬롯을 구분해 올리고, 파일을 다시 선택하면 교체됩니다. 삭제를 체크한 뒤 저장하면 해당 연결이 제거됩니다. 지원 형식은 JPG·PNG·WebP·GIF, 파일당 8MB이며 HEIC는 JPG 등으로 변환해야 합니다.</p><p>저장 성공 후 목록의 완료 안내를 확인하세요. 오류가 발생하면 JavaScript 작성 화면의 입력 내용은 유지됩니다. 통신이 끊기면 먼저 목록에서 저장 여부를 확인한 뒤 재시도해 중복 등록을 피하세요. 자동 저장·브라우저 종료 후 초안 복구·동시 공동편집 기능은 없으므로 한 글은 한 담당자가 편집하는 것을 권장합니다. 게시일 입력은 한국시간이며 예약발행 기능은 아닙니다.</p></section>
-      <aside class="handover-note handover-note-important"><h3>현재는 새 접수를 직접 확인해 주세요.</h3><p>자동 이메일 알림과 Google 로그인은 현재 운영 연동이 활성화되지 않았습니다. 이메일 알림이 온다고 가정하지 말고 업무판을 정기적으로 확인하세요. 별도 연동 정보를 설정하고 실제 발송·로그인 검증을 마친 뒤 사용해야 합니다. 외부 통합통계 데이터 연결도 인증정보 재설정 후 확인이 필요하며, 기존 로컬 조회·예약 동선 통계는 관리자에서 확인할 수 있습니다.</p></aside>
+      <p class="handover-eyebrow">04 / ADMIN GUIDE</p><h2>원장님이 직접<br>채워가실 수 있습니다.</h2>
+      <a class="btn btn-primary" href="/admin/login">관리자 페이지 열기</a><p class="handover-caption">https://dodamdc.kr/admin/login · 개인 직원 계정으로 로그인하세요. 계정 정보는 별도로 전달하며 이 설명서에 비밀번호를 기재하지 않습니다.</p>
+      <div class="handover-guide-list">
+        <details open><summary>비포&애프터 · 치료 사례 올리기</summary><p><a href="/admin/cases">관리자 → 치료 전후 → 새 사례</a>에서 제목·진료·담당 의료진·연령대·치료 기간·설명을 입력하고 사진을 올려주세요. 설명은 ‘내원 계기 → 진단 → 치료를 선택한 이유 → 과정과 주의사항’ 순서로 적어주시면 좋습니다.</p><p>치료 전 / 치료 후 슬롯을 구분해 주세요. 새 글은 비공개로 시작합니다. 동의·비식별화·의료광고 검토를 마친 뒤 공개를 선택해 저장하세요. <strong>치료 후 사진은 회원 전용</strong>이며, 일반 칼럼 이미지로 다시 올리지 마세요.</p></details>
+        <details><summary>원장 칼럼 쓰기</summary><p><a href="/admin/columns">관리자 → 원장 칼럼 → 새 칼럼</a>에서 제목·요약·본문·작성자·관련 진료를 입력합니다. 검색용 제목·설명은 직접 설정할 수 있으며, 비워두면 기본 내용이 사용됩니다.</p><p>본문은 큰 소제목(H2)부터 시작하세요. 이미지를 선택하면 설명을 수정하거나 삭제할 수 있습니다. ‘작성 내용 미리보기’에서 모바일 폭을 확인하고 저장해 주세요. 공개를 선택해야 환자에게 보입니다.</p></details>
+        <details><summary>공지사항과 진료비 관리하기</summary><p><a href="/admin/notices">공지사항</a>에는 휴진·진료시간 변경·병원 소식을 올려주세요. 제목·내용·이미지를 입력하고 필요하면 대표 공지를 선택합니다. 별도의 팝업이나 예약발행 기능과는 다릅니다.</p><p>관리책임자는 <a href="/admin/fees">비급여 수가</a>에서 금액과 공개 여부를 관리할 수 있습니다. 변경 후 공개 페이지와 원내 고지 내용이 일치하는지 확인해 주세요.</p></details>
+        <details><summary>예약 문의 확인하기</summary><p><a href="/admin/reservations">예약 응대 업무판</a>에서 신규 신청을 확인하고 담당자·연락 결과·재연락 일정·처리 상태를 기록합니다. 홈페이지 신청은 병원의 확인 연락 후 확정합니다. 네이버 예약은 네이버 관리자에서 별도로 확인해 주세요.</p></details>
+        <details><summary>사진 업로드와 저장할 때 알아두실 점</summary><p>JPG·PNG·WebP·GIF, 파일당 8MB를 지원합니다. HEIC는 JPG 등으로 변환해 주세요. 작성 중 미리보기는 저장 전 확인용이며, 저장 후 목록의 완료 안내와 공개 상태를 확인해야 합니다.</p><p>오류가 나면 JavaScript 작성 화면의 입력 내용은 유지됩니다. 연결이 끊겼다면 중복 등록을 피하도록 목록에서 저장 여부를 먼저 확인해 주세요. 자동 저장·브라우저 종료 후 초안 복구·동시 공동편집·예약발행은 지원하지 않습니다.</p></details>
+      </div>
+      <p class="handover-caption">자동 이메일 알림과 Google 로그인은 현재 미활성화 상태입니다. 새 접수는 업무판에서 확인해 주세요. 외부 통합통계 연결은 인증정보 재설정 후 확인이 필요하며, 로컬 조회·예약 동선 통계는 사용할 수 있습니다.</p>
     </section>
-    <section id="delivery-checklist" class="handover-section">
-      <p class="handover-eyebrow">04 / ACCEPTANCE CHECKLIST</p><h2>병원에서 마지막으로<br>확인해 주세요.</h2>
-      <p>아래 항목은 병원 담당자의 최종 확인이 필요합니다. 인쇄한 안내에 체크하거나 별도 인수 기록으로 보관하세요.</p>
-      <ul class="handover-checklist"><li>병원명·주소·전화·진료시간·주차 안내가 실제 운영과 일치하는지</li><li>의료진 약력·진료 설명·가격·개인정보처리방침·치료 사진 동의 및 의료광고 검토</li><li>관리책임자 로그인, 직원별 역할, 새 접수 확인 담당자와 확인 주기</li><li>실제 iPhone·Android·카카오 인앱브라우저에서 메뉴·스크롤·예약 화면 확인</li><li>네이버 공식 예약 주소와 병원 네이버 관리자 접근권한 확인</li><li>Google Search Console·네이버 서치어드바이저 소유권 확인 및 사이트맵 제출</li><li>정식 주소 https://dodamdc.kr 기준 검색서비스 등록·사이트맵 제출 및 기존 등록 주소 이전 확인</li><li>운영 DB·사진 저장소의 별도 백업 담당자, 보관 위치와 복구 절차</li><li>외부 통계 연동의 인증정보 재설정, Clarity·방문 분석 도구의 동의·개인정보 고지 확인</li></ul>
-      <p class="handover-caption">소유확인 태그를 지원하는 것과 검색서비스 계정에서 등록·제출을 완료하는 것은 별개입니다. 관리자 설정에 제공받은 확인값을 입력한 뒤 각 서비스에서 소유확인을 마쳐야 합니다.</p>
-    </section>
+
     <section id="delivery-limits" class="handover-section">
-      <p class="handover-eyebrow">05 / KEEP IN MIND</p><h2>안정적인 운영을 위한<br>몇 가지 약속.</h2>
-      <div class="handover-grid"><section class="handover-card"><h3>정보는 필요한 사람에게만</h3><p>퇴사·역할 변경 시 계정을 즉시 정리하세요. 환자정보나 비밀번호를 공개 공지·칼럼·이 안내 페이지에 넣지 마세요. 예약 자료 삭제는 범위와 보존 의무를 확인한 관리책임자만 진행합니다.</p></section><section class="handover-card"><h3>코드 백업 ≠ 환자 데이터 백업</h3><p>코드 저장소와 일반 코드 백업에는 운영 예약 DB·사진 저장소가 포함되지 않습니다. 운영 데이터는 별도 보관·복구 계획이 필요합니다. 자동 알림, 다중인증, 자동 장애 모니터링, 복구 훈련까지 완료된 납품으로 간주하지 않습니다.</p></section></div>
-      <p>진료 콘텐츠는 정기적으로 의료진이 검토하고 실제 변경 시에만 검토일을 갱신하세요. 지역별 안내는 내용의 고유성과 실제 이동정보를 확인하며 관리하고, 검색 노출만을 위한 유사 페이지 확장은 지양합니다.</p>
-      <p class="handover-signoff">환자에게는 편안한 첫 만남을.<br><strong>병원에는 관리할 수 있는 일상을.</strong></p>
-      <a href="/" class="btn btn-primary">서울도담치과 홈페이지로</a>
+      <p class="handover-eyebrow">05 / SUPPORT & FEEDBACK</p><h2>당분간은 원장님도<br>저와 함께 베타테스터입니다.</h2>
+      <p>버그와 오류를 잡으려고 정말 열심히 확인했습니다. 그래도 기기와 브라우저마다 반응이 달라, 제가 혼자 모든 경우를 확인할 수는 없습니다. 원장님의 도움을 빌리고 싶습니다.</p><p>여러 페이지를 열어보시고 관리자 기능도 직접 써보세요. 잘 안 되는 부분이 보이면 <strong>화면 캡처와 사용한 기기, 어느 페이지에서 어떤 동작을 했는지</strong>를 함께 알려주시면 수정에 큰 도움이 됩니다. 어떤 방식의 피드백도 환영합니다.</p>
+      <div class="handover-grid"><section class="handover-card"><h3>고치고 싶은 점은 편하게 말씀해 주세요.</h3><p>문구·디자인·구성·기능까지, 원장님이 생각하시는 대부분의 사항은 수정하거나 구현할 방법을 함께 찾아볼 수 있습니다. ‘이런 것도 되나요?’ 싶어도 일단 말씀해 주세요.</p></section><section class="handover-card"><h3>딱 하나, 제게 없는 실제 사진입니다.</h3><p>없는 진료 사진이나 병원 사진을 대신 만들어 사실처럼 넣어드릴 수는 없습니다. 하지만 좋은 사진이나 영상이 생기면 언제든 전달해 주세요. 동의와 공개 가능 여부를 확인한 자료를 홈페이지에 잘 담아드리겠습니다.</p></section></div>
+      <div class="handover-promise"><span>수정 기한이 언제까지냐면,</span><strong>영원히입니다.</strong><p>어디 가지 않고 항상 있을 테니,<br>걱정 마시고 편하게 연락 주세요.</p><small>문석준 드림</small></div>
     </section>
-  </article><script src="/static/handover.js?v=1" defer></script>`
-  return c.html(Layout(c, { title: '홈페이지 납품·운영 안내', description: '서울도담치과 홈페이지의 납품 범위, 검색 최적화, 관리자 운영 방법과 병원 인수 확인사항을 안내합니다.', path: '/handover', noindex: true, bodyClass: 'handover-page', crumbs: [{ name: '홈', href: '/' }, { name: '납품·운영 안내', href: '/handover' }] }, body))
+
+    <section id="delivery-payment" class="handover-section">
+      <p class="handover-eyebrow">06 / PAYMENT</p><h2>결제 안내드립니다.</h2><p>계좌이체로 부탁드립니다.<br>입금 확인 후 <strong>2주 이내에 세금계산서를 발급</strong>해 드립니다.</p>
+      <div class="handover-payment-card"><div class="payment-amount"><span>홈페이지 납품 금액</span><strong>15,000,000<span>원</span></strong><p>일천오백만 원 · 1,500만 원</p></div><div class="payment-account"><span>NH 농협</span><strong id="payment-account-number">1085-02-007634</strong><p>예금주 <b>문석준</b></p><button type="button" class="btn btn-outline" data-copy-target="payment-account-number">계좌번호 복사</button></div></div>
+      <p>본격적인 사업화보다는 직접 만드는 일에 집중하다 보니, 카드나 다른 결제 수단이 준비되어 있지 않습니다. 너그러운 양해 부탁드립니다.</p><p class="handover-signoff">아무쪼록 좋은 밤 되시고,<br><strong>앞으로도 편하게 연락 주세요.</strong></p><p>서울도담치과의 좋은 진료가 더 많은 환자에게 전해지기를 바랍니다.<br>감사합니다. <strong>문석준 드림</strong></p>
+    </section>
+
+    <section id="delivery-checklist" class="handover-section handover-closing">
+      <p class="handover-eyebrow">FOR YOUR REFERENCE</p>
+      <h2>마지막으로, 함께 확인해 주세요.</h2>
+      <details class="handover-reference"><summary>운영 확인사항과 기술 점검 기록</summary><p id="delivery-test-summary">직전 납품 릴리스에서 운영 HTML 706페이지의 SEO 검사 오류·경고 0건을 확인했습니다. PC·모바일 디자인 80화면, 예약·보안·모션 회귀 검사와 Chromium·Linux WebKit의 사례·칼럼·공지 실사용 검사를 진행했습니다. 실제 iPhone·카카오 인앱브라우저의 모든 동작까지 보장하는 검사는 아니므로 원장님의 사용 피드백이 필요합니다.</p><ul><li>병원명·주소·진료시간·주차·의료진 약력·비급여 금액을 확인해 주세요.</li><li>의료 문구·환자 사진 동의·개인정보처리방침은 병원에서 최종 검토해 주세요.</li><li>Google·네이버 소유확인 태그는 운영 페이지에 있습니다. 등록 완료·사이트맵 제출·실제 색인은 각 서비스 계정에서 확인해야 합니다.</li><li>직원별 권한과 새 접수 확인 담당자를 정하고 운영 DB·사진 저장소의 별도 백업을 관리해 주세요. 코드 백업은 환자 데이터 백업이 아닙니다.</li></ul><p>이 설명서는 검색 제외로 설정되어 있지만 링크를 아는 사람은 열람할 수 있습니다. 계정 비밀번호와 환자정보는 포함하지 않습니다.</p></details>
+      <details class="handover-reference handover-message"><summary>원장님께 보낼 안내문 · 복사해서 전달하기</summary><label for="delivery-message">발송용 안내문</label><textarea id="delivery-message" readonly rows="18">${deliveryMessage}</textarea><button type="button" class="btn btn-primary" data-copy-target="delivery-message">안내문 전체 복사</button></details>
+      <p id="handover-copy-status" role="status" aria-live="polite"></p>
+      <div class="handover-actions"><a href="/" class="btn btn-primary">서울도담치과 둘러보기</a><a href="/admin/login" class="btn btn-outline">관리자 페이지</a></div>
+    </section>
+  </article><script src="/static/handover.js?v=2" defer></script>`
+  return c.html(Layout(c, { title: '서울도담치과 홈페이지 납품 설명서', description: '문석준이 전하는 서울도담치과 홈페이지의 가치, SEO·AEO·환자 경험 설계, 콘텐츠 운영과 지속적인 수정 지원, 결제 안내.', path: '/handover', noindex: true, bodyClass: 'handover-page', crumbs: [{ name: '홈', href: '/' }, { name: '납품 설명서', href: '/handover' }] }, body))
 }
