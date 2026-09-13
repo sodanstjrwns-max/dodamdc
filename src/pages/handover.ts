@@ -12,7 +12,9 @@ export function handoverPage(c: Context<Env>) {
   const url = new URL(c.req.url)
   const deliveryOrigin = url.origin === c.get('siteUrl') || ['localhost', '127.0.0.1'].includes(url.hostname)
   const adminPassword = deliveryOrigin ? c.env.ADMIN_PASSWORD : ''
-  c.header('Cache-Control', 'private, no-store, max-age=0')
+  c.header('Cache-Control', 'private, no-store, max-age=0, no-transform')
+  // Disable edge-injected analytics as well as application analytics on this document.
+  c.header('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'")
   c.header('X-Robots-Tag', 'noindex, nofollow, noarchive, nosnippet')
   c.header('Referrer-Policy', 'no-referrer')
   return c.html(html`<!DOCTYPE html>
