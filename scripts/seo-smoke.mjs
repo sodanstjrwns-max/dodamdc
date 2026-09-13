@@ -59,13 +59,17 @@ try {
     check(data.headings.filter(h => h.level === 1).length === 1, `${path}: one H1 in main`)
     check(data.headings.every(h => h.text), `${path}: empty heading`)
     check(data.canonicals.length === 1 && data.canonicals[0] === site + path, `${path}: canonical mismatch`)
-    check(data.ogUrl === data.canonicals[0] && data.ogTitle === data.titles[0] && data.ogDescription === data.descriptions[0], `${path}: OG metadata mismatch`)
+    if (path === '/handover') {
+      check(data.schemas.length === 0 && !data.ogUrl && !data.ogTitle, 'Credential-bearing handover has no structured data or social preview metadata')
+      check(response.headers.get('cache-control')?.includes('no-store') && response.headers.get('referrer-policy') === 'no-referrer', 'Handover cache/referrer policy')
+    } else check(data.ogUrl === data.canonicals[0] && data.ogTitle === data.titles[0] && data.ogDescription === data.descriptions[0], `${path}: OG metadata mismatch`)
     const indexed = live && !['/area', '/handover'].includes(path) // Intentional non-search directories/guides.
     check(data.robots[0]?.startsWith(indexed ? 'index,' : 'noindex,') && response.headers.get('x-robots-tag')?.startsWith(indexed ? 'index,' : 'noindex,'), `${path}: indexing policy`)
     const head = await request(base + path, { method: 'HEAD' })
     check(head.status === response.status && head.headers.get('x-robots-tag') === response.headers.get('x-robots-tag'), `${path}: GET/HEAD status or indexing mismatch`)
     check(data.viewport[0]?.includes('width=device-width') && !data.viewport[0]?.includes('user-scalable=no'), `${path}: scalable mobile viewport`)
     const schemaTypes = data.schemas.map(s => s['@type'])
+    if (path !== '/handover') {
     check(schemaTypes.filter(t => t === 'Dentist').length === 1, `${path}: one clinic entity`)
     check(schemaTypes.filter(t => ['WebPage', 'MedicalWebPage', 'ProfilePage'].includes(t)).length === 1, `${path}: one primary page entity`)
     check(schemaTypes.includes('WebSite'), `${path}: website entity missing`)
@@ -77,6 +81,7 @@ try {
     check(pageNode?.url === data.canonicals[0] && pageNode?.inLanguage === 'ko-KR', `${path}: page schema URL/language`)
     if (pageNode?.mainEntity) check(ids.includes(pageNode.mainEntity['@id']), `${path}: unresolved main entity`)
     if (pageNode?.reviewedBy) check(ids.includes(pageNode.reviewedBy['@id']), `${path}: unresolved reviewer`)
+    }
     for (const faq of data.schemas.filter(s => s['@type'] === 'FAQPage')) {
       for (const question of faq.mainEntity) check(data.faqs.some(f => f.q === question.name && f.a === question.acceptedAnswer.text), `${path}: FAQ differs from visible HTML`)
     }

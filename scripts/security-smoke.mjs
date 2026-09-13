@@ -48,6 +48,23 @@ try{
  const loginPage=await (await owner.request('/admin/login')).text()
  assert(!loginPage.includes('name="login"') && !loginPage.includes('책임자 계정을 먼저'))
  assert(!loginPage.includes(env.ADMIN_PASSWORD))
+ // Explicit owner-approved disclosure: only the canonical handover, never other pages or preview hosts.
+ const handover=await stranger.request('/handover',{base:env.SITE_URL})
+ assert.equal(handover.status,200)
+ const handoverHtml=await handover.text()
+ assert(handoverHtml.includes('id="admin-password"') && handoverHtml.includes(env.ADMIN_PASSWORD))
+ assert.match(handover.headers.get('cache-control'),/no-store/)
+ assert.match(handover.headers.get('x-robots-tag'),/noindex.*nofollow.*nosnippet/)
+ assert.equal(handover.headers.get('referrer-policy'),'no-referrer')
+ assert(!handoverHtml.includes('application/ld+json') && !handoverHtml.includes('conversion-ticket'))
+ assert(!(await (await stranger.request('/handover')).text()).includes(env.ADMIN_PASSWORD),'Preview hostname does not disclose the operational credential')
+ const savedCredential=env.ADMIN_PASSWORD
+ env.ADMIN_PASSWORD=' <fixture>&"password '
+ const escapedHandover=await (await stranger.request('/handover',{base:env.SITE_URL})).text()
+ assert(!escapedHandover.includes('<fixture>') && escapedHandover.includes('&lt;fixture&gt;'),'Credential is escaped as text, not executable HTML')
+ env.ADMIN_PASSWORD=savedCredential
+ assert(!(await (await stranger.request('/',{base:env.SITE_URL})).text()).includes(env.ADMIN_PASSWORD))
+ checks.push('Owner-approved handover credential display is escaped, canonical-origin-only, no-store/no-snippet and absent from other pages; no secret stored in assets')
  assert.equal((await login(stranger,'','wrong-password')).headers.get('location'),'/admin/login?e=1')
  assert.equal((await DB.prepare('SELECT COUNT(*) n FROM staff').first()).n,0,'Incorrect password cannot create an audit identity')
  const parallelAdmin=client('192.0.2.19')

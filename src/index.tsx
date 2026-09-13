@@ -31,6 +31,11 @@ import { areaPages, getAreaPage } from './data/areas'
 const app = new Hono<Env>()
 
 // ---------- Global middleware ----------
+// Preserve the delivery document's no-referrer policy after the shared security headers run.
+app.use('/handover', async (c, next) => {
+  await next()
+  c.header('Referrer-Policy', 'no-referrer')
+})
 app.use('*', secureHeaders({
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: false,
