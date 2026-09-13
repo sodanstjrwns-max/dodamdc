@@ -29,6 +29,13 @@ for (const [name, engine] of [['chromium', chromium], ...(process.env.TEST_WEBKI
       assert.match(await page.locator('h1').textContent(), /서울도담치과의원.*공식 홈페이지.*납품 안내서/)
       assert.match(await page.locator('.lead').textContent(), /하얗게 불태워/)
       assert.equal(await page.locator('.handover-document').evaluate(el=>getComputedStyle(el).maxWidth), '820px')
+      await page.evaluate(()=>document.fonts.ready)
+      assert(await page.evaluate(()=>getComputedStyle(document.body).fontFamily.includes('Wanted Sans')))
+      assert.equal(await page.locator('h1 .accent').evaluate(el=>getComputedStyle(el).color), 'rgb(0, 105, 179)')
+      assert.equal(await page.locator('.copy-button').first().evaluate(el=>getComputedStyle(el).backgroundColor), 'rgb(185, 231, 166)')
+      assert.equal(await page.locator('.handover-brand img').getAttribute('src'), '/static/img/logo-wide.png')
+      assert(await page.locator('.handover-brand img').evaluate(el=>el.complete && el.naturalWidth>0))
+      assert.equal(await page.locator('link[href*="fonts.googleapis.com"], link[href*="fonts.gstatic.com"]').count(), 0)
       assert.equal(await page.locator('.stats .stat').count(), 3)
       assert.equal(await page.locator('#delivery-highlights .badge').count(), 3)
       assert.equal(await page.locator('#delivery-highlights .flow .step').count(), 7)
@@ -73,7 +80,7 @@ for (const [name, engine] of [['chromium', chromium], ...(process.env.TEST_WEBKI
         await page.pdf({ path: '.artifacts/delivery-print-check.pdf', format: 'A4', printBackground: true })
       }
       assert.deepEqual(errors, [])
-      report.checks.push(`${name} ${width}px: reference layout/8-section order, accurate clinic/payment details, visible/copyable credential (redacted from artifacts), noindex/no-store/no analytics, responsive layout/print/links, no JS errors`)
+      report.checks.push(`${name} ${width}px: Dodam blue/green, local Wanted Sans/logo, preserved 8-section order, accurate clinic/payment details, visible/copyable credential (redacted from artifacts), noindex/no-store/no analytics, responsive layout/print/links, no JS errors`)
       await context.close()
     }
   } catch (error) { report.errors.push(String(error.stack || error)) }
