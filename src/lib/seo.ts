@@ -13,6 +13,7 @@ export type PageMeta = {
   noindex?: boolean
   jsonld?: object[]
   crumbs?: Crumb[]
+  citations?: string[]
   bodyClass?: string
   publishedAt?: string
   modifiedAt?: string
@@ -125,6 +126,7 @@ export function webpageLd(meta: PageMeta, siteUrl: string, path: string) {
     mainEntity: meta.type === 'profile' ? { '@id': absUrl(siteUrl, meta.path + '#person') } : meta.path.startsWith('/treatments/') ? { '@id': absUrl(siteUrl, meta.path + '#procedure') } : meta.path.startsWith('/encyclopedia/') ? { '@id': absUrl(siteUrl, meta.path + '#term') } : article ? { '@id': article['@id'] } : undefined,
     author: meta.author ? { '@id': absUrl(siteUrl, `/doctors/${meta.author.slug}#person`) } : undefined,
     reviewedBy: meta.reviewer ? { '@id': absUrl(siteUrl, `/doctors/${meta.reviewer.slug}#person`) } : undefined,
+    citation: meta.citations,
     lastReviewed: isoDate(meta.reviewedAt), datePublished: isoDate(meta.publishedAt), dateModified: isoDate(meta.modifiedAt),
   }
 }

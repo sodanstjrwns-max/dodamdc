@@ -23,7 +23,8 @@
     "db:migrate:prod": "wrangler d1 migrations apply seoul-dodam-dental-production",
     "db:seed": "wrangler d1 execute seoul-dodam-dental-production --local --file=./seed.sql",
     "db:reset": "rm -rf .wrangler/state/v3/d1 && npm run db:migrate:local && npm run db:seed",
-    "clean-port": "fuser -k 3000/tcp 2>/dev/null || true"
+    "clean-port": "fuser -k 3000/tcp 2>/dev/null || true",
+    "test:encyclopedia": "node scripts/encyclopedia-smoke.mjs"
   },
   "dependencies": {
     "dompurify": "^3.4.15",

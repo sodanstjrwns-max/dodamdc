@@ -75,6 +75,7 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="stylesheet" href="/static/fonts/wanted-subsets.css?v=2">
 <link rel="stylesheet" href="/static/style.css?v=8">
 <link rel="stylesheet" href="/static/kinetic.css?v=17">
+${meta.path === '/encyclopedia' || meta.path.startsWith('/encyclopedia/') ? html`<link rel="stylesheet" href="/static/encyclopedia.css?v=20260914">` : ''}
 ${meta.path === '/handover' ? html`<link rel="stylesheet" href="/static/handover.css?v=2">` : ''}
 <link rel="alternate" type="application/rss+xml" title="${clinic.shortName} 원장 칼럼" href="/column/rss.xml">
 ${lds.map((l) => raw(`<script type="application/ld+json">${JSON.stringify(l).replace(/</g, '\\u003c')}</script>`))}
@@ -258,6 +259,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
 </div>
 
 <script src="/static/app.js?v=14" defer></script>
+${meta.path === '/encyclopedia' || meta.path.startsWith('/encyclopedia/') ? html`<script src="/static/encyclopedia.js?v=20260914" defer></script>` : ''}
 <script type="module" src="/static/experience/main.js?v=12"></script>
 </body>
 </html>`

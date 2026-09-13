@@ -2,16 +2,13 @@ import { html, raw } from 'hono/html'
 import type { Context } from 'hono'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
-import { faqLd, definedTermLd, physicianLd, truncate } from '../lib/seo'
-import { doctors } from '../data/doctors'
+import { faqLd, truncate } from '../lib/seo'
 import { treatments, getTreatment } from '../data/treatments'
-import { terms, termsByCategory, CATEGORIES, getTerm, initial, autoLink, type Term } from '../data/encyclopedia'
 import { pricing, insuredItems, pricingUpdatedAt, won } from '../data/pricing'
 import { loadPricingGroups } from '../lib/fees'
 import { areaPages, areaAccess, type AreaPage } from '../data/areas'
 import { nearbyAreas } from '../data/clinic'
 import { pageHero, faqList, ctaStrip, reviewLine } from '../lib/ui'
-import { esc } from '../lib/util'
 
 // ── 통합 FAQ ─────────────────────────────────────────────
 const generalFaqs = [
@@ -46,47 +43,8 @@ ${ctaStrip(clinic, { title: '답을 못 찾으셨나요?', sub: `전화 ${clinic
   return c.html(Layout(c, { title: '자주 묻는 질문 (FAQ)', description: `서울도담치과 FAQ ${all.length}문항. 진료시간·주차·비용부터 신경치료·임플란트·잇몸치료·사랑니까지 한휘림 원장이 직접 답합니다.`, path: '/faq', jsonld: [faqLd(generalFaqs, `${c.get('siteUrl')}/faq`)], crumbs: [{ name: '홈', href: '/' }, { name: 'FAQ', href: '/faq' }] }, body))
 }
 
-// ── 백과사전 ─────────────────────────────────────────────
-export function encyclopediaIndex(c: Context<Env>) {
-  const clinic = c.get('clinic') as any
-  const body = html`
-${pageHero({ eyebrow: '치과 백과사전', title: html`진료실 용어,<br>${terms.length}개를 쉽게`, lead: '상담에서 들은 말이 무슨 뜻인지 다시 찾아볼 수 있도록 정리했습니다. 각 용어는 관련 진료 안내와 연결되어 있습니다.', crumbs: [{ name: '홈', href: '/' }, { name: '치과 백과사전', href: '/encyclopedia' }] })}
-<section class="section">
-  <div class="container">
-    <div class="faq-search reveal in"><label for="ency-search" class="sr-only">용어 검색</label><input id="ency-search" type="search" placeholder="용어 검색 (예: 치수, MTA, 러버댐)" autocomplete="off"></div>
-    <nav class="ency-index reveal in" aria-label="분류 바로가기">${CATEGORIES.filter((k) => termsByCategory[k]?.length).map((k) => html`<a href="#cat-${encodeURIComponent(k)}">${k} <small>${termsByCategory[k].length}</small></a>`)}</nav>
-    ${CATEGORIES.filter((k) => termsByCategory[k]?.length).map((k) => html`<section class="ency-group" id="cat-${encodeURIComponent(k)}">
-      <h2 class="ency-cat-title">${k}</h2>
-      <div class="ency-grid">${termsByCategory[k].map((t) => html`<a href="/encyclopedia/${t.slug}" class="ency-item"><strong>${t.term}</strong> <small>${t.en}</small><p class="ency-def">${truncate(t.def, 72)}</p></a>`)}</div>
-    </section>`)}
-  </div>
-</section>`
-  return c.html(Layout(c, { title: `치과 백과사전 — ${terms.length}개 용어 해설`, description: `충치·신경치료·잇몸·임플란트·사랑니·감염관리 등 치과 용어 ${terms.length}개를 쉬운 말로 풀었습니다. 수원 서울도담치과 한휘림 원장 검토.`, path: '/encyclopedia', crumbs: [{ name: '홈', href: '/' }, { name: '치과 백과사전', href: '/encyclopedia' }] }, body))
-}
-
-export function encyclopediaTerm(c: Context<Env>, t: Term) {
-  const clinic = c.get('clinic') as any
-  const siteUrl = c.get('siteUrl')
-  const related = t.treatments.map(getTreatment).filter(Boolean) as NonNullable<ReturnType<typeof getTreatment>>[]
-  const siblings = (termsByCategory[t.category] || []).filter((x) => x.slug !== t.slug).slice(0, 10)
-  const body = html`
-${pageHero({ eyebrow: `치과 백과사전 · ${t.category}`, title: html`${t.term} <small class="specialty">${t.en}</small>`, crumbs: [{ name: '홈', href: '/' }, { name: '치과 백과사전', href: '/encyclopedia' }, { name: t.term, href: `/encyclopedia/${t.slug}` }] })}
-<div class="container tx-layout">
-  <article class="tx-body">
-    <div class="prose reveal in">
-      <p class="lead" id="definition">${raw(autoLink(esc(t.def), { exclude: [t.slug], max: 6 }))}</p>
-      ${related.length ? html`<h2>관련 진료</h2><ul>${related.map((r) => html`<li><a href="/treatments/${r.slug}">${r.name}</a> — ${r.short}</li>`)}</ul>` : ''}
-      <p class="reviewed">이 설명은 일반적인 정보 제공을 위한 것으로, 개인의 상태에 따라 다를 수 있습니다. 정확한 진단은 진료를 통해 확인해 주세요. 한휘림 원장(통합치의학과 전문의) 검토.</p>
-    </div>
-  </article>
-  <aside class="tx-side">
-    ${siblings.length ? html`<div class="side-card"><p class="side-title">${t.category} 관련 용어</p><ul class="side-links">${siblings.map((s) => html`<li><a href="/encyclopedia/${s.slug}">${s.term}</a></li>`)}</ul></div>` : ''}
-    <div class="side-card"><p class="side-title">백과사전</p><a href="/encyclopedia" class="link-arrow">전체 용어 보기</a></div>
-    <div class="side-card side-cta"><p class="side-title">상담</p><p class="side-phone"><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></p><a href="/reservation" class="btn btn-primary btn-block">진료 예약</a></div>
-  </aside>
-</div>`
-  return c.html(Layout(c, { title: `${t.term}(${t.en}) 뜻 — 치과 백과사전`, description: truncate(`${t.term}(${t.en}): ${t.def}`), path: `/encyclopedia/${t.slug}`, type: 'article', reviewer: doctors[0], jsonld: [definedTermLd(t, siteUrl), physicianLd(doctors[0], clinic, siteUrl)], crumbs: [{ name: '홈', href: '/' }, { name: '치과 백과사전', href: '/encyclopedia' }, { name: t.term, href: `/encyclopedia/${t.slug}` }] }, body))
-}
+// 백과사전은 전용 읽기·탐색 페이지에서 관리합니다.
+export { encyclopediaIndex, encyclopediaTerm } from './encyclopedia'
 
 // ── 오시는 길 / 진료시간 ────────────────────────────────
 const hoursTable = (clinic: any) => html`<table class="hours-table"><thead><tr><th>요일</th><th>진료</th><th>비고</th></tr></thead><tbody>

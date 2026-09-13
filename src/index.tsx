@@ -26,6 +26,7 @@ import {
 import { treatments, getTreatment } from './data/treatments'
 import { doctors, getDoctor } from './data/doctors'
 import { terms, getTerm } from './data/encyclopedia'
+import { EDITORIAL_UPDATED } from './data/encyclopedia/editorial-types'
 import { areaPages, getAreaPage } from './data/areas'
 
 const app = new Hono<Env>()
@@ -144,7 +145,7 @@ app.get('/sitemap.xml', async (c) => {
   for (const d of doctors) add(`/doctors/${d.slug}`, '0.8')
   for (const t of treatments) add(`/treatments/${t.slug}`, '0.9', 'monthly')
   for (const a of areaPages) add(`/area/${a.slug}`, '0.6')
-  for (const t of terms) add(`/encyclopedia/${t.slug}`, '0.4', 'yearly')
+  for (const t of terms) add(`/encyclopedia/${t.slug}`, '0.4', 'monthly', EDITORIAL_UPDATED)
   try {
     const db = c.env.DB
     const [cases, cols, notes] = await Promise.all([
