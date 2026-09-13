@@ -91,8 +91,29 @@ export async function readMemberSession(c: Context<Env>): Promise<SessionUser | 
   return { id: row.id, email: row.email, name: row.name, role: row.role === 'admin' ? 'admin' : 'member' }
 }
 
+// Internal audit identity, not an ID that the operator has to create or enter.
+export const SHARED_ADMIN_LOGIN = '!shared-admin'
+async function adminCredentialTag(c: Context<Env>) {
+  return c.env.ADMIN_PASSWORD && c.env.SESSION_SECRET ? hmac(c.env.SESSION_SECRET, 'admin-password-epoch:' + c.env.ADMIN_PASSWORD) : ''
+}
+export async function verifyAdminPassword(c: Context<Env>, password: string) {
+  if (!password || password.length > 128 || !c.env.ADMIN_PASSWORD || !c.env.SESSION_SECRET) return false
+  const supplied = await hmac(c.env.SESSION_SECRET, 'admin-password-epoch:' + password)
+  const expected = await adminCredentialTag(c)
+  let diff = supplied.length ^ expected.length
+  for (let i = 0; i < supplied.length; i++) diff |= supplied.charCodeAt(i) ^ (expected.charCodeAt(i) || 0)
+  return diff === 0
+}
+export async function sharedAdminPrincipal(c: Context<Env>): Promise<StaffPrincipal> {
+  // A real FK target is required for existing reservation events and privacy operations.
+  // Concurrent first logins share one row; no onboarding form or password hash copy.
+  await c.env.DB.prepare("INSERT OR IGNORE INTO staff(login,name,password_hash,role) VALUES (?,'관리자','!secret-only','owner')").bind(SHARED_ADMIN_LOGIN).run()
+  const row = await c.env.DB.prepare('SELECT id,login,name,role,active,session_version FROM staff WHERE login=?').bind(SHARED_ADMIN_LOGIN).first<any>()
+  if (!row?.active || row.role !== 'owner') throw new Error('Shared administrator unavailable')
+  return { id: row.id, login: row.login, name: row.name, role: 'owner', version: row.session_version, shared: true }
+}
 export async function setAdminSession(c: Context<Env>, staff: StaffPrincipal) {
-  const token = await signToken(c.env.SESSION_SECRET, { kind: 'staff', sid: staff.id, version: staff.version, bootstrap: !!staff.bootstrap }, staff.bootstrap ? 900 : ADMIN_TTL)
+  const token = await signToken(c.env.SESSION_SECRET, { kind: staff.shared ? 'shared-admin' : 'staff', sid: staff.id, version: staff.version, ...(staff.shared ? { credentialTag: await adminCredentialTag(c) } : {}) }, ADMIN_TTL)
   setCookie(c, ADMIN_COOKIE, token, { httpOnly: true, sameSite: 'Strict', secure: secure(c), path: '/', maxAge: ADMIN_TTL })
 }
 export function clearAdminSession(c: Context<Env>) {
@@ -102,14 +123,16 @@ export async function readAdminSession(c: Context<Env>): Promise<StaffPrincipal 
   const token = getCookie(c, ADMIN_COOKIE)
   if (!token) return null
   const data = await verifyToken(c.env.SESSION_SECRET, token)
-  if (data?.kind !== 'staff') return null
-  if (data.bootstrap && data.sid === null) {
-    const row = await c.env.DB.prepare('SELECT COUNT(*) n FROM staff').first<{ n: number }>()
-    return row?.n === 0 ? { id: null, login: 'bootstrap', name: '최초 설정', role: 'owner', version: 0, bootstrap: true } : null
-  }
-  if (!Number.isSafeInteger(data.sid)) return null
+  if (!data || !['staff', 'shared-admin'].includes(data.kind) || data.bootstrap || !Number.isSafeInteger(data.sid)) return null
   const row = await c.env.DB.prepare('SELECT id,login,name,role,active,session_version FROM staff WHERE id=?').bind(data.sid).first<any>()
-  return row?.active && row.session_version === data.version ? { id: row.id, login: row.login, name: row.name, role: row.role, version: row.session_version } : null
+  if (!row?.active || row.session_version !== data.version) return null
+  if (data.kind === 'shared-admin') {
+    const tag = await adminCredentialTag(c)
+    if (!tag || data.credentialTag !== tag || row.login !== SHARED_ADMIN_LOGIN || row.role !== 'owner') return null
+    return { id: row.id, login: row.login, name: row.name, role: 'owner', version: row.session_version, shared: true }
+  }
+  if (row.login === SHARED_ADMIN_LOGIN) return null
+  return { id: row.id, login: row.login, name: row.name, role: row.role, version: row.session_version }
 }
 
 // ── OAuth state (짧은 수명) ───────────────────────────────

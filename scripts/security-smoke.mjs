@@ -7,7 +7,7 @@ import { chromium } from '@playwright/test'
 await build({entryPoints:['src/index.tsx'],outfile:'.artifacts/security-app.mjs',bundle:true,platform:'node',format:'esm',jsx:'automatic',jsxImportSource:'hono/jsx'})
 await build({entryPoints:['src/lib/auth.ts'],outfile:'.artifacts/security-auth.mjs',bundle:true,platform:'node',format:'esm'})
 const {default:app}=await import('../.artifacts/security-app.mjs?'+Date.now())
-const {hashPassword,signToken}=await import('../.artifacts/security-auth.mjs')
+const {hashPassword,signToken,verifyAdminPassword}=await import('../.artifacts/security-auth.mjs')
 const mf=new Miniflare(convertV4MiniflareOptions({name:'security-fixture',modules:true,script:'export default {fetch(){return new Response("fixture")}}',compatibilityDate:'2026-09-01',d1Databases:['DB'],r2Buckets:['R2']}))
 const DB=await mf.getD1Database('DB'),R2=await mf.getR2Bucket('R2')
 const origin='http://security.test', secret='test-secret-never-used-in-production'
@@ -37,6 +37,7 @@ try{
   const sql=(await readFile('migrations/'+file,'utf8')).replace(/--[^\n]*/g,'')
   await DB.batch(sql.split(';').map(s=>s.trim()).filter(Boolean).map(s=>DB.prepare(s)))
  }
+ for (const partialEnv of [{SESSION_SECRET:secret},{ADMIN_PASSWORD:env.ADMIN_PASSWORD},{}]) assert.equal(await verifyAdminPassword({env:partialEnv},env.ADMIN_PASSWORD),false,'Missing secrets fail closed')
  const owner=client(), reception=client('192.0.2.11'), editor=client('192.0.2.12'), stranger=client('192.0.2.13')
  assert.equal((await stranger.request('/admin/reservations')).status,302)
  await owner.request('/admin/login')
@@ -44,14 +45,30 @@ try{
  assert.equal(unprotected.status,403)
  assert.equal((await owner.request('/admin/login',{method:'POST',data:{password:env.ADMIN_PASSWORD},headers:{origin:'https://evil.example'}})).status,403)
  assert.equal((await owner.request('/admin/login',{method:'POST',data:{password:env.ADMIN_PASSWORD},headers:{origin:''}})).status,403)
- assert.equal((await login(owner,'',env.ADMIN_PASSWORD)).headers.get('location'),'/admin/staff')
- assert.equal((await owner.request('/admin/reservations')).status,403,'Bootstrap cannot read patient data')
- assert.equal((await owner.request('/admin/staff',{method:'POST',data:{login:'owner',name:'Fixture Owner',password}})).status,302)
- assert.equal((await login(owner,'owner',password)).headers.get('location'),'/admin')
- const oid=(await DB.prepare("SELECT id FROM staff WHERE login='owner'").first()).id
+ const loginPage=await (await owner.request('/admin/login')).text()
+ assert(!loginPage.includes('name="login"') && !loginPage.includes('책임자 계정을 먼저'))
+ assert(!loginPage.includes(env.ADMIN_PASSWORD))
+ assert.equal((await login(stranger,'','wrong-password')).headers.get('location'),'/admin/login?e=1')
+ assert.equal((await DB.prepare('SELECT COUNT(*) n FROM staff').first()).n,0,'Incorrect password cannot create an audit identity')
+ const parallelAdmin=client('192.0.2.19')
+ const initial=await Promise.all([login(owner,'',env.ADMIN_PASSWORD),login(parallelAdmin,'',env.ADMIN_PASSWORD)])
+ assert(initial.every(r=>r.headers.get('location')==='/admin'))
+ assert.equal((await DB.prepare('SELECT COUNT(*) n FROM staff').first()).n,1,'Concurrent first login creates one internal identity')
+ assert.equal((await owner.request('/admin/reservations')).status,200,'Correct password opens workspace without onboarding')
+ assert.equal((await owner.request('/admin')).status,200)
+ const oid=(await DB.prepare("SELECT id FROM staff WHERE login='!shared-admin'").first()).id
+ const token=owner.cookies.get('dd_admin')
+ assert(!Buffer.from(token.split('.')[0],'base64url').toString().includes(env.ADMIN_PASSWORD))
+ const oldPassword=env.ADMIN_PASSWORD;env.ADMIN_PASSWORD='rotated-fixture-password'
+ assert.equal((await owner.request('/admin')).status,302,'Changing configured password revokes shared sessions')
+ env.ADMIN_PASSWORD=oldPassword
+ const forged=client('192.0.2.18');forged.cookies.set('dd_admin',await signToken(secret,{kind:'staff',sid:oid,version:1},3600))
+ assert.equal((await forged.request('/admin')).status,302,'Named-session token cannot impersonate password-only administrator')
+ forged.cookies.set('dd_admin',await signToken(secret,{kind:'staff',sid:null,version:0,bootstrap:true},3600))
+ assert.equal((await forged.request('/admin')).status,302,'Old bootstrap tokens no longer grant access')
  for(const [id,name,role] of [['desk','Fixture Desk','reception'],['editor','Fixture Editor','editor']]){
   await owner.request('/admin/staff')
-  assert.equal((await owner.request('/admin/staff',{method:'POST',data:{login:id,name,role,password,current_password:password}})).headers.get('location'),'/admin/staff?saved=1')
+  assert.equal((await owner.request('/admin/staff',{method:'POST',data:{login:id,name,role,password,current_password:env.ADMIN_PASSWORD}})).headers.get('location'),'/admin/staff?saved=1')
  }
  const rid=(await DB.prepare("SELECT id FROM staff WHERE login='desk'").first()).id
  assert.equal((await login(reception,'desk',password)).headers.get('location'),'/admin/reservations')
@@ -59,12 +76,12 @@ try{
  for(const path of ['/admin/staff','/admin/privacy','/admin/members','/admin/settings','/admin/columns','/admin/stats']) assert.equal((await reception.request(path)).status,403,path)
  for(const path of ['/admin/reservations','/admin/members','/admin/staff','/admin/privacy']) assert.equal((await editor.request(path)).status,403,path)
  assert.equal((await editor.request('/admin/columns')).status,200)
- assert.equal((await owner.request('/admin/staff/'+oid,{method:'POST',data:{name:'Fixture Owner',role:'reception',active:'0',current_password:password}})).headers.get('location'),'/admin/staff?error=1')
+ assert.equal((await owner.request('/admin/staff/'+oid,{method:'POST',data:{name:'Fixture Owner',role:'reception',active:'0',current_password:env.ADMIN_PASSWORD}})).headers.get('location'),'/admin/staff?error=1')
  assert.equal((await DB.prepare('SELECT role FROM staff WHERE id=?').bind(oid).first()).role,'owner')
  await owner.request('/admin/settings')
  assert.equal((await owner.request('/admin/settings',{method:'POST',data:{ga4:"G-TEST');alert(1)//"}})).status,400)
  assert.equal((await owner.request('/admin/settings',{method:'POST',data:{'channels.kakao':'javascript:alert(1)'}})).status,400)
- checks.push('Origin + CSRF required; bootstrap restricted; staff roles enforced server-side; final owner protected; unsafe settings rejected')
+ checks.push('Password-only first login, concurrent identity creation, wrong-password rejection, credential rotation, retired bootstrap rejection, CSRF, RBAC, protected internal identity and settings validation')
 
  assert.equal((await stranger.request('/admin/stats?key=legacy-repo-token')).status,302)
  assert.equal((await stranger.request('/api/local-stats')).status,404)
@@ -265,13 +282,13 @@ try{
  assert.equal((await owner.request('/admin/privacy/purge',{method:'POST',data:{ticket,confirm:'만료 예약 삭제',current_password:'wrong'}})).status,403)
  // Mutation after preview must prevent all deletion.
  await DB.prepare('UPDATE reservations SET version=version+1 WHERE id=?').bind(expired).run()
- assert.equal((await owner.request('/admin/privacy/purge',{method:'POST',data:{ticket,confirm:'만료 예약 삭제',current_password:password}})).status,409)
+ assert.equal((await owner.request('/admin/privacy/purge',{method:'POST',data:{ticket,confirm:'만료 예약 삭제',current_password:env.ADMIN_PASSWORD}})).status,409)
  const fresh=await owner.request('/admin/privacy/preview',{method:'POST',data:{}})
  const freshTicket=(await fresh.text()).match(/name="ticket" value="([^"]+)"/)?.[1]
- const purge=await owner.request('/admin/privacy/purge',{method:'POST',data:{ticket:freshTicket,confirm:'만료 예약 삭제',current_password:password}})
+ const purge=await owner.request('/admin/privacy/purge',{method:'POST',data:{ticket:freshTicket,confirm:'만료 예약 삭제',current_password:env.ADMIN_PASSWORD}})
  assert.equal(purge.status,200);assert.equal(await DB.prepare('SELECT id FROM reservations WHERE id=?').bind(expired).first(),null)
  assert.equal((await DB.prepare('SELECT COUNT(*) n FROM reservation_events WHERE reservation_id=?').bind(expired).first()).n,0)
- assert.equal((await owner.request('/admin/privacy/purge',{method:'POST',data:{ticket:freshTicket,confirm:'만료 예약 삭제',current_password:password}})).status,409)
+ assert.equal((await owner.request('/admin/privacy/purge',{method:'POST',data:{ticket:freshTicket,confirm:'만료 예약 삭제',current_password:env.ADMIN_PASSWORD}})).status,409)
  assert.equal((await DB.prepare("SELECT COUNT(*) n FROM reservations WHERE name IN ('HELD TEST','PENDING TEST','FUTURE TEST')").first()).n,3)
  const audit=JSON.stringify((await DB.prepare("SELECT detail FROM staff_audit WHERE action='reservation.purge'").all()).results)
  assert.equal(/EXPIRED TEST|01000000001/.test(audit),false)
@@ -280,7 +297,7 @@ try{
 
  const receptionSession=reception.cookies.get('dd_admin')
  await owner.request('/admin/staff')
- await owner.request('/admin/staff/'+rid,{method:'POST',data:{name:'Fixture Desk',role:'reception',active:'0',current_password:password}})
+ await owner.request('/admin/staff/'+rid,{method:'POST',data:{name:'Fixture Desk',role:'reception',active:'0',current_password:env.ADMIN_PASSWORD}})
  assert.equal((await reception.request('/admin/reservations')).status,302)
  const reuse=client();reuse.cookies.set('dd_admin',receptionSession)
  assert.equal((await reuse.request('/admin/reservations')).status,302)
@@ -291,6 +308,14 @@ try{
  const rates=JSON.stringify((await DB.prepare('SELECT * FROM security_rate_limits').all()).results)
  assert.equal(/192\.0\.2|unknown-budget-test|wrong/.test(rates),false)
  checks.push('Disabled staff sessions immediately invalid; rate budgets are atomic, expiring HMAC keys with no raw IP/login')
+
+ const oldAdminToken=owner.cookies.get('dd_admin')
+ await owner.request('/admin');assert.equal((await owner.request('/admin/logout',{method:'POST',data:{}})).status,302)
+ const replay=client('192.0.2.91');replay.cookies.set('dd_admin',oldAdminToken)
+ assert.equal((await replay.request('/admin')).status,302,'Logout revokes replayed shared session')
+ assert.equal((await login(owner,'',env.ADMIN_PASSWORD)).headers.get('location'),'/admin','Password-only login still works with existing staff data')
+ assert.equal((await owner.request('/admin')).status,200)
+ checks.push('Password-only logout invalidates replay; direct re-login works after staff records exist')
 
  // Browser receives fixture HTML through interception; only static assets use localhost.
  browser=await chromium.launch({args:['--no-sandbox','--disable-webgl']})

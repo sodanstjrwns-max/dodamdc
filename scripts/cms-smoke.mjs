@@ -5,14 +5,13 @@ import { build } from 'esbuild'
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare'
 import { chromium, webkit } from '@playwright/test'
 await build({entryPoints:['src/index.tsx'],outfile:'.artifacts/cms-app.mjs',bundle:true,platform:'node',format:'esm'})
-await build({entryPoints:['src/lib/auth.ts'],outfile:'.artifacts/cms-auth.mjs',bundle:true,platform:'node',format:'esm'})
 const { default: app } = await import('../.artifacts/cms-app.mjs?'+Date.now())
-const { signToken } = await import('../.artifacts/cms-auth.mjs')
 const secret='isolated-cms-test-not-production'
-const mf = new Miniflare(convertV4MiniflareOptions({name:'cms-only-fixture',modules:true,script:await readFile('.artifacts/cms-app.mjs','utf8'),compatibilityDate:'2026-09-01',bindings:{SESSION_SECRET:secret,SITE_URL:'https://dodamdc.kr'},d1Databases:['DB'],r2Buckets:['R2']}))
+const adminPassword='isolated-password-only-fixture'
+const mf = new Miniflare(convertV4MiniflareOptions({name:'cms-only-fixture',modules:true,script:await readFile('.artifacts/cms-app.mjs','utf8'),compatibilityDate:'2026-09-01',bindings:{SESSION_SECRET:secret,ADMIN_PASSWORD:adminPassword,SITE_URL:'https://dodamdc.kr'},d1Databases:['DB'],r2Buckets:['R2']}))
 const DB = await mf.getD1Database('DB'), R2 = await mf.getR2Bucket('R2')
 const origin = (await mf.ready).origin // Ephemeral test fixture, not the application's preview service.
-const env={DB,R2,SESSION_SECRET:secret,SITE_URL:'https://dodamdc.kr'}
+const env={DB,R2,SESSION_SECRET:secret,ADMIN_PASSWORD:adminPassword,SITE_URL:'https://dodamdc.kr'}
 const checks=[], errors=[]
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZxkAAAAASUVORK5CYII=','base64')
 async function invoke(url,options={}) {const jobs=[];const r=await app.fetch(new Request(url,options),env,{waitUntil(p){jobs.push(p)},passThroughOnException(){}});await Promise.all(jobs);return r}
@@ -21,12 +20,9 @@ try {
     const sql=(await readFile('migrations/'+file,'utf8')).replace(/--[^\n]*/g,'')
     await DB.batch(sql.split(';').map(s=>s.trim()).filter(Boolean).map(s=>DB.prepare(s)))
   }
-  await DB.prepare("INSERT INTO staff(login,name,password_hash,role) VALUES ('cms-owner','CMS TEST ONLY','unused','owner')").run()
-  const token=await signToken(secret,{kind:'staff',sid:1,version:1,bootstrap:false},3600)
   for(const [engineName,engine] of [['chromium',chromium],...(process.env.TEST_WEBKIT?[['webkit',webkit]]:[])].filter(([name])=>!process.env.CMS_BROWSER || process.env.CMS_BROWSER===name)) {
     const browser=await engine.launch(engineName==='chromium'?{args:['--no-sandbox']}:{}), context=await browser.newContext({viewport:{width:390,height:844}})
     try {
-      await context.addCookies([{name:'dd_admin',value:token,url:origin,httpOnly:true,sameSite:'Strict'}])
       await context.route('**/*',async route=>{
         const request=route.request(),url=new URL(request.url())
         if(url.origin!==origin)return route.abort()
@@ -37,6 +33,19 @@ try {
 
       })
       const page=await context.newPage();page.on('pageerror',e=>errors.push(engineName+': '+e.message));page.on('dialog',async d=>{if(d.type()==='prompt')await d.accept('테스트 이미지 설명');else await d.accept()})
+      await page.goto(origin+'/admin/login',{waitUntil:'networkidle'})
+      assert.equal(await page.locator('[name=login]').count(),0)
+      assert(!(await page.content()).includes('책임자 계정을 먼저'))
+      for (const width of [320,390,1440]) {
+        await page.setViewportSize({width,height:844})
+        assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Login has no horizontal overflow')
+      }
+      await page.setViewportSize({width:390,height:844})
+      await page.locator('[name=password]').fill(adminPassword)
+      await page.getByRole('button',{name:'로그인',exact:true}).click()
+      await page.waitForURL(origin+'/admin')
+      assert.equal((await DB.prepare("SELECT COUNT(*) n FROM staff WHERE login='!shared-admin'").first()).n,1)
+      checks.push(`${engineName} password-only browser login directly opens admin, no ID or onboarding, responsive login`)
       const save=async()=>{await page.locator('.cms-form > .admin-toolbar button[type=submit]').first().click();await page.waitForURL(/\/admin\/(columns|notices|cases)\?saved=1/);assert(await page.getByRole('status').filter({hasText:'저장되었습니다'}).count())}
       const fillBody=async text=>{await page.locator('#editor').fill(text)}
       for(const width of [320,390,768,1440])for(const path of ['/admin/cases/new','/admin/columns/new','/admin/notices/new']){

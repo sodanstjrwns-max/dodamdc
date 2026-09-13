@@ -47,7 +47,7 @@ export function handoverPage(c: Context<Env>) {
 
     <section id="delivery-operations" class="handover-section">
       <p class="handover-eyebrow">04 / ADMIN GUIDE</p><h2>원장님이 직접<br>채워가실 수 있습니다.</h2>
-      <a class="btn btn-primary" href="/admin/login">관리자 페이지 열기</a><p class="handover-caption">https://dodamdc.kr/admin/login · 개인 직원 계정으로 로그인하세요. 계정 정보는 별도로 전달하며 이 설명서에 비밀번호를 기재하지 않습니다.</p>
+      <a class="btn btn-primary" href="/admin/login">관리자 페이지 열기</a><p class="handover-caption">https://dodamdc.kr/admin/login · 아이디 입력이나 계정 생성 없이 관리자 비밀번호로 바로 로그인합니다.</p>
       <div class="handover-guide-list">
         <details open><summary>비포&애프터 · 치료 사례 올리기</summary><p><a href="/admin/cases">관리자 → 치료 전후 → 새 사례</a>에서 제목·진료·담당 의료진·연령대·치료 기간·설명을 입력하고 사진을 올려주세요. 설명은 ‘내원 계기 → 진단 → 치료를 선택한 이유 → 과정과 주의사항’ 순서로 적어주시면 좋습니다.</p><p>치료 전 / 치료 후 슬롯을 구분해 주세요. 새 글은 비공개로 시작합니다. 동의·비식별화·의료광고 검토를 마친 뒤 공개를 선택해 저장하세요. <strong>치료 후 사진은 회원 전용</strong>이며, 일반 칼럼 이미지로 다시 올리지 마세요.</p></details>
         <details><summary>원장 칼럼 쓰기</summary><p><a href="/admin/columns">관리자 → 원장 칼럼 → 새 칼럼</a>에서 제목·요약·본문·작성자·관련 진료를 입력합니다. 검색용 제목·설명은 직접 설정할 수 있으며, 비워두면 기본 내용이 사용됩니다.</p><p>본문은 큰 소제목(H2)부터 시작하세요. 이미지를 선택하면 설명을 수정하거나 삭제할 수 있습니다. ‘작성 내용 미리보기’에서 모바일 폭을 확인하고 저장해 주세요. 공개를 선택해야 환자에게 보입니다.</p></details>
@@ -72,9 +72,10 @@ export function handoverPage(c: Context<Env>) {
     </section>
 
     <section id="delivery-checklist" class="handover-section handover-closing">
-      <p class="handover-eyebrow">FOR YOUR REFERENCE</p>
-      <h2>마지막으로, 함께 확인해 주세요.</h2>
-      <details class="handover-reference"><summary>운영 확인사항과 기술 점검 기록</summary><p id="delivery-test-summary">직전 납품 릴리스에서 운영 HTML 706페이지의 SEO 검사 오류·경고 0건을 확인했습니다. PC·모바일 디자인 80화면, 예약·보안·모션 회귀 검사와 Chromium·Linux WebKit의 사례·칼럼·공지 실사용 검사를 진행했습니다. 실제 iPhone·카카오 인앱브라우저의 모든 동작까지 보장하는 검사는 아니므로 원장님의 사용 피드백이 필요합니다.</p><ul><li>병원명·주소·진료시간·주차·의료진 약력·비급여 금액을 확인해 주세요.</li><li>의료 문구·환자 사진 동의·개인정보처리방침은 병원에서 최종 검토해 주세요.</li><li>Google·네이버 소유확인 태그는 운영 페이지에 있습니다. 등록 완료·사이트맵 제출·실제 색인은 각 서비스 계정에서 확인해야 합니다.</li><li>직원별 권한과 새 접수 확인 담당자를 정하고 운영 DB·사진 저장소의 별도 백업을 관리해 주세요. 코드 백업은 환자 데이터 백업이 아닙니다.</li></ul><p>이 설명서는 검색 제외로 설정되어 있지만 링크를 아는 사람은 열람할 수 있습니다. 계정 비밀번호와 환자정보는 포함하지 않습니다.</p></details>
+      <p class="handover-eyebrow">ADMIN ACCESS</p>
+      <h2>관리자 페이지 접속 안내</h2>
+      <p><a href="https://dodamdc.kr/admin/login">https://dodamdc.kr/admin/login</a></p>
+      <p>관리자 비밀번호를 입력하면 바로 관리 화면으로 들어갑니다.<br>아이디 입력이나 최초 계정 생성은 필요하지 않습니다.</p>
       <p id="handover-copy-status" role="status" aria-live="polite"></p>
       <div class="handover-actions"><a href="/" class="btn btn-primary">서울도담치과 둘러보기</a><a href="/admin/login" class="btn btn-outline">관리자 페이지</a></div>
     </section>

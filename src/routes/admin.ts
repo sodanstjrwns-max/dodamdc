@@ -3,7 +3,7 @@ import { eventLabels, locationLabels, cleanupConversions } from '../lib/conversi
 import type { Context } from 'hono'
 import { html, raw } from 'hono/html'
 import type { Env } from '../lib/types'
-import { setAdminSession, clearAdminSession, verifyPassword } from '../lib/auth'
+import { setAdminSession, clearAdminSession, verifyPassword, verifyAdminPassword, sharedAdminPrincipal, SHARED_ADMIN_LOGIN } from '../lib/auth'
 import { shell } from '../lib/admin-ui'
 import { canAccessStaff, loginBudget, auditStatement } from '../lib/security'
 import { sanitizeArticle, checkedImage } from '../lib/content-safety'
@@ -23,25 +23,27 @@ const admin = new Hono<Env>()
 
 // ── 로그인 ───────────────────────────────────────────────
 admin.get('/login', async (c) => {
-  const bootstrap = (await c.env.DB.prepare('SELECT COUNT(*) n FROM staff').first<any>())?.n === 0
   if (c.get('admin')) return c.redirect('/admin')
   const clinic = c.get('clinic') as any
   return c.html(html`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>관리자 로그인 · ${clinic.shortName}</title><link rel="stylesheet" href="/static/style.css?v=4"></head>
 <body class="admin-login"><div class="form-card"><img src="/static/img/logo-wide.png" alt="${clinic.name}" width="176" height="44" style="margin-bottom:20px">
-${c.req.query('e') ? alertBox('로그인 정보를 확인해 주세요.') : ''}${c.req.query('created') ? alertBox('계정을 만들었습니다. 개인 ID로 로그인하세요.', 'ok') : ''}<p>${bootstrap ? '최초 계정 설정용 로그인입니다. 기존 관리자 비밀번호로 책임자 계정을 먼저 만들어 주세요.' : '직원별로 발급된 ID와 비밀번호로 로그인해 주세요.'}</p>
-<form method="post" action="/admin/login" class="form">${bootstrap ? '' : html`<div class="field"><label for="login">로그인 ID</label><input id="login" name="login" required autocomplete="username" maxlength="40"></div>`}<div class="field"><label for="pw">관리자 비밀번호</label><input id="pw" name="password" type="password" required autofocus autocomplete="current-password"></div><button type="submit" class="btn btn-primary btn-block">로그인</button></form>
+${c.req.query('e') ? alertBox('비밀번호를 확인해 주세요.') : ''}<p>관리자 비밀번호를 입력해 주세요.</p>
+<form method="post" action="/admin/login" class="form"><div class="field"><label for="pw">관리자 비밀번호</label><input id="pw" name="password" type="password" required maxlength="128" autofocus autocomplete="current-password"></div><button type="submit" class="btn btn-primary btn-block">로그인</button></form>
 <p class="form-foot"><a href="/">← 사이트로</a></p></div></body></html>`)
 })
 admin.post('/login', async (c) => {
   const f = await formData(c)
   const login = String(f.login || '').trim().toLowerCase(), password = String(f.password || '')
   if (!(await loginBudget(c, 'staff-login', login || 'bootstrap'))) return c.text('로그인 시도가 많습니다. 잠시 후 다시 시도해 주세요.', 429)
-  const count = (await c.env.DB.prepare('SELECT COUNT(*) n FROM staff').first<any>())?.n
-  if (count === 0) {
-    if (!c.env.ADMIN_PASSWORD || password !== c.env.ADMIN_PASSWORD) return c.redirect('/admin/login?e=1')
-    await setAdminSession(c, { id:null, login:'bootstrap', name:'최초 설정', role:'owner', version:0, bootstrap:true })
-    return c.redirect('/admin/staff')
+  if (!login) {
+    if (!(await verifyAdminPassword(c, password))) return c.redirect('/admin/login?e=1')
+    const principal = await sharedAdminPrincipal(c)
+    await auditStatement(c.env.DB, principal.id, 'admin.password-login', principal.id).run()
+    await setAdminSession(c, principal)
+    return c.redirect('/admin')
   }
+  // Compatibility for existing named staff clients; never accepts the internal audit ID.
+  if (login === SHARED_ADMIN_LOGIN) return c.redirect('/admin/login?e=1')
   const row = await c.env.DB.prepare('SELECT * FROM staff WHERE login=? AND active=1').bind(login).first<any>()
   if (!row || !(await verifyPassword(password, row.password_hash))) return c.redirect('/admin/login?e=1')
   await setAdminSession(c, { id:row.id, login:row.login, name:row.name, role:row.role, version:row.session_version })

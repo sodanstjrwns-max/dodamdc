@@ -3,7 +3,7 @@ import { html } from 'hono/html'
 import type { Env } from '../lib/types'
 import { shell } from '../lib/admin-ui'
 import { formData, fmtDate } from '../lib/util'
-import { hashPassword, verifyPassword, clearAdminSession } from '../lib/auth'
+import { hashPassword, verifyPassword, clearAdminSession, verifyAdminPassword, SHARED_ADMIN_LOGIN } from '../lib/auth'
 import { auditStatement, loginBudget } from '../lib/security'
 import { alertBox } from '../lib/ui'
 const staffRoutes = new Hono<Env>()
@@ -11,12 +11,13 @@ const roles = { owner: '관리책임자', reception: '예약 담당', editor: '�
 export async function reauthenticate(c: any, password: string) {
   const actor = c.get('staff')
   if (!actor?.id || !(await loginBudget(c, 'reauth', String(actor.id)))) return false
+  if (actor.shared) return verifyAdminPassword(c, password)
   const row = await c.env.DB.prepare('SELECT password_hash FROM staff WHERE id=? AND active=1').bind(actor.id).first()
   return !!row && verifyPassword(password, row.password_hash)
 }
 staffRoutes.get('/staff', async c => {
   const actor = c.get('staff')!
-  const rows = (await c.env.DB.prepare('SELECT id,login,name,role,active,created_at FROM staff ORDER BY id').all<any>()).results || []
+  const rows = (await c.env.DB.prepare('SELECT id,login,name,role,active,created_at FROM staff WHERE login<>? ORDER BY id').bind(SHARED_ADMIN_LOGIN).all<any>()).results || []
   const logs = actor.bootstrap ? [] : (await c.env.DB.prepare('SELECT a.action,a.target_id,a.created_at,s.name actor FROM staff_audit a LEFT JOIN staff s ON s.id=a.actor_id ORDER BY a.id DESC LIMIT 30').all<any>()).results || []
   return shell(c, actor.bootstrap ? '최초 관리책임자 계정 만들기' : '직원 계정·권한', html`
     ${c.req.query('error') ? alertBox('처리할 수 없습니다. 입력·현재 비밀번호를 확인하세요. 마지막 관리책임자는 비활성화하거나 권한을 낮출 수 없습니다.') : ''}
@@ -46,6 +47,8 @@ staffRoutes.post('/staff', async c => {
 staffRoutes.post('/staff/:id', async c => {
   const actor = c.get('staff')!, f = await formData(c), id = Number(c.req.param('id'))
   if (actor.bootstrap || !(await reauthenticate(c, String(f.current_password || '')))) return c.redirect('/admin/staff?error=1')
+  const target = await c.env.DB.prepare('SELECT login FROM staff WHERE id=?').bind(id).first<{login:string}>()
+  if (target?.login === SHARED_ADMIN_LOGIN) return c.redirect('/admin/staff?error=1')
   const role = String(f.role), name = String(f.name || '').trim(), active = f.active === '1' ? 1 : 0, password = String(f.password || '')
   if (!Number.isSafeInteger(id) || !name || name.length > 40 || !Object.hasOwn(roles, role) || (password && (password.length < 12 || password.length > 128))) return c.redirect('/admin/staff?error=1')
   const results = await c.env.DB.batch([

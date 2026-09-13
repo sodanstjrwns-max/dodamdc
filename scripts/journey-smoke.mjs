@@ -110,12 +110,8 @@ try {
   assert.equal(await db.prepare("SELECT * FROM conversion_receipts WHERE receipt='expired'").first(), null)
   assert.equal((await request('/admin/stats')).status, 302)
   const login = await request('/admin/login', { method: 'POST', headers: { origin, 'content-type': 'application/x-www-form-urlencoded' }, body: 'password=test-only-password' })
-  const bootstrapCookie = login.headers.getSetCookie().find(v => v.startsWith('dd_admin='))?.split(';')[0]
-  assert.ok(bootstrapCookie)
-  assert.equal((await request('/admin/stats', { headers: { cookie: bootstrapCookie } })).status, 403)
-  await request('/admin/staff', { method: 'POST', headers: { origin, cookie: bootstrapCookie, 'content-type': 'application/x-www-form-urlencoded' }, body: 'login=owner&name=FixtureOwner&password=fixture-owner-password' })
-  const ownerLogin = await request('/admin/login', { method: 'POST', headers: { origin, 'content-type': 'application/x-www-form-urlencoded' }, body: 'login=owner&password=fixture-owner-password' })
-  const cookie = ownerLogin.headers.getSetCookie().find(v => v.startsWith('dd_admin='))?.split(';')[0]
+  assert.equal(login.headers.get('location'), '/admin')
+  const cookie = login.headers.getSetCookie().find(v => v.startsWith('dd_admin='))?.split(';')[0]
   assert.ok(cookie)
   const stats = await request('/admin/stats?scope=preview', { headers: { cookie } })
   assert.equal(stats.status, 200)

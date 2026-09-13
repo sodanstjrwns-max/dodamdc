@@ -21,7 +21,7 @@ export type SessionUser = {
   role: 'member' | 'admin'
 }
 
-export type StaffPrincipal = { id: number | null; login: string; name: string; role: 'owner' | 'reception' | 'editor'; version: number; bootstrap?: boolean }
+export type StaffPrincipal = { id: number | null; login: string; name: string; role: 'owner' | 'reception' | 'editor'; version: number; bootstrap?: boolean; shared?: boolean }
 
 export type Variables = {
   clinic: Clinic
