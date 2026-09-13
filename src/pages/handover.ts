@@ -3,53 +3,6 @@ import type { Context } from 'hono'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
 
-// The client explicitly requested the fee and bank account in both the page and message.
-export const deliveryMessage = `한휘림 원장님, 늦은 밤 죄송합니다.
-아래 설명서를 먼저 읽어주시면 감사하겠습니다.
-
-https://dodamdc.kr/handover
-
-서울도담치과 홈페이지가 완성되어, 이 밤에라도 전달드리고 싶었습니다.
-정말 하얗게 불태웠습니다.
-병원의 좋은 진료가 더 많은 환자에게 전해지고, 앞으로의 성장을 함께 만들어갈 홈페이지라고 자신합니다.
-
-이 홈페이지는 세 가지를 담고 있습니다.
-첫째 SEO, 검색엔진이 우리 병원의 정보를 잘 찾고 이해하도록.
-둘째 AEO, AI가 환자의 질문에 답할 때 참고할 수 있도록.
-셋째 체류시간, 사람이 실제로 보고 신뢰하며 내원을 결정할 수 있도록.
-
-그래서 겉으로 보이는 디자인뿐 아니라 제목, 대표주소, 구조화 데이터, 진료별 상세 설명과 콘텐츠 간 연결까지 신경 썼습니다. 글이 길고 페이지가 많은 이유도 여기에 있습니다. 모든 환자가 처음부터 끝까지 읽기보다는, 자신이 궁금했던 질문에 바로 도착할 수 있도록 만든 것입니다. 검색엔진과 AI도 그 내용을 이해할 수 있도록 구조를 갖췄습니다.
-
-다만 이 홈페이지를 앞으로 그냥 내버려두시면 안 됩니다.
-진료실에서 쌓이는 케이스와 환자분들이 자주 묻는 질문을 꾸준히 올려주세요. 사례 하나, 칼럼 한 편이 새로운 검색어로 우리 병원을 발견할 기회가 되고, 환자가 원장님을 믿을 수 있는 근거가 됩니다.
-저는 이 홈페이지가 납품 금액의 100배를 목표로 키워갈 만한 자산이라고 생각합니다. 물론 순위나 매출을 약속드리는 뜻은 아닙니다. 그만큼 오래, 제대로 써주셨으면 하는 마음입니다.
-
-이 홈페이지를 만드신 목적을 잊지 말아 주세요.
-예쁜 홈페이지 하나를 갖는 것이 아니라, 좋은 진료가 필요한 환자에게 발견되고 선택받는 것입니다.
-
-일단 밤이 늦었으니 편하게 둘러봐 주세요. 어떤 방식의 피드백도 환영합니다.
-그리고 당분간은 저와 함께 베타테스터가 되어주셔야 합니다 ㅎㅎ
-버그를 찾으려고 정말 열심히 확인했지만, 기기와 브라우저마다 반응이 달라 혼자 모든 경우를 확인할 수는 없습니다. 여러 페이지와 관리자 기능을 직접 써보시고 잘 안 되는 부분을 알려주시면 정말 감사하겠습니다.
-
-고치고 싶으신 부분이나 새로 넣고 싶으신 기능도 언제든 편하게 말씀해 주세요. 대부분의 사항은 수정하거나 구현할 방법을 함께 찾아볼 수 있습니다.
-딱 하나, 제게 없는 실제 사진을 만들어 넣어드릴 수는 없습니다 ㅎㅎ
-새로운 진료 사진이나 병원 사진, 멋진 영상이 생기면 전달해 주세요. 환자 동의와 공개 가능 여부를 확인한 자료라면 홈페이지에 잘 담아드리겠습니다.
-
-수정 기한이 언제까지냐면, 영원히입니다.
-어디 가지 않고 항상 있을 테니 걱정 마시고 편하게 연락 주세요.
-
-결제는 계좌이체로 부탁드립니다.
-농협 1085-02-007634 / 예금주 문석준
-납품 금액은 1,500만 원입니다.
-입금 확인 후 2주 이내에 세금계산서를 발급해 드립니다.
-본격적인 사업화보다는 직접 만드는 일에 집중하다 보니 다른 결제 수단이 준비되어 있지 않습니다. 너그러운 양해 부탁드립니다.
-
-아무쪼록 좋은 밤 되시고, 편하게 연락 주세요.
-감사합니다!
-
-문석준 드림
-https://dodamdc.kr`
-
 export function handoverPage(c: Context<Env>) {
   const body = html`<article class="handover-document handover-letter">
     <header class="handover-hero">
@@ -122,10 +75,9 @@ export function handoverPage(c: Context<Env>) {
       <p class="handover-eyebrow">FOR YOUR REFERENCE</p>
       <h2>마지막으로, 함께 확인해 주세요.</h2>
       <details class="handover-reference"><summary>운영 확인사항과 기술 점검 기록</summary><p id="delivery-test-summary">직전 납품 릴리스에서 운영 HTML 706페이지의 SEO 검사 오류·경고 0건을 확인했습니다. PC·모바일 디자인 80화면, 예약·보안·모션 회귀 검사와 Chromium·Linux WebKit의 사례·칼럼·공지 실사용 검사를 진행했습니다. 실제 iPhone·카카오 인앱브라우저의 모든 동작까지 보장하는 검사는 아니므로 원장님의 사용 피드백이 필요합니다.</p><ul><li>병원명·주소·진료시간·주차·의료진 약력·비급여 금액을 확인해 주세요.</li><li>의료 문구·환자 사진 동의·개인정보처리방침은 병원에서 최종 검토해 주세요.</li><li>Google·네이버 소유확인 태그는 운영 페이지에 있습니다. 등록 완료·사이트맵 제출·실제 색인은 각 서비스 계정에서 확인해야 합니다.</li><li>직원별 권한과 새 접수 확인 담당자를 정하고 운영 DB·사진 저장소의 별도 백업을 관리해 주세요. 코드 백업은 환자 데이터 백업이 아닙니다.</li></ul><p>이 설명서는 검색 제외로 설정되어 있지만 링크를 아는 사람은 열람할 수 있습니다. 계정 비밀번호와 환자정보는 포함하지 않습니다.</p></details>
-      <details class="handover-reference handover-message"><summary>원장님께 보낼 안내문 · 복사해서 전달하기</summary><label for="delivery-message">발송용 안내문</label><textarea id="delivery-message" readonly rows="18">${deliveryMessage}</textarea><button type="button" class="btn btn-primary" data-copy-target="delivery-message">안내문 전체 복사</button></details>
       <p id="handover-copy-status" role="status" aria-live="polite"></p>
       <div class="handover-actions"><a href="/" class="btn btn-primary">서울도담치과 둘러보기</a><a href="/admin/login" class="btn btn-outline">관리자 페이지</a></div>
     </section>
-  </article><script src="/static/handover.js?v=2" defer></script>`
+  </article><script src="/static/handover.js?v=3" defer></script>`
   return c.html(Layout(c, { title: '서울도담치과 홈페이지 납품 설명서', description: '문석준이 전하는 서울도담치과 홈페이지의 가치, SEO·AEO·환자 경험 설계, 콘텐츠 운영과 지속적인 수정 지원, 결제 안내.', path: '/handover', noindex: true, bodyClass: 'handover-page', crumbs: [{ name: '홈', href: '/' }, { name: '납품 설명서', href: '/handover' }] }, body))
 }
