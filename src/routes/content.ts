@@ -1,3 +1,4 @@
+import { hoursNotices } from '../lib/clinic-hours'
 import { Hono } from 'hono'
 import { safeFileKey, hasPublishedEditorialImage } from '../lib/content-safety'
 import { canAccessStaff } from '../lib/security'
@@ -266,7 +267,7 @@ ${!o.ok && getNaverBookingUrl(clinic) ? html`<section class="section-sm naver-re
   </div>
   <aside class="res-side" aria-label="예약 및 첫 방문 안내">
     <div class="info-card info-card-cta"><h3>빠른 문의는 전화로</h3><p class="info-phone"><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></p><p>진료 시간 내 전화가 가장 빠릅니다. 통증이 심하시면 전화로 먼저 말씀해 주세요.</p><a href="${clinic.channels.kakao}" target="_blank" rel="noopener" class="btn btn-light btn-sm">카카오톡 채널 상담</a></div>
-    <div class="info-card" style="margin-top:16px"><h3>진료시간</h3><table class="hours-table"><tbody>${clinic.hours.map((h: any) => html`<tr data-day="${h.day}"><th>${h.day}</th><td>${h.open ? `${h.open} – ${h.close}` : html`<span class="closed">휴진</span>`}</td><td class="note">${h.note || (h.lunch ? `점심 ${h.lunch}` : '')}</td></tr>`)}</tbody></table><p class="hint">${clinic.hoursNote}</p></div>
+    <div class="info-card" style="margin-top:16px"><h3>진료시간</h3><table class="hours-table"><tbody>${clinic.hours.map((h: any) => html`<tr data-day="${h.day}"><th>${h.day}</th><td>${h.open ? `${h.open} – ${h.close}` : html`<span class="closed">휴진</span>`}</td><td class="note">${h.note || (h.lunch ? `점심 ${h.lunch}` : '')}</td></tr>`)}</tbody></table><p class="hint">${hoursNotices(clinic)}</p></div>
     <div class="info-card" style="margin-top:16px"><h3>첫 방문 준비</h3><ul class="info-list"><li>신분증 (건강보험 확인)</li><li>복용 중인 약 이름</li><li>다른 병원 방사선 사진 (있다면)</li></ul><a href="/first-visit" class="text-link">첫 방문 순서와 준비물 자세히 ↗</a></div>
   </aside>
 </div></section>`

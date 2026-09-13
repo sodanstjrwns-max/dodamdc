@@ -1,4 +1,5 @@
 import { clinicDefaults, type Clinic } from '../data/clinic'
+import { parseClinicHours } from './clinic-hours'
 
 /** 관리자에서 수정 가능한 기본정보 키 (한 곳에서 수정 → 전체 반영) */
 export const EDITABLE_KEYS: { key: string; label: string; type?: 'text' | 'textarea' }[] = [
@@ -10,6 +11,7 @@ export const EDITABLE_KEYS: { key: string; label: string; type?: 'text' | 'texta
   { key: 'address', label: '주소 (전체)' },
   { key: 'addressShort', label: '주소 (짧게)' },
   { key: 'hoursNote', label: '진료시간 비고' },
+  { key: 'hoursException', label: '예외 진료 안내', type: 'textarea' },
   { key: 'directions.subway', label: '오시는길 - 지하철' },
   { key: 'directions.bus', label: '오시는길 - 버스' },
   { key: 'directions.parking', label: '오시는길 - 주차', type: 'textarea' },
@@ -28,6 +30,7 @@ export const EDITABLE_KEYS: { key: string; label: string; type?: 'text' | 'texta
 ]
 
 export function validSetting(key: string, value: string): boolean {
+  if (key === 'hours') return value === '' || (value.length <= 3000 && parseClinicHours(value) !== null)
   if (!EDITABLE_KEYS.some(k => k.key === key) || value.length > 3000) return false
   if (!value) return true
   if (key === 'ga4') return /^G-[A-Z0-9]{4,20}$/.test(value)
@@ -64,7 +67,10 @@ export async function loadClinic(db: D1Database | undefined): Promise<Clinic & {
   if (cache && Date.now() - cache.at < 30_000) return cache.clinic as any
   try {
     const { results } = await db.prepare('SELECT key, value FROM site_settings').all<{ key: string; value: string }>()
-    for (const r of results || []) if (r.value !== null && r.value !== '' && validSetting(r.key, r.value)) setPath(base, r.key, r.value)
+    for (const r of results || []) if (r.value !== null && (r.value !== '' || ['hoursNote', 'hoursException'].includes(r.key)) && validSetting(r.key, r.value)) {
+      if (r.key === 'hours') base.hours = parseClinicHours(r.value)!
+      else setPath(base, r.key, r.value)
+    }
   } catch {
     /* 테이블 없을 수 있음 (마이그레이션 전) */
   }

@@ -11,6 +11,7 @@ export type Treatment = {
   keywords: string[] // SEO / 지역 조합
   areaKey?: string // 지역 SEO URL 슬러그 (예: implant)
   short: string // 카드 한 줄
+  metaDescription: string // 페이지별로 작성한 완성 문장. 본문을 글자 수로 자르지 않음.
   heroTitle: string
   heroLead: string
   heroImage?: string

@@ -7,13 +7,15 @@ import { treatments, getTreatment } from '../data/treatments'
 import { pricing, insuredItems, pricingUpdatedAt, won } from '../data/pricing'
 import { loadPricingGroups } from '../lib/fees'
 import { areaPages, areaAccess, type AreaPage } from '../data/areas'
-import { nearbyAreas } from '../data/clinic'
+import { nearbyAreas, type Clinic } from '../data/clinic'
+import { hoursNotices, dayHoursText, lunchHoursText } from '../lib/clinic-hours'
 import { pageHero, faqList, ctaStrip, reviewLine } from '../lib/ui'
 
 // ── 통합 FAQ ─────────────────────────────────────────────
-const generalFaqs = [
+const generalFaqsFor = (clinic: Clinic) => [
   { q: '예약 없이 방문해도 진료를 받을 수 있나요?', a: '가능합니다. 다만 예약 환자분이 우선이므로 대기 시간이 길어질 수 있습니다. 전화나 온라인 예약 후 방문하시면 기다림을 줄일 수 있습니다.' },
-  { q: '야간진료는 언제 하나요?', a: '매주 화요일 14:00부터 20:30까지 야간진료를 합니다. 마감 30분 전(20:00)까지 접수해 주세요. 수요일은 점심시간 없이 09:00–18:00 진료합니다.' },
+  { q: '화요일 진료시간은 어떻게 되나요?', a: `${dayHoursText(clinic, '화')}가 기본 시간표입니다. ${clinic.hoursNote} 예약 가능 시간은 병원에 확인해 주세요.` },
+  { q: '수요일에도 진료하나요?', a: `기본 시간표는 ${dayHoursText(clinic, '수')}입니다. ${clinic.hoursException}` },
   { q: '주차는 가능한가요?', a: '건물 사정상 주차가 어렵습니다. 인근 공영주차장 또는 대중교통(1호선 화서역 도보 약 10분, 블루밍푸른숲아파트 정류장 하차) 이용을 권장드립니다.' },
   { q: '첫 방문 때 무엇을 준비해야 하나요?', a: '신분증(건강보험 확인용)을 가져오세요. 복용 중인 약이 있으면 약 이름을 메모해 오시고, 다른 병원 방사선 사진이 있으면 함께 보여주시면 진단에 도움이 됩니다.' },
   { q: '비급여 진료비는 어디서 확인하나요?', a: '홈페이지 비급여 진료비 페이지와 원내 게시물에 고지되어 있습니다. 치료 전 상담에서 예상 비용을 먼저 안내드리고, 고지된 금액대로 동일하게 적용합니다.' },
@@ -24,6 +26,7 @@ const generalFaqs = [
 
 export function faqPage(c: Context<Env>) {
   const clinic = c.get('clinic') as any
+  const generalFaqs = generalFaqsFor(clinic)
   const groups = [{ key: 'general', name: '병원 이용 안내', faqs: generalFaqs }, ...treatments.map((t) => ({ key: t.slug, name: t.name, faqs: t.faqs }))]
   const all = groups.flatMap((g) => g.faqs)
   const body = html`
@@ -72,7 +75,7 @@ ${pageHero({ eyebrow: '오시는 길', title: html`화서역에서 걸어서,<br
       <div class="info-card"><h3>지하철</h3><p>${clinic.directions.subway}</p><p class="hint">화서역 출구에서 화양로 방향으로 걸어오시면 신우상가가 보입니다.</p></div>
       <div class="info-card"><h3>버스</h3><p>${clinic.directions.bus}</p></div>
       <div class="info-card"><h3>주차</h3><p>${clinic.directions.parking}</p></div>
-      <div class="info-card"><h3>진료시간</h3>${hoursTable(clinic)}<p class="hint">${clinic.hoursNote}</p></div>
+      <div class="info-card"><h3>진료시간</h3>${hoursTable(clinic)}<p class="hint">${hoursNotices(clinic)}</p></div>
       <div class="info-card info-card-cta"><h3>전화</h3><p class="info-phone"><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></p><p>찾기 어려우시면 전화 주세요. 안내드립니다.</p></div>
     </div>
   </div>
@@ -89,19 +92,19 @@ ${pageHero({ eyebrow: '오시는 길', title: html`화서역에서 걸어서,<br
 export function hoursPage(c: Context<Env>) {
   const clinic = c.get('clinic') as any
   const body = html`
-${pageHero({ eyebrow: '진료시간', title: html`화요일은 밤 8시 반까지,<br>수요일은 점심 없이`, lead: '직장인과 학생분들이 시간을 맞추기 어렵다는 말씀을 듣고 정한 시간표입니다. 공휴일은 휴진합니다.', crumbs: [{ name: '홈', href: '/' }, { name: '진료시간', href: '/hours' }] })}
+${pageHero({ eyebrow: '진료시간', title: html`방문 전 확인하세요,<br>진료시간과 휴진 안내`, lead: hoursNotices(clinic), crumbs: [{ name: '홈', href: '/' }, { name: '진료시간', href: '/hours' }] })}
 <section class="section">
   <div class="container container-narrow">
     <h2 class="sr-only">요일별 진료시간과 방문 안내</h2>
-    <div class="info-card reveal in">${hoursTable(clinic)}<p class="hint">${clinic.hoursNote} 마지막 접수는 마감 30분 전입니다.</p></div>
+    <div class="info-card reveal in">${hoursTable(clinic)}<p class="hint">${hoursNotices(clinic)}</p></div>
     <div class="grid-2 stagger" style="margin-top:28px">
-      <div class="card card-body"><h3>야간진료 이용 안내</h3><p>화요일 20:00까지 접수하시면 진료가 가능합니다. 예약 환자분 우선이므로 미리 전화나 온라인 예약을 권장드립니다.</p></div>
-      <div class="card card-body"><h3>점심시간</h3><p>월·목·금 13:00–14:00은 점심시간입니다. 화요일은 오후 진료만, 수요일은 점심시간 없이 진료합니다.</p></div>
+      <div class="card card-body"><h3>예약·접수 안내</h3><p>${dayHoursText(clinic, '화')}가 기본 시간표입니다. ${clinic.hoursNote} 내원 전 전화나 온라인으로 예약 가능 시간을 확인해 주세요.</p></div>
+      <div class="card card-body"><h3>점심시간</h3><p>${lunchHoursText(clinic)} 예외 진료일의 시간은 방문 전에 확인해 주세요.</p></div>
     </div>
   </div>
 </section>
 ${ctaStrip(clinic)}`
-  return c.html(Layout(c, { title: '진료시간 — 화요일 야간진료 20:30', description: `서울도담치과 진료시간. 월·목·금 09:00–18:00, 화 14:00–20:30 야간진료, 수 09:00–18:00 점심시간 없이, 토 09:00–14:00, 일·공휴일 휴진. ${clinic.phone}`, path: '/hours', crumbs: [{ name: '홈', href: '/' }, { name: '진료시간', href: '/hours' }] }, body))
+  return c.html(Layout(c, { title: '진료시간·휴진 안내', description: '서울도담치과의 요일별 진료시간과 점심시간, 정기휴진·공휴일 주의 예외를 확인하세요. 내원 전 예약 가능일과 변경 공지를 확인하고 전화로 문의하실 수 있습니다.', path: '/hours', crumbs: [{ name: '홈', href: '/' }, { name: '진료시간', href: '/hours' }] }, body))
 }
 
 // ── 비급여 진료비 ────────────────────────────────────────
@@ -152,7 +155,7 @@ ${pageHero({ eyebrow: `${p.areaFull} · ${t.category}`, title: html`${p.areaName
   <article class="tx-body">
     <section class="summary-box reveal"><h2>${p.areaName} 분들께 먼저 드리는 말씀</h2><ul>${t.summary.slice(0, 3).map((s) => html`<li>${s}</li>`)}</ul></section>
     <div class="prose">
-      <section class="reveal"><h2>${p.areaFull}에서 오시는 길</h2><p>${access}</p><p>${clinic.address}. ${clinic.directions.subway}, ${clinic.directions.bus}. ${clinic.directions.parking}</p><p>화요일은 20:30까지 야간진료, 수요일은 점심시간 없이 진료해 ${p.areaName}에서 퇴근 후나 점심시간에 방문하시는 분들이 계십니다.</p></section>
+      <section class="reveal"><h2>${p.areaFull}에서 오시는 길</h2><p>${access}</p><p>${clinic.address}. ${clinic.directions.subway}, ${clinic.directions.bus}. ${clinic.directions.parking}</p><p>${hoursNotices(clinic)} <a href="/hours">요일별 진료시간을 확인해 주세요.</a></p></section>
       <section class="reveal"><h2>서울도담치과의 ${t.name}</h2><p class="lead">${t.heroLead}</p>${t.sections.slice(0, 2).map((s) => html`<h3>${s.h}</h3><p>${s.lead}</p><p>${s.body[0]}</p>`)}<p><a href="/treatments/${t.slug}" class="link-arrow">${t.name} 전체 안내 읽기</a></p></section>
       <section class="reveal"><h2>진료 전 알아두실 점</h2><ul>${t.sideEffects.slice(0, 3).map((s) => html`<li>${s}</li>`)}</ul><p class="hint">개인의 구강 상태에 따라 치료 방법과 결과는 다를 수 있습니다.</p></section>
     </div>
