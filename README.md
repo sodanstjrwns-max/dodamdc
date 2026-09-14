@@ -1,5 +1,12 @@
 # 서울도담치과의원 홈페이지 (webapp)
 
+## 운영 복구 — 이전 코드의 후속 배포로 사진·문단 수정이 사라진 현상 (2026-09-14)
+- 사용자 신고 당시 정식 `/mission`은 CSS v17, 기존 접수대/측면 외관, 한 덩어리 문장을 반환했습니다. `Cache-Control: private, no-store`, `CF-Cache-Status: DYNAMIC`이었으므로 브라우저 캐시 문제로 단정할 수 없었습니다.
+- 배포 이력 확인: 수정본 `59461e3e`(소스 `2a43f80`) 이후, 이전 소스 `05f341a` 기반의 Production 배포 `724dc4ae`, `27d556a4`가 올라왔습니다. 마지막 배포는 2026-09-14T09:21:18Z의 `ad_hoc` 직접 업로드이며 실행 주체는 확인하지 않았습니다. GitHub main에는 수정본이 정상 보존되어 있었습니다.
+- GitHub main과 동일한 소스 `efdd7d1`로 다시 빌드·배포하여 `41802f69` (https://41802f69.seoul-dodam-dental.pages.dev)로 복구했습니다. 진료시간·백과사전 등 병합된 기존 개선 사항을 유지하며 운영 DB/R2/secret은 변경하지 않았습니다.
+- 2026-09-14T10:20Z 정식 https://dodamdc.kr/mission 에서 Chromium/WebKit 1440·390px의 새 사진 두 장·실제 두 문단/두 줄바꿈·CSS v18·가로 넘침 없음 확인. www도 동일 최신 내용으로 연결됩니다. 실제 운영 캡처: `.artifacts/restored-live-{1440,390}-{photos,linebreaks,exterior}.png`.
+- **후속 배포 주의**: 이 프로젝트는 Git 자동 배포가 아닌 direct-upload입니다. 다른 작업 환경에서 오래된 checkout/build를 다시 배포하면 최신 내용이 또 덮어써질 수 있습니다. 반드시 GitHub main을 먼저 동기화하고 빌드한 뒤 배포하세요. 이번 복구가 외부의 후속 직접 업로드를 차단하는 것은 아닙니다.
+
 ## 병원 피드백 — 사진 교체·환자 본문 가독성 (2026-09-14)
 - `/mission` 상단에 사용자가 제공한 실제 진료 설명 사진, 연혁에 건물 정면 사진을 적용했습니다. 기존 접수대/측면 외관 이미지는 이 두 위치에서 교체했으며 다른 용도의 기존 파일은 삭제하지 않았습니다. 원본은 Git 제외 `.artifacts/`에 두고 전체 구도를 유지한 WebP 1024px/640px 네 장만 공개 자산에 추가했습니다. 생성·합성·보정 없이 리사이즈/재인코딩하고 신규 출력에는 촬영 메타데이터를 포함하지 않습니다.
 - 신규 자산: `suwon-dodam-dental-treatment-explanation-v2{,-sm}.webp`, `suwon-dodam-dental-building-front-v2{,-sm}.webp`. 상단 사진은 기존 170/210px 고정 크롭을 제거해 원본 1024:683 비율로 보여줍니다. 연혁 사진은 4:3 전체 구도를 유지합니다. alt·실제 크기·srcset 및 미션 대표 이미지도 연결했습니다.
