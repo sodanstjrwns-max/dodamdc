@@ -117,6 +117,51 @@ try {
       await context.close()
     }
     result.checks.push(`${engine.name}: mobile model/controls separation, nonselectable SVG buttons, compact philosophy, dynamic viewport and booking bar`)
+    const readingContext=await engine.instance.newContext({viewport:{width:390,height:844},deviceScaleFactor:1,reducedMotion:'reduce'})
+    const reading=await readingContext.newPage()
+    reading.on('pageerror',error=>result.errors.push(`${engine.name} reading: ${error.message}`))
+    for(const width of [320,390,1440]) {
+      await reading.setViewportSize({width,height:900})
+      await reading.goto(base+'/mission',{waitUntil:'networkidle'})
+      assert.equal(await reading.locator('main h1').count(),1)
+      assert.equal(await reading.locator('.value-grid .value').count(),6)
+      assert.equal(await reading.locator('#history .timeline-item').count(),4)
+      for(const [selector,name,ratio] of [['.mission-poster-aside img','treatment-explanation',1024/683],['.mission-history-photo img','building-front',4/3]]) {
+        const img=reading.locator(selector);await img.scrollIntoViewIfNeeded()
+        await expect(img).toHaveJSProperty('complete',true)
+        assert((await img.getAttribute('src')).includes(name+'-v2.webp'))
+        assert((await img.getAttribute('srcset')).includes(name+'-v2-sm.webp'))
+        const geometry=await img.evaluate(el=>({width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height,naturalWidth:el.naturalWidth,fit:getComputedStyle(el).objectFit,filter:getComputedStyle(el).filter}))
+        assert(geometry.naturalWidth>0 && Math.abs(geometry.width/geometry.height-ratio)<.01,'User-supplied photo keeps its full aspect ratio')
+        assert.equal(geometry.fit,'contain');assert.equal(geometry.filter,'none')
+      }
+      const title=reading.locator('.mission-statement-title'),explanation=reading.locator('.mission-statement-description')
+      assert.equal(await explanation.locator('p').count(),2)
+      const titleStyle=await title.evaluate(el=>({size:parseFloat(getComputedStyle(el).fontSize),weight:Number(getComputedStyle(el).fontWeight)}))
+      const bodyStyle=await explanation.evaluate(el=>({size:parseFloat(getComputedStyle(el).fontSize),weight:Number(getComputedStyle(el).fontWeight)}))
+      assert(titleStyle.size>bodyStyle.size && titleStyle.weight>bodyStyle.weight && bodyStyle.size>=16)
+      assert((await title.textContent()).includes('이해될 때까지 설명하고'))
+      assert((await explanation.textContent()).includes('매일 진료실에서 스스로에게 확인하는 기준'))
+      assert(await reading.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1))
+      if(width===390||width===1440){
+        await reading.locator('.mission-poster').screenshot({path:`.artifacts/reading-${engine.name}-${width}-mission-hero.png`})
+        await reading.locator('#mission-reading-statement').screenshot({path:`.artifacts/reading-${engine.name}-${width}-statement.png`})
+        await reading.locator('#history').screenshot({path:`.artifacts/reading-${engine.name}-${width}-history.png`})
+      }
+      for(const path of ['/treatments/implant','/privacy']) {
+        await reading.goto(base+path,{waitUntil:'networkidle'})
+        const body=reading.locator('.prose').first()
+        const style=await body.evaluate(el=>({size:parseFloat(getComputedStyle(el).fontSize),line:parseFloat(getComputedStyle(el).lineHeight),weight:Number(getComputedStyle(el).fontWeight)}))
+        assert(style.size>=16 && style.size<=18 && style.line/style.size>=1.85 && style.weight<=550)
+        assert(await reading.locator('.prose p').first().evaluate(el=>el.getBoundingClientRect().width<=705),'Reading lines stay within 44rem')
+        assert(await reading.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1))
+      }
+    }
+    await reading.goto(base+'/faq',{waitUntil:'networkidle'})
+    await reading.locator('.faq-item summary').first().click()
+    assert(await reading.locator('.faq-a').first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize)>=16))
+    await readingContext.close()
+    result.checks.push(`${engine.name}: supplied mission photos uncropped, headline/explanation separation, 16px+ public prose and FAQ, readable line widths at 320/390/1440px`)
   }
   result.fontBytes = { original: (await stat('public/static/fonts/WantedSansVariable.woff2')).size, initialCore: (await stat('public/static/fonts/WantedSansCore-v2.woff2')).size }
   assert.ok(result.fontBytes.initialCore < result.fontBytes.original * 0.2)

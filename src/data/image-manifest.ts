@@ -60,6 +60,11 @@ export const imageManifest: Record<string, { width: number; height: number; srcs
     "height": 1100,
     "srcset": "/static/img/qraycam-pro-fluorescence-caries-detector-v2-sm.webp 640w, /static/img/qraycam-pro-fluorescence-caries-detector-v2.webp 1400w"
   },
+  "/static/img/suwon-dodam-dental-building-front-v2.webp": {
+    "width": 1024,
+    "height": 768,
+    "srcset": "/static/img/suwon-dodam-dental-building-front-v2-sm.webp 640w, /static/img/suwon-dodam-dental-building-front-v2.webp 1024w"
+  },
   "/static/img/suwon-dodam-dental-chair-unit-v2.webp": {
     "width": 1400,
     "height": 1100,
@@ -89,6 +94,11 @@ export const imageManifest: Record<string, { width: number; height: number; srcs
     "width": 1600,
     "height": 1100,
     "srcset": "/static/img/suwon-dodam-dental-sterilization-room-v2-sm.webp 640w, /static/img/suwon-dodam-dental-sterilization-room-v2.webp 1600w"
+  },
+  "/static/img/suwon-dodam-dental-treatment-explanation-v2.webp": {
+    "width": 1024,
+    "height": 683,
+    "srcset": "/static/img/suwon-dodam-dental-treatment-explanation-v2-sm.webp 640w, /static/img/suwon-dodam-dental-treatment-explanation-v2.webp 1024w"
   },
   "/static/img/suwon-dodam-dental-treatment-room-v2.webp": {
     "width": 1600,

@@ -125,12 +125,18 @@ export function missionPage(c: Context<Env>) {
 <section class="mission-poster" aria-labelledby="mission-title"><div class="container">
   <nav class="crumbs" aria-label="현재 위치"><ol><li><a href="/">홈</a></li><li aria-current="page">도담의 철학</li></ol></nav>
   <p class="edition-label">THE DODAM PHILOSOPHY</p>
-  <div class="mission-poster-grid"><h1 id="mission-title">한 번 손대기 전에,<br><em>한 번 더</em><br>생각합니다.</h1><div class="mission-poster-aside"><p>치료의 크기보다 중요한 건<br>당신에게 꼭 필요한 치료인지.<br>그 질문을 잊지 않는 치과가 되겠습니다.</p><img src="/static/img/suwon-dodam-dental-reception-desk-v2.webp" alt="서울도담치과 접수 공간" ${imageAttrs(`/static/img/suwon-dodam-dental-reception-desk-v2.webp`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1000px) 50vw, 600px', 1619, 971)} fetchpriority="high"></div></div>
+  <div class="mission-poster-grid"><h1 id="mission-title">한 번 손대기 전에,<br><em>한 번 더</em><br>생각합니다.</h1><div class="mission-poster-aside"><p>치료의 크기보다 중요한 건<br>당신에게 꼭 필요한 치료인지.<br>그 질문을 잊지 않는 치과가 되겠습니다.</p><img src="/static/img/suwon-dodam-dental-treatment-explanation-v2.webp" alt="서울도담치과 진료실에서 모니터를 보며 환자에게 설명하는 한휘림 원장" ${imageAttrs(`/static/img/suwon-dodam-dental-treatment-explanation-v2.webp`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1400px) 38vw, 500px', 1024, 683)} fetchpriority="high" decoding="async"></div></div>
   <p class="mission-poster-bottom">Less intervention. More consideration.</p>
 </div></section>
 <section class="section">
   <div class="container container-narrow">
-    <p class="mission-statement reveal">“<em>${clinic.slogan}</em>” 이 문장은 광고 문구가 아니라 저희가 매일 진료실에서 스스로에게 확인하는 기준입니다. 설명이 부족했다면 다시 설명하고, 치료가 과했다면 다음엔 덜 합니다.</p>
+    <div class="mission-statement reveal" id="mission-reading-statement">
+      <p class="mission-statement-title">“${clinic.slogan}”</p>
+      <div class="mission-statement-description">
+        <p>이 문장은 광고 문구가 아니라,<br>저희가 매일 진료실에서 스스로에게 확인하는 기준입니다.</p>
+        <p>설명이 부족했다면 다시 설명하고,<br>치료가 과했다면 다음엔 덜 합니다.</p>
+      </div>
+    </div>
   </div>
 </section>
 <section class="section section-bg" id="values">
@@ -141,7 +147,7 @@ export function missionPage(c: Context<Env>) {
 </section>
 <section class="section" id="history">
   <div class="container split rev">
-    <div class="split-img reveal-right"><img src="/static/img/suwon-dodam-dental-building-exterior.webp" alt="서울도담치과가 위치한 신우상가 외관" ${imageAttrs(`/static/img/suwon-dodam-dental-building-exterior.webp`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1000px) 50vw, 600px', 960, 720)} loading="lazy" decoding="async"></div>
+    <div class="split-img mission-history-photo reveal-right"><img src="/static/img/suwon-dodam-dental-building-front-v2.webp" alt="신우상가 2층 서울도담치과 간판과 1층 입구가 보이는 건물 정면" ${imageAttrs(`/static/img/suwon-dodam-dental-building-front-v2.webp`, '(max-width: 760px) calc(100vw - 44px), (max-width: 1400px) 45vw, 640px', 1024, 768)} loading="lazy" decoding="async"></div>
     <div class="reveal-left">
       <p class="eyebrow">병원 연혁</p>
       <h2 class="h2">화서동에서 이어온 시간</h2>
@@ -155,7 +161,7 @@ export function missionPage(c: Context<Env>) {
   </div>
 </section>
 ${ctaStrip(clinic)}`
-  return c.html(Layout(c, { title: '병원 미션 — 이해될 때까지 설명하고, 필요한 만큼만 치료합니다', description: `서울도담치과의 미션. ${clinic.mission} 설명·보존·무통·정직·기준·지속, 여섯 가지 약속.`, path: '/mission', image: '/static/img/suwon-dodam-dental-consult-room-v2.webp', crumbs: [{ name: '홈', href: '/' }, { name: '병원 미션', href: '/mission' }] }, body))
+  return c.html(Layout(c, { title: '병원 미션 — 이해될 때까지 설명하고, 필요한 만큼만 치료합니다', description: `서울도담치과의 미션. ${clinic.mission} 설명·보존·무통·정직·기준·지속, 여섯 가지 약속.`, path: '/mission', bodyClass: 'mission-page', image: '/static/img/suwon-dodam-dental-treatment-explanation-v2.webp', imageAlt: '진료실에서 환자에게 설명하는 한휘림 원장', crumbs: [{ name: '홈', href: '/' }, { name: '병원 미션', href: '/mission' }] }, body))
 }
 
 // ── 장비·감염관리 (floor-guide) ─────────────────────────
