@@ -1,3 +1,4 @@
+import { hoursNotices } from './clinic-hours'
 import { html, raw } from 'hono/html'
 import type { Context } from 'hono'
 import type { Env } from './types'
@@ -33,7 +34,7 @@ export function Layout(c: Context<Env>, meta: PageMeta, body: any) {
   const hoursToday = (() => {
     const d = ['일', '월', '화', '수', '목', '금', '토'][new Date(Date.now() + 9 * 3600e3).getUTCDay()]
     const h = clinic.hours.find((x: any) => x.day === d)
-    return h?.open ? `오늘(${d}) ${h.open}–${h.close}${h.note ? ' · ' + h.note : ''}` : `오늘(${d}) 휴진`
+    return h?.open ? `기본 시간표: ${d}요일 ${h.open}–${h.close}` : `기본 시간표: ${d}요일 휴진`
   })()
 
   return html`<!DOCTYPE html>
@@ -75,6 +76,7 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="stylesheet" href="/static/fonts/wanted-subsets.css?v=2">
 <link rel="stylesheet" href="/static/style.css?v=8">
 <link rel="stylesheet" href="/static/kinetic.css?v=18">
+${meta.path === '/encyclopedia' || meta.path.startsWith('/encyclopedia/') ? html`<link rel="stylesheet" href="/static/encyclopedia.css?v=20260914">` : ''}
 ${meta.path === '/handover' ? html`<link rel="stylesheet" href="/static/handover.css?v=2">` : ''}
 <link rel="alternate" type="application/rss+xml" title="${clinic.shortName} 원장 칼럼" href="/column/rss.xml">
 ${lds.map((l) => raw(`<script type="application/ld+json">${JSON.stringify(l).replace(/</g, '\\u003c')}</script>`))}
@@ -174,7 +176,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
         ${user ? html`<a href="/auth/mypage">마이페이지</a>` : html`<a href="/auth/login">로그인</a><a href="/auth/register">회원가입</a>`}
       </li>
     </ul>
-    <p class="mobile-nav-hours">${hoursToday}</p>
+    <p class="mobile-nav-hours">${hoursToday}<br>${clinic.hoursException}</p>
   </nav>
 </header>
 <noscript><nav class="nojs-navigation" aria-label="기본 페이지 메뉴"><a href="/mission">도담의 철학</a><a href="/doctors">의료진</a><a href="/treatments">진료 안내</a><a href="/directions">오시는 길</a><a href="/reservation">예약</a></nav></noscript>
@@ -228,7 +230,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
       <ul class="footer-hours">
         ${clinic.hours.map((h: any) => html`<li><span>${h.day}</span><span>${h.open ? `${h.open} – ${h.close}` : '휴진'}${h.note ? html` <em>${h.note}</em>` : ''}</span></li>`)}
       </ul>
-      <p class="footer-hours-note">${clinic.hoursNote}</p>
+      <p class="footer-hours-note">${hoursNotices(clinic)}</p>
       <a href="tel:${clinic.phoneTel}" class="footer-phone">${clinic.phone}</a>
     </div>
   </div>
@@ -258,6 +260,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
 </div>
 
 <script src="/static/app.js?v=14" defer></script>
+${meta.path === '/encyclopedia' || meta.path.startsWith('/encyclopedia/') ? html`<script src="/static/encyclopedia.js?v=20260914" defer></script>` : ''}
 <script type="module" src="/static/experience/main.js?v=12"></script>
 </body>
 </html>`

@@ -11,6 +11,8 @@ import staffRoutes from './staff'
 import reservationDesk from './reservation-desk'
 import privacyOps from './privacy-ops'
 import { EDITABLE_KEYS, getPath, saveSettings, invalidateClinicCache, validSetting } from '../lib/settings'
+import { clinicHoursFromForm } from '../lib/clinic-hours'
+import { hoursEditor } from '../lib/hours-editor'
 import { treatments, getTreatment } from '../data/treatments'
 import { doctors } from '../data/doctors'
 import { formData, slugify, fmtDate, stripTags, esc } from '../lib/util'
@@ -310,18 +312,23 @@ admin.post('/members/:id/delete', async (c) => { await c.env.DB.batch([c.env.DB.
 admin.get('/settings', async (c) => {
   const clinic = c.get('clinic') as any
   const saved = c.req.query('saved')
-  return shell(c, '기본정보', html`${saved ? alertBox('저장되었습니다. 전체 페이지에 즉시 반영됩니다.', 'ok') : ''}<p class="hint">여기서 수정한 값은 헤더·푸터·오시는 길·JSON-LD 등 사이트 전체에 반영됩니다. 비워두면 기본값을 사용합니다.</p>
-  <form method="post" class="admin-form" data-once>${EDITABLE_KEYS.map((k) => { const v = getPath(clinic, k.key) ?? ''; return html`<div class="field"><label>${k.label} <small class="hint">${k.key}</small></label>${k.type === 'textarea' ? html`<textarea name="${k.key}" rows="3">${v}</textarea>` : html`<input name="${k.key}" value="${v}">`}</div>` })}
+  return shell(c, '진료시간·기본정보', html`${saved ? alertBox('저장되었습니다. 전체 페이지에 반영됩니다. 이미 열린 페이지는 새로고침해 주세요.', 'ok') : ''}${hoursEditor(clinic)}<h2 class="h3">병원 기본정보</h2><p class="hint">여기서 수정한 값은 헤더·푸터·오시는 길 등 사이트 전체에 반영됩니다. 비워두면 기본값을 사용합니다.</p>
+  <form method="post" class="admin-form" data-once>${EDITABLE_KEYS.filter(k => !['hoursNote', 'hoursException'].includes(k.key)).map((k) => { const v = getPath(clinic, k.key) ?? ''; return html`<div class="field"><label>${k.label} <small class="hint">${k.key}</small></label>${k.type === 'textarea' ? html`<textarea name="${k.key}" rows="3">${v}</textarea>` : html`<input name="${k.key}" value="${v}">`}</div>` })}
   <div class="admin-toolbar"><button type="submit" class="btn btn-primary">저장</button></div></form>`, 'settings')
 })
 admin.post('/settings', async (c) => {
   const f = await formData(c)
   const entries: Record<string, string> = {}
+  if (f.hoursIncluded === '1') {
+    const hours = clinicHoursFromForm(f)
+    if (!hours) return c.text('요일별 진료시간을 확인해 주세요. 진료일은 시작·종료 시간이 필요하며, 점심시간은 진료시간 안에서 시작·종료를 모두 입력해야 합니다. 뒤로 돌아가 수정해 주세요.', 400)
+    entries.hours = JSON.stringify(hours)
+  }
   for (const k of EDITABLE_KEYS) if (k.key in f) entries[k.key] = String(f[k.key] ?? '')
   if (Object.entries(entries).some(([key,value]) => !validSetting(key,value))) return c.text('설정값 형식을 확인해 주세요. 주소는 http/https, 분석 ID는 정식 ID만 허용합니다.',400)
   await saveSettings(c.env.DB, entries)
   invalidateClinicCache()
-  return c.redirect('/admin/settings?saved=1')
+  return c.redirect('/admin/settings?saved=1' + (f.hoursIncluded === '1' ? '#hours' : ''))
 })
 
 // ── 로컬 조회·동선 통계 (D1) — /admin/stats 하단에 포함 ──────

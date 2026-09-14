@@ -2,21 +2,20 @@ import { html, raw } from 'hono/html'
 import type { Context } from 'hono'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
-import { faqLd, definedTermLd, physicianLd, truncate } from '../lib/seo'
-import { doctors } from '../data/doctors'
+import { faqLd, truncate } from '../lib/seo'
 import { treatments, getTreatment } from '../data/treatments'
-import { terms, termsByCategory, CATEGORIES, getTerm, initial, autoLink, type Term } from '../data/encyclopedia'
 import { pricing, insuredItems, pricingUpdatedAt, won } from '../data/pricing'
 import { loadPricingGroups } from '../lib/fees'
 import { areaPages, areaAccess, type AreaPage } from '../data/areas'
-import { nearbyAreas } from '../data/clinic'
+import { nearbyAreas, type Clinic } from '../data/clinic'
+import { hoursNotices, dayHoursText, lunchHoursText } from '../lib/clinic-hours'
 import { pageHero, faqList, ctaStrip, reviewLine } from '../lib/ui'
-import { esc } from '../lib/util'
 
 // ── 통합 FAQ ─────────────────────────────────────────────
-const generalFaqs = [
+const generalFaqsFor = (clinic: Clinic) => [
   { q: '예약 없이 방문해도 진료를 받을 수 있나요?', a: '가능합니다. 다만 예약 환자분이 우선이므로 대기 시간이 길어질 수 있습니다. 전화나 온라인 예약 후 방문하시면 기다림을 줄일 수 있습니다.' },
-  { q: '야간진료는 언제 하나요?', a: '매주 화요일 14:00부터 20:30까지 야간진료를 합니다. 마감 30분 전(20:00)까지 접수해 주세요. 수요일은 점심시간 없이 09:00–18:00 진료합니다.' },
+  { q: '화요일 진료시간은 어떻게 되나요?', a: `${dayHoursText(clinic, '화')}가 기본 시간표입니다. ${clinic.hoursNote} 예약 가능 시간은 병원에 확인해 주세요.` },
+  { q: '수요일에도 진료하나요?', a: `기본 시간표는 ${dayHoursText(clinic, '수')}입니다. ${clinic.hoursException}` },
   { q: '주차는 가능한가요?', a: '건물 사정상 주차가 어렵습니다. 인근 공영주차장 또는 대중교통(1호선 화서역 도보 약 10분, 블루밍푸른숲아파트 정류장 하차) 이용을 권장드립니다.' },
   { q: '첫 방문 때 무엇을 준비해야 하나요?', a: '신분증(건강보험 확인용)을 가져오세요. 복용 중인 약이 있으면 약 이름을 메모해 오시고, 다른 병원 방사선 사진이 있으면 함께 보여주시면 진단에 도움이 됩니다.' },
   { q: '비급여 진료비는 어디서 확인하나요?', a: '홈페이지 비급여 진료비 페이지와 원내 게시물에 고지되어 있습니다. 치료 전 상담에서 예상 비용을 먼저 안내드리고, 고지된 금액대로 동일하게 적용합니다.' },
@@ -27,6 +26,7 @@ const generalFaqs = [
 
 export function faqPage(c: Context<Env>) {
   const clinic = c.get('clinic') as any
+  const generalFaqs = generalFaqsFor(clinic)
   const groups = [{ key: 'general', name: '병원 이용 안내', faqs: generalFaqs }, ...treatments.map((t) => ({ key: t.slug, name: t.name, faqs: t.faqs }))]
   const all = groups.flatMap((g) => g.faqs)
   const body = html`
@@ -46,47 +46,8 @@ ${ctaStrip(clinic, { title: '답을 못 찾으셨나요?', sub: `전화 ${clinic
   return c.html(Layout(c, { title: '자주 묻는 질문 (FAQ)', description: `서울도담치과 FAQ ${all.length}문항. 진료시간·주차·비용부터 신경치료·임플란트·잇몸치료·사랑니까지 한휘림 원장이 직접 답합니다.`, path: '/faq', jsonld: [faqLd(generalFaqs, `${c.get('siteUrl')}/faq`)], crumbs: [{ name: '홈', href: '/' }, { name: 'FAQ', href: '/faq' }] }, body))
 }
 
-// ── 백과사전 ─────────────────────────────────────────────
-export function encyclopediaIndex(c: Context<Env>) {
-  const clinic = c.get('clinic') as any
-  const body = html`
-${pageHero({ eyebrow: '치과 백과사전', title: html`진료실 용어,<br>${terms.length}개를 쉽게`, lead: '상담에서 들은 말이 무슨 뜻인지 다시 찾아볼 수 있도록 정리했습니다. 각 용어는 관련 진료 안내와 연결되어 있습니다.', crumbs: [{ name: '홈', href: '/' }, { name: '치과 백과사전', href: '/encyclopedia' }] })}
-<section class="section">
-  <div class="container">
-    <div class="faq-search reveal in"><label for="ency-search" class="sr-only">용어 검색</label><input id="ency-search" type="search" placeholder="용어 검색 (예: 치수, MTA, 러버댐)" autocomplete="off"></div>
-    <nav class="ency-index reveal in" aria-label="분류 바로가기">${CATEGORIES.filter((k) => termsByCategory[k]?.length).map((k) => html`<a href="#cat-${encodeURIComponent(k)}">${k} <small>${termsByCategory[k].length}</small></a>`)}</nav>
-    ${CATEGORIES.filter((k) => termsByCategory[k]?.length).map((k) => html`<section class="ency-group" id="cat-${encodeURIComponent(k)}">
-      <h2 class="ency-cat-title">${k}</h2>
-      <div class="ency-grid">${termsByCategory[k].map((t) => html`<a href="/encyclopedia/${t.slug}" class="ency-item"><strong>${t.term}</strong> <small>${t.en}</small><p class="ency-def">${truncate(t.def, 72)}</p></a>`)}</div>
-    </section>`)}
-  </div>
-</section>`
-  return c.html(Layout(c, { title: `치과 백과사전 — ${terms.length}개 용어 해설`, description: `충치·신경치료·잇몸·임플란트·사랑니·감염관리 등 치과 용어 ${terms.length}개를 쉬운 말로 풀었습니다. 수원 서울도담치과 한휘림 원장 검토.`, path: '/encyclopedia', crumbs: [{ name: '홈', href: '/' }, { name: '치과 백과사전', href: '/encyclopedia' }] }, body))
-}
-
-export function encyclopediaTerm(c: Context<Env>, t: Term) {
-  const clinic = c.get('clinic') as any
-  const siteUrl = c.get('siteUrl')
-  const related = t.treatments.map(getTreatment).filter(Boolean) as NonNullable<ReturnType<typeof getTreatment>>[]
-  const siblings = (termsByCategory[t.category] || []).filter((x) => x.slug !== t.slug).slice(0, 10)
-  const body = html`
-${pageHero({ eyebrow: `치과 백과사전 · ${t.category}`, title: html`${t.term} <small class="specialty">${t.en}</small>`, crumbs: [{ name: '홈', href: '/' }, { name: '치과 백과사전', href: '/encyclopedia' }, { name: t.term, href: `/encyclopedia/${t.slug}` }] })}
-<div class="container tx-layout">
-  <article class="tx-body">
-    <div class="prose reveal in">
-      <p class="lead" id="definition">${raw(autoLink(esc(t.def), { exclude: [t.slug], max: 6 }))}</p>
-      ${related.length ? html`<h2>관련 진료</h2><ul>${related.map((r) => html`<li><a href="/treatments/${r.slug}">${r.name}</a> — ${r.short}</li>`)}</ul>` : ''}
-      <p class="reviewed">이 설명은 일반적인 정보 제공을 위한 것으로, 개인의 상태에 따라 다를 수 있습니다. 정확한 진단은 진료를 통해 확인해 주세요. 한휘림 원장(통합치의학과 전문의) 검토.</p>
-    </div>
-  </article>
-  <aside class="tx-side">
-    ${siblings.length ? html`<div class="side-card"><p class="side-title">${t.category} 관련 용어</p><ul class="side-links">${siblings.map((s) => html`<li><a href="/encyclopedia/${s.slug}">${s.term}</a></li>`)}</ul></div>` : ''}
-    <div class="side-card"><p class="side-title">백과사전</p><a href="/encyclopedia" class="link-arrow">전체 용어 보기</a></div>
-    <div class="side-card side-cta"><p class="side-title">상담</p><p class="side-phone"><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></p><a href="/reservation" class="btn btn-primary btn-block">진료 예약</a></div>
-  </aside>
-</div>`
-  return c.html(Layout(c, { title: `${t.term}(${t.en}) 뜻 — 치과 백과사전`, description: truncate(`${t.term}(${t.en}): ${t.def}`), path: `/encyclopedia/${t.slug}`, type: 'article', reviewer: doctors[0], jsonld: [definedTermLd(t, siteUrl), physicianLd(doctors[0], clinic, siteUrl)], crumbs: [{ name: '홈', href: '/' }, { name: '치과 백과사전', href: '/encyclopedia' }, { name: t.term, href: `/encyclopedia/${t.slug}` }] }, body))
-}
+// 백과사전은 전용 읽기·탐색 페이지에서 관리합니다.
+export { encyclopediaIndex, encyclopediaTerm } from './encyclopedia'
 
 // ── 오시는 길 / 진료시간 ────────────────────────────────
 const hoursTable = (clinic: any) => html`<table class="hours-table"><thead><tr><th>요일</th><th>진료</th><th>비고</th></tr></thead><tbody>
@@ -114,7 +75,7 @@ ${pageHero({ eyebrow: '오시는 길', title: html`화서역에서 걸어서,<br
       <div class="info-card"><h3>지하철</h3><p>${clinic.directions.subway}</p><p class="hint">화서역 출구에서 화양로 방향으로 걸어오시면 신우상가가 보입니다.</p></div>
       <div class="info-card"><h3>버스</h3><p>${clinic.directions.bus}</p></div>
       <div class="info-card"><h3>주차</h3><p>${clinic.directions.parking}</p></div>
-      <div class="info-card"><h3>진료시간</h3>${hoursTable(clinic)}<p class="hint">${clinic.hoursNote}</p></div>
+      <div class="info-card"><h3>진료시간</h3>${hoursTable(clinic)}<p class="hint">${hoursNotices(clinic)}</p></div>
       <div class="info-card info-card-cta"><h3>전화</h3><p class="info-phone"><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></p><p>찾기 어려우시면 전화 주세요. 안내드립니다.</p></div>
     </div>
   </div>
@@ -131,19 +92,19 @@ ${pageHero({ eyebrow: '오시는 길', title: html`화서역에서 걸어서,<br
 export function hoursPage(c: Context<Env>) {
   const clinic = c.get('clinic') as any
   const body = html`
-${pageHero({ eyebrow: '진료시간', title: html`화요일은 밤 8시 반까지,<br>수요일은 점심 없이`, lead: '직장인과 학생분들이 시간을 맞추기 어렵다는 말씀을 듣고 정한 시간표입니다. 공휴일은 휴진합니다.', crumbs: [{ name: '홈', href: '/' }, { name: '진료시간', href: '/hours' }] })}
+${pageHero({ eyebrow: '진료시간', title: html`방문 전 확인하세요,<br>진료시간과 휴진 안내`, lead: hoursNotices(clinic), crumbs: [{ name: '홈', href: '/' }, { name: '진료시간', href: '/hours' }] })}
 <section class="section">
   <div class="container container-narrow">
     <h2 class="sr-only">요일별 진료시간과 방문 안내</h2>
-    <div class="info-card reveal in">${hoursTable(clinic)}<p class="hint">${clinic.hoursNote} 마지막 접수는 마감 30분 전입니다.</p></div>
+    <div class="info-card reveal in">${hoursTable(clinic)}<p class="hint">${hoursNotices(clinic)}</p></div>
     <div class="grid-2 stagger" style="margin-top:28px">
-      <div class="card card-body"><h3>야간진료 이용 안내</h3><p>화요일 20:00까지 접수하시면 진료가 가능합니다. 예약 환자분 우선이므로 미리 전화나 온라인 예약을 권장드립니다.</p></div>
-      <div class="card card-body"><h3>점심시간</h3><p>월·목·금 13:00–14:00은 점심시간입니다. 화요일은 오후 진료만, 수요일은 점심시간 없이 진료합니다.</p></div>
+      <div class="card card-body"><h3>예약·접수 안내</h3><p>${dayHoursText(clinic, '화')}가 기본 시간표입니다. ${clinic.hoursNote} 내원 전 전화나 온라인으로 예약 가능 시간을 확인해 주세요.</p></div>
+      <div class="card card-body"><h3>점심시간</h3><p>${lunchHoursText(clinic)} 예외 진료일의 시간은 방문 전에 확인해 주세요.</p></div>
     </div>
   </div>
 </section>
 ${ctaStrip(clinic)}`
-  return c.html(Layout(c, { title: '진료시간 — 화요일 야간진료 20:30', description: `서울도담치과 진료시간. 월·목·금 09:00–18:00, 화 14:00–20:30 야간진료, 수 09:00–18:00 점심시간 없이, 토 09:00–14:00, 일·공휴일 휴진. ${clinic.phone}`, path: '/hours', crumbs: [{ name: '홈', href: '/' }, { name: '진료시간', href: '/hours' }] }, body))
+  return c.html(Layout(c, { title: '진료시간·휴진 안내', description: '서울도담치과의 요일별 진료시간과 점심시간, 정기휴진·공휴일 주의 예외를 확인하세요. 내원 전 예약 가능일과 변경 공지를 확인하고 전화로 문의하실 수 있습니다.', path: '/hours', crumbs: [{ name: '홈', href: '/' }, { name: '진료시간', href: '/hours' }] }, body))
 }
 
 // ── 비급여 진료비 ────────────────────────────────────────
@@ -194,7 +155,7 @@ ${pageHero({ eyebrow: `${p.areaFull} · ${t.category}`, title: html`${p.areaName
   <article class="tx-body">
     <section class="summary-box reveal"><h2>${p.areaName} 분들께 먼저 드리는 말씀</h2><ul>${t.summary.slice(0, 3).map((s) => html`<li>${s}</li>`)}</ul></section>
     <div class="prose">
-      <section class="reveal"><h2>${p.areaFull}에서 오시는 길</h2><p>${access}</p><p>${clinic.address}. ${clinic.directions.subway}, ${clinic.directions.bus}. ${clinic.directions.parking}</p><p>화요일은 20:30까지 야간진료, 수요일은 점심시간 없이 진료해 ${p.areaName}에서 퇴근 후나 점심시간에 방문하시는 분들이 계십니다.</p></section>
+      <section class="reveal"><h2>${p.areaFull}에서 오시는 길</h2><p>${access}</p><p>${clinic.address}. ${clinic.directions.subway}, ${clinic.directions.bus}. ${clinic.directions.parking}</p><p>${hoursNotices(clinic)} <a href="/hours">요일별 진료시간을 확인해 주세요.</a></p></section>
       <section class="reveal"><h2>서울도담치과의 ${t.name}</h2><p class="lead">${t.heroLead}</p>${t.sections.slice(0, 2).map((s) => html`<h3>${s.h}</h3><p>${s.lead}</p><p>${s.body[0]}</p>`)}<p><a href="/treatments/${t.slug}" class="link-arrow">${t.name} 전체 안내 읽기</a></p></section>
       <section class="reveal"><h2>진료 전 알아두실 점</h2><ul>${t.sideEffects.slice(0, 3).map((s) => html`<li>${s}</li>`)}</ul><p class="hint">개인의 구강 상태에 따라 치료 방법과 결과는 다를 수 있습니다.</p></section>
     </div>

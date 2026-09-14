@@ -1,3 +1,4 @@
+import { hoursNotices } from './lib/clinic-hours'
 import { Hono } from 'hono'
 import { secureHeaders } from 'hono/secure-headers'
 import type { Env } from './lib/types'
@@ -26,6 +27,7 @@ import {
 import { treatments, getTreatment } from './data/treatments'
 import { doctors, getDoctor } from './data/doctors'
 import { terms, getTerm } from './data/encyclopedia'
+import { EDITORIAL_UPDATED } from './data/encyclopedia/editorial-types'
 import { areaPages, getAreaPage } from './data/areas'
 
 const app = new Hono<Env>()
@@ -144,7 +146,7 @@ app.get('/sitemap.xml', async (c) => {
   for (const d of doctors) add(`/doctors/${d.slug}`, '0.8')
   for (const t of treatments) add(`/treatments/${t.slug}`, '0.9', 'monthly')
   for (const a of areaPages) add(`/area/${a.slug}`, '0.6')
-  for (const t of terms) add(`/encyclopedia/${t.slug}`, '0.4', 'yearly')
+  for (const t of terms) add(`/encyclopedia/${t.slug}`, '0.4', 'monthly', EDITORIAL_UPDATED)
   try {
     const db = c.env.DB
     const [cases, cols, notes] = await Promise.all([
@@ -203,7 +205,7 @@ app.get('/llms.txt', (c) => {
 - 주소: ${clinic.address}
 - 전화: ${clinic.phone}
 - 진료시간: ${clinic.hours.map(h => `${h.day} ${h.open ? h.open + '–' + h.close : '휴진'}${h.lunch ? ' (점심 ' + h.lunch + ')' : ''}${h.note ? ' (' + h.note + ')' : ''}`).join(', ')}
-- 참고: ${clinic.hoursNote}
+- 참고: ${hoursNotices(clinic)}
 - 주차: ${clinic.directions.parking}
 - 홈페이지 예약 신청은 병원의 확인 연락 후 확정됩니다. 네이버 예약의 가능 일정과 확정 조건은 네이버 예약 페이지에서 확인하세요.
 

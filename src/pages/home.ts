@@ -1,3 +1,4 @@
+import { hoursNotices } from '../lib/clinic-hours'
 import { html } from 'hono/html'
 import type { Context } from 'hono'
 import type { Env } from '../lib/types'
@@ -16,6 +17,7 @@ const arrow = html`<svg viewBox="0 0 24 24" width="24" height="24" fill="none" s
 
 export async function homePage(c: Context<Env>) {
   const clinic = c.get('clinic') as any
+  const tuesday = clinic.hours.find((h: any) => h.day === '화')
   const siteUrl = c.get('siteUrl')
   const dr = doctors[0]
   let posts: Post[] = [], notice: Notice | null = null
@@ -113,14 +115,14 @@ ${patientSituations(true)}
 <section class="section journal-editorial" id="latest-columns"><div class="container"><div class="section-kicker"><span>${posts.length ? 'DODAM JOURNAL' : 'DODAM GUIDE'}</span><span>알수록 편안해지는 치과 이야기</span></div><div class="section-heading-row reveal"><h2 class="display-heading">${posts.length ? html`진료실에서<br>못다 한 이야기.` : html`알아두면 좋은,<br>내 치아 이야기.`}</h2><a href="${posts.length ? '/column' : '/treatments'}" class="editorial-link">${posts.length ? '칼럼 전체 보기' : '진료 안내 전체 보기'} <span>${arrow}</span></a></div><div class="journal-list stagger">${(posts.length ? posts.map(p => ({ href: `/column/${p.slug}`, meta: `DENTAL JOURNAL · ${fmtDate(p.published_at)}`, title: p.title, excerpt: p.excerpt })) : coreTreatments.map(t => ({ href: `/treatments/${t.slug}`, meta: `TREATMENT GUIDE · ${t.name}`, title: t.heroTitle, excerpt: t.short }))).map((p,i)=>html`<a href="${p.href}" class="journal-row"><span class="journal-index">0${i+1}</span><div><p class="journal-date">${p.meta}</p><h3>${p.title}</h3><p>${p.excerpt || '자연치아를 오래 지키기 위한 이야기를 전합니다.'}</p></div><span class="journal-arrow">${arrow}</span></a>`)}</div></div></section>
 
 <nav class="quick-visit" aria-label="빠른 내원 안내"><div class="container quick-visit-grid">
-  <a href="/hours"><span class="quick-number">01</span><div><small>퇴근 후에도 여유 있게</small><strong>화요일 야간진료 <b>20:30</b></strong></div>${arrow}</a>
+  <a href="/hours"><span class="quick-number">01</span><div><small>퇴근 후에도 여유 있게</small><strong>화요일 ${tuesday?.open ? (tuesday.close > '18:00' ? '야간진료' : '진료') : '휴진'} <b>${tuesday?.open ? tuesday.close : ''}</b></strong></div>${arrow}</a>
   <a href="/directions"><span class="quick-number">02</span><div><small>수원 화서동 신우상가 2층</small><strong>오시는 길 · 주차 안내</strong></div>${arrow}</a>
   <a href="tel:${clinic.phoneTel}"><span class="quick-number">03</span><div><small>궁금한 점은 편하게 물어보세요</small><strong>${clinic.phone}</strong></div>${arrow}</a>
 </div></nav>
 
 <section class="section visit-editorial" id="visit-info" aria-labelledby="visit-title"><div class="container">
   <div class="section-kicker"><span>YOUR FIRST VISIT</span><span>만나 뵙겠습니다</span></div>
-  <div class="visit-grid"><div class="visit-address reveal"><h2 id="visit-title" class="display-heading">가까이에서,<br>오래 함께.</h2><p>${clinic.address}</p><a href="tel:${clinic.phoneTel}" class="visit-phone">${clinic.phone}</a><div class="hero-links"><a href="/directions" class="editorial-link">오시는 길 · 주차 안내 <span>${arrow}</span></a></div><div class="visit-note"><span>홈페이지 예약 신청 안내</span><p>예약 신청 후 병원에서 확인 연락을 드립니다.<br>내원 일정은 연락 후 확정됩니다.</p></div></div><div class="visit-hours reveal"><h3>진료시간 <span>OPENING HOURS</span></h3><table class="hours-table"><caption class="sr-only">서울도담치과 요일별 진료시간</caption><tbody>${clinic.hours.map((h:any)=>html`<tr data-day="${h.day}"><th scope="row">${h.day}요일</th><td>${h.open ? `${h.open} — ${h.close}` : html`<span class="closed">휴진</span>`}</td><td class="note">${h.note || (h.lunch ? `점심 ${h.lunch}` : '')}</td></tr>`)}</tbody></table><p class="hint">${clinic.hoursNote}</p>${naverBookingLink(clinic, 'btn btn-primary btn-block visit-reserve', '네이버로 첫 방문 예약하기')}<a href="/reservation" class="text-link">홈페이지 예약 신청 ${arrow}</a></div></div>
+  <div class="visit-grid"><div class="visit-address reveal"><h2 id="visit-title" class="display-heading">가까이에서,<br>오래 함께.</h2><p>${clinic.address}</p><a href="tel:${clinic.phoneTel}" class="visit-phone">${clinic.phone}</a><div class="hero-links"><a href="/directions" class="editorial-link">오시는 길 · 주차 안내 <span>${arrow}</span></a></div><div class="visit-note"><span>홈페이지 예약 신청 안내</span><p>예약 신청 후 병원에서 확인 연락을 드립니다.<br>내원 일정은 연락 후 확정됩니다.</p></div></div><div class="visit-hours reveal"><h3>진료시간 <span>OPENING HOURS</span></h3><table class="hours-table"><caption class="sr-only">서울도담치과 요일별 진료시간</caption><tbody>${clinic.hours.map((h:any)=>html`<tr data-day="${h.day}"><th scope="row">${h.day}요일</th><td>${h.open ? `${h.open} — ${h.close}` : html`<span class="closed">휴진</span>`}</td><td class="note">${h.note || (h.lunch ? `점심 ${h.lunch}` : '')}</td></tr>`)}</tbody></table><p class="hint">${hoursNotices(clinic)}</p>${naverBookingLink(clinic, 'btn btn-primary btn-block visit-reserve', '네이버로 첫 방문 예약하기')}<a href="/reservation" class="text-link">홈페이지 예약 신청 ${arrow}</a></div></div>
   ${notice ? html`<a href="/notice/${notice.id}" class="editorial-notice"><span>NOTICE</span><strong>${notice.title}</strong><time>${fmtDate(notice.created_at)}</time>${arrow}</a>` : ''}
 </div></section>`
   return c.html(Layout(c, {

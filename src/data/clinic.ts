@@ -1,3 +1,5 @@
+export type ClinicHour = { day: string; open: string | null; close: string | null; lunch: string | null; note?: string }
+
 // 병원 기본 정보 — 기본값. 관리자 > 기본정보에서 D1(site_settings)로 덮어쓸 수 있음.
 export const clinicDefaults = {
   name: '서울도담치과의원',
@@ -24,13 +26,14 @@ export const clinicDefaults = {
   hours: [
     { day: '월', open: '09:00', close: '18:00', lunch: '13:00–14:00' },
     { day: '화', open: '14:00', close: '20:30', lunch: null, note: '야간진료' },
-    { day: '수', open: '09:00', close: '18:00', lunch: null, note: '점심시간 없이 진료' },
+    { day: '수', open: null, close: null, lunch: null },
     { day: '목', open: '09:00', close: '18:00', lunch: '13:00–14:00' },
     { day: '금', open: '09:00', close: '18:00', lunch: '13:00–14:00' },
     { day: '토', open: '09:00', close: '14:00', lunch: null },
-    { day: '일', open: null, close: null, lunch: null, note: '휴진' },
-  ],
+    { day: '일', open: null, close: null, lunch: null },
+  ] as ClinicHour[],
   hoursNote: '공휴일 휴진. 마감 30분 전 접수 마감.',
+  hoursException: '공휴일이 있는 주에는 수요일에도 평일 시간으로 진료합니다. 해당 주의 일정은 예약 전 확인해 주세요.',
   founded: '2022-05-10',
   foundedNote: '2002년 반석치과 → 2020년 서울도담치과 개원 → 2022년 5월 한휘림 원장 인수',
   business: {
