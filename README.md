@@ -9,7 +9,9 @@
 - 접근성: native radio/checkbox, fieldset/legend, 키보드 선택, 단계 이동 시 focus, 빈 선택 오류, live status, JavaScript 미사용 시 진료/전화 대체 안내. 선택을 가리지 않도록 이 페이지의 플로팅·모바일 고정 예약바만 숨깁니다.
 - SEO: 고정 canonical/OG/schema와 XML·HTML 사이트맵에 추가합니다. 결과별 URL이나 건강 선택값 query를 만들지 않습니다.
 - 테스트: `npm run test:symptom` (미리보기 필요), `BASE_URL=https://dodamdc.kr npm run test:symptom` (운영 read-only). 7부위 전체의 개별/다중 선택·안내 중복 제거·34증상 매핑·응급 분기·초기화·키보드·연락처/예약 URL·저장 및 외부 요청 없음·Chromium/Linux WebKit 320/390/1440px·JS 없는 대체 안내를 검사합니다. 실제 iPhone/Kakao 앱 검수와 임상 검수는 별도입니다.
-- 후속 권장: 한휘림 원장의 문항/결과/응급 표현 검토. 건강설문 저장·CRM 연동·AI 진단은 구현 범위에 포함하지 않습니다. 운영 반영 상태는 아래 배포 기록을 참고하세요.
+- 후속 권장: 한휘림 원장의 문항/결과/응급 표현 검토. 건강설문 저장·CRM 연동·AI 진단은 구현 범위에 포함하지 않습니다.
+- 운영 배포 완료: https://dodamdc.kr/symptom-check · 소스 `aed7c6b` · 배포 `f1a692db` (https://f1a692db.seoul-dodam-dental.pages.dev). GitHub main을 동기화한 clean checkout/build에서 배포했고 Cloudflare canonical deployment의 동일 커밋을 확인했습니다. D1/R2 binding·환자 데이터·운영 비밀번호는 변경하지 않았습니다.
+- 2026-09-15 최종 검사: typecheck/build, 증상 체크 로컬/정식 domain 각 Chromium·Linux WebKit 320/390/1440px의 34증상 개별 및 다중 선택·중복 제거·응급 중단·당일 문의·빈 선택·초기화·키보드·네이버 예약 URL·외부 요청/저장 없음 통과. 보안 12그룹, 동선 8그룹, 핸드오버 Chromium 3폭, 진료시간/메타 12진료·7경로·6뷰, SEO 702페이지/38이미지 오류·경고 0, 모바일 10그룹, 디자인 80뷰 통과했습니다. 정식 `/mission`의 두 사진과 두 문단/명시적 줄바꿈 두 개도 Chromium/WebKit × 390/1440px에서 재확인했습니다. 실주소 증상 검사: `.artifacts/symptom-live-audit.json` (Git 제외).
 
 ## 운영 덮어쓰기 확인 및 복구 (2026-09-14)
 - 사용자 재확인 요청으로 정식 `/mission`을 조회했을 때 CSS v17, 기존 접수대/측면 외관 사진과 단일 문장이 응답했습니다. `CF-Cache-Status: DYNAMIC`으로 브라우저 새로고침 문제가 아니었습니다.
