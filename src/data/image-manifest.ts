@@ -15,6 +15,56 @@ export const imageManifest: Record<string, { width: number; height: number; srcs
     "height": 1100,
     "srcset": "/static/img/dental-whitening-light-v2-sm.webp 640w, /static/img/dental-whitening-light-v2.webp 1400w"
   },
+  "/static/img/dodam-crown-prosthetic-v2.webp": {
+    "width": 1400,
+    "height": 933,
+    "srcset": "/static/img/dodam-crown-prosthetic-v2-sm.webp 640w, /static/img/dodam-crown-prosthetic-v2.webp 1400w"
+  },
+  "/static/img/dodam-endodontic-retreat-v2.webp": {
+    "width": 1400,
+    "height": 955,
+    "srcset": "/static/img/dodam-endodontic-retreat-v2-sm.webp 640w, /static/img/dodam-endodontic-retreat-v2.webp 1400w"
+  },
+  "/static/img/dodam-implant-card-v2.webp": {
+    "width": 1400,
+    "height": 700,
+    "srcset": "/static/img/dodam-implant-card-v2-sm.webp 640w, /static/img/dodam-implant-card-v2.webp 1400w"
+  },
+  "/static/img/dodam-mta-pulpotomy-v2.webp": {
+    "width": 1400,
+    "height": 933,
+    "srcset": "/static/img/dodam-mta-pulpotomy-v2-sm.webp 640w, /static/img/dodam-mta-pulpotomy-v2.webp 1400w"
+  },
+  "/static/img/dodam-oral-surgery-extraction-v2.webp": {
+    "width": 1400,
+    "height": 933,
+    "srcset": "/static/img/dodam-oral-surgery-extraction-v2-sm.webp 640w, /static/img/dodam-oral-surgery-extraction-v2.webp 1400w"
+  },
+  "/static/img/dodam-pediatric-explain-v2.webp": {
+    "width": 1400,
+    "height": 933,
+    "srcset": "/static/img/dodam-pediatric-explain-v2-sm.webp 640w, /static/img/dodam-pediatric-explain-v2.webp 1400w"
+  },
+  "/static/img/dodam-periodontal-care-v2.webp": {
+    "width": 1400,
+    "height": 933,
+    "srcset": "/static/img/dodam-periodontal-care-v2-sm.webp 640w, /static/img/dodam-periodontal-care-v2.webp 1400w"
+  },
+  "/static/img/dodam-qray-caries-scan-v2.webp": {
+    "width": 1400,
+    "height": 788,
+    "srcset": "/static/img/dodam-qray-caries-scan-v2-sm.webp 640w, /static/img/dodam-qray-caries-scan-v2.webp 1400w"
+  },
+  "/static/img/dodam-tmj-treatment-v2.webp": {
+    "width": 1400,
+    "height": 933,
+    "srcset": "/static/img/dodam-tmj-treatment-v2-sm.webp 640w, /static/img/dodam-tmj-treatment-v2.webp 1400w"
+  },
+  "/static/img/dodam-wisdom-tooth-v2.webp": {
+    "width": 1400,
+    "height": 933,
+    "srcset": "/static/img/dodam-wisdom-tooth-v2-sm.webp 640w, /static/img/dodam-wisdom-tooth-v2.webp 1400w"
+  },
   "/static/img/dr-han-hwirim-avatar-v2.webp": {
     "width": 480,
     "height": 480,

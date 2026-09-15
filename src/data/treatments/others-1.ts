@@ -13,7 +13,7 @@ export const endodontics: Treatment = {
   metaDescription: '수원 서울도담치과의 신경치료·재신경치료 안내입니다. 치수와 뿌리 주변 상태를 확인해 치료를 계획하고, 러버댐 방습과 근관 세척·충전 과정을 설명합니다. 치료 후 수복이 필요한 이유, 통증의 경과와 재치료를 고려하는 경우도 확인하세요.',
   heroTitle: '신경치료를 해야 할 때는 제대로 합니다',
   heroLead: '러버댐을 걸어 침이 들어가지 않게 하고, 초음파로 신경관 안을 꼼꼼히 씻어냅니다. 신경치료는 발치 바로 전 단계이기 때문에, 그 한 번을 최대한 오래 가게 만들어야 합니다.',
-  heroImage: '/static/img/rubber-dam-isolation.webp',
+  heroImage: '/static/img/dodam-endodontic-retreat-v2.webp',
   summary: [
     '신경치료(근관치료)는 감염되거나 죽은 치수를 제거하고 신경관을 소독·충전해 치아를 발치 없이 보존하는 치료입니다.',
     '서울도담치과는 생활치수치료가 불가능한 경우에만 신경치료를 하며, 러버댐·초음파 세정·전자근관장측정기를 기본으로 사용합니다.',
@@ -74,7 +74,7 @@ export const wisdomTooth: Treatment = {
   short: '사랑니라는 이유만으로 빼지는 않습니다. 빼야 할 때는 뺍니다.',
   metaDescription: '서울도담치과의 사랑니 진료 안내입니다. 염증·충치와 앞 어금니에 미치는 영향을 살펴 발치 필요성을 판단합니다. 매복 상태와 신경 위치에 따른 검사, 발치 과정, 수술 후 붓기·출혈 관리와 병원에 연락해야 할 증상을 확인하세요.',
   heroTitle: '사랑니는 무조건 빼야 한다는 말에는 근거가 부족합니다',
-  heroImage: '/static/img/vatech-green16-low-dose-ct-v2.webp',
+  heroImage: '/static/img/dodam-wisdom-tooth-v2.webp',
   heroLead: '물론 빼야 할 때는 뺍니다. 누워 있는 매복 사랑니도 발치합니다. 다만 사랑니라는 이유만으로 빼지는 않습니다. 염증·충치·앞 어금니 영향, 이 세 가지를 보고 결정합니다.',
   summary: [
     '발치는 수술이고, 수술에는 위험이 따릅니다. 아래 사랑니 주변에는 하치조신경이 지나가며 감각 이상이 남을 수 있습니다.',

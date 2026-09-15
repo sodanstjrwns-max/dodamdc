@@ -59,7 +59,7 @@
       var h = d.documentElement.scrollHeight - w.innerHeight;
       progress.style.transform = 'scaleX(' + (h > 0 ? Math.min(1, y / h) : 0) + ')';
     }
-    if (fab) fab.classList.toggle('show', y > 480);
+    if (fab) fab.classList.add('show') /* 2026-09-15 원장 요청: 첫 화면부터 예약 배너 표시 */;
     updateReadingPosition();
     lastY = y; ticking = false;
   }

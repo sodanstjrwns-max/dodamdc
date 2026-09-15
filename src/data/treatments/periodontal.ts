@@ -14,7 +14,7 @@ export const periodontal: Treatment = {
   heroTitle: '지금 남아 있는 잇몸 건강부터 지킵니다',
   heroLead:
     '지금 남아 있는 잇몸과 치아를 지키는 데서 시작합니다. 염증을 조절하고 상태에 맞는 치료와 관리 방법을 함께 계획합니다. 치료 반응과 회복 범위는 개인마다 다르며, 늦었다고 스스로 판단하기보다 검진으로 확인해 주세요.',
-  heroImage: '/static/img/suwon-dodam-dental-chair-unit-v2.webp',
+  heroImage: '/static/img/dodam-periodontal-care-v2.webp',
   summary: [
     '치주질환은 잇몸과 잇몸뼈가 세균에 의해 서서히 무너지는 질환으로, 성인 발치의 가장 큰 원인입니다.',
     '서울도담치과는 잇몸치료를 3개월 주기로 반복하며 경과를 따라갑니다. 그래서 애매한 부분을 서둘러 손대지 않고 “지켜보자”고 말씀드릴 수 있습니다.',
