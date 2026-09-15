@@ -15,6 +15,7 @@ import content from './routes/content'
 import conversions from './lib/conversions'
 
 import { firstVisitPage } from './pages/journey'
+import { symptomCheckPage } from './pages/symptom-check'
 import { homePage } from './pages/home'
 import { handoverPage } from './pages/handover'
 import { treatmentsIndex, treatmentDetail } from './pages/treatments'
@@ -37,6 +38,13 @@ const app = new Hono<Env>()
 app.use('/handover', async (c, next) => {
   await next()
   c.header('Referrer-Policy', 'no-referrer')
+})
+// The health-choice UI is deliberately isolated from automatic analytics injection.
+app.use('/symptom-check', async (c, next) => {
+  await next()
+  c.header('Cache-Control', 'private, no-store, max-age=0, no-transform')
+  c.header('Referrer-Policy', 'no-referrer')
+  c.header('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'")
 })
 app.use('*', secureHeaders({
   crossOriginEmbedderPolicy: false,
@@ -77,7 +85,7 @@ app.use('*', async (c, next) => {
   await next()
   // page view tracking for public HTML GET responses
   if (c.req.method === 'GET' && c.res.status === 200 && (c.res.headers.get('content-type') || '').includes('text/html')
-    && !url.pathname.startsWith('/admin') && !url.pathname.startsWith('/auth') && url.pathname !== '/handover') {
+    && !url.pathname.startsWith('/admin') && !url.pathname.startsWith('/auth') && url.pathname !== '/handover' && url.pathname !== '/symptom-check') {
     try { await trackView(c, 'page', null) } catch {}
   }
 })
@@ -91,6 +99,7 @@ app.route('/', content)
 // ---------- Public pages ----------
 app.get('/', (c) => homePage(c))
 app.get('/first-visit', (c) => firstVisitPage(c))
+app.get('/symptom-check', (c) => symptomCheckPage(c))
 app.get('/handover', (c) => handoverPage(c))
 app.get('/mission', (c) => missionPage(c))
 app.get('/floor-guide', (c) => floorGuidePage(c))
@@ -142,7 +151,7 @@ app.get('/sitemap.xml', async (c) => {
   const add = (path: string, pri = '0.6', freq = 'monthly', lastmod?: string) => urls.push({ loc: site + path, pri, freq, lastmod: isoDate(lastmod) })
 
   add('/', '1.0', 'weekly')
-  for (const p of ['/first-visit', '/mission', '/doctors', '/treatments', '/floor-guide', '/directions', '/hours', '/pricing', '/faq', '/encyclopedia', '/cases/gallery', '/column', '/notice', '/reservation']) add(p, '0.8', 'weekly')
+  for (const p of ['/first-visit', '/symptom-check', '/mission', '/doctors', '/treatments', '/floor-guide', '/directions', '/hours', '/pricing', '/faq', '/encyclopedia', '/cases/gallery', '/column', '/notice', '/reservation']) add(p, '0.8', 'weekly')
   for (const d of doctors) add(`/doctors/${d.slug}`, '0.8')
   for (const t of treatments) add(`/treatments/${t.slug}`, '0.9', 'monthly')
   for (const a of areaPages) add(`/area/${a.slug}`, '0.6')

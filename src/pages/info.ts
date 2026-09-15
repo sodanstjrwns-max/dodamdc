@@ -234,7 +234,7 @@ export function sitemapHtml(c: Context<Env>) {
     ['병원', [['/', '홈'], ['/mission', '병원 미션'], ['/doctors', '의료진'], ['/doctors/han-hwirim', '한휘림 대표원장'], ['/floor-guide', '장비·감염관리']]],
     ['진료', [['/treatments', '진료 안내'], ...treatments.map((t) => [`/treatments/${t.slug}`, t.name] as [string, string])]],
     ['콘텐츠', [['/cases/gallery', '치료 전후'], ['/column', '원장 칼럼'], ['/encyclopedia', '치과 백과사전'], ['/notice', '공지사항']]],
-    ['안내', [['/first-visit', '첫 방문 안내'], ['/directions', '오시는 길'], ['/hours', '진료시간'], ['/pricing', '비급여 진료비'], ['/faq', 'FAQ'], ['/reservation', '진료 예약'], ['/area', '지역별 안내']]],
+    ['안내', [['/symptom-check', '내 증상 체크'], ['/first-visit', '첫 방문 안내'], ['/directions', '오시는 길'], ['/hours', '진료시간'], ['/pricing', '비급여 진료비'], ['/faq', 'FAQ'], ['/reservation', '진료 예약'], ['/area', '지역별 안내']]],
     ['회원', [['/auth/login', '로그인'], ['/auth/register', '회원가입'], ['/privacy', '개인정보 처리방침'], ['/terms', '이용약관']]],
   ]
   const body = html`${pageHero({ eyebrow: '사이트맵', title: '전체 페이지', crumbs: [{ name: '홈', href: '/' }, { name: '사이트맵', href: '/sitemap' }] })}

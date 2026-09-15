@@ -65,6 +65,17 @@ try{
  assert(!escapedHandover.includes('<fixture>') && escapedHandover.includes('&lt;fixture&gt;'),'Credential is escaped as text, not executable HTML')
  env.ADMIN_PASSWORD=savedCredential
  assert(!(await (await stranger.request('/',{base:env.SITE_URL})).text()).includes(env.ADMIN_PASSWORD))
+ // Health selections must have no tracking ticket, page-view record or external analytics, even on canonical production.
+ const symptom=await stranger.request('/symptom-check',{base:env.SITE_URL})
+ const symptomHtml=await symptom.text()
+ assert.equal(symptom.status,200)
+ assert(!/conversion-ticket|clarity\.ms|googletagmanager|pf-dashboard-2nt/.test(symptomHtml))
+ assert(!symptomHtml.includes(env.ADMIN_PASSWORD))
+ assert.equal(symptom.headers.get('referrer-policy'),'no-referrer')
+ assert.match(symptom.headers.get('cache-control'),/no-store.*no-transform/)
+ assert(symptom.headers.get('content-security-policy').includes("connect-src 'none'"))
+ assert.equal((await DB.prepare("SELECT COUNT(*) n FROM page_views WHERE path='/symptom-check'").first()).n,0)
+ checks.push('Symptom guide is canonical SEO with no conversion ticket, view record, external analytics or credentials; CSP blocks outgoing connections')
  checks.push('Owner-approved handover credential display is escaped, canonical-origin-only, no-store/no-snippet and absent from other pages; no secret stored in assets')
  assert.equal((await login(stranger,'','wrong-password')).headers.get('location'),'/admin/login?e=1')
  assert.equal((await DB.prepare('SELECT COUNT(*) n FROM staff').first()).n,0,'Incorrect password cannot create an audit identity')

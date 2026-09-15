@@ -25,7 +25,7 @@ export function Layout(c: Context<Env>, meta: PageMeta, body: any) {
   const imageSize = imageManifest[imagePath]
   const preview = new URL(c.req.url).origin !== siteUrl
   const noindex = preview || meta.noindex || !['GET', 'HEAD'].includes(c.req.method) || (meta.path === '/reservation' && c.req.query('ok') === '1')
-  const publicAnalytics = !preview && !noindex && !user && conversionScope(c) === 'production' && !/^\/(auth|admin|reservation|handover|cases|files)(\/|$)/.test(meta.path)
+  const publicAnalytics = !preview && !noindex && !user && conversionScope(c) === 'production' && !/^\/(auth|admin|reservation|handover|symptom-check|cases|files)(\/|$)/.test(meta.path)
   c.header('X-Robots-Tag', noindex ? 'noindex, follow' : 'index, follow')
   // Personalized headers/forms must never enter a shared HTML cache.
   c.header('Cache-Control', 'private, no-store')
@@ -44,7 +44,7 @@ export function Layout(c: Context<Env>, meta: PageMeta, body: any) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${title}</title>
 <meta name="description" content="${description}">
-${conversionMeta(c, meta.path)}
+${meta.path === '/symptom-check' ? '' : conversionMeta(c, meta.path)}
 <link rel="canonical" href="${url}">
 ${noindex ? raw('<meta name="robots" content="noindex, follow">') : raw('<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">')}
 <meta property="og:type" content="${meta.type || 'website'}">
@@ -76,11 +76,12 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="stylesheet" href="/static/fonts/wanted-subsets.css?v=2">
 <link rel="stylesheet" href="/static/style.css?v=8">
 <link rel="stylesheet" href="/static/kinetic.css?v=18">
+${meta.path === '/symptom-check' ? html`<link rel="stylesheet" href="/static/symptom-check.css?v=1">` : ''}
 ${meta.path === '/encyclopedia' || meta.path.startsWith('/encyclopedia/') ? html`<link rel="stylesheet" href="/static/encyclopedia.css?v=20260914">` : ''}
 ${meta.path === '/handover' ? html`<link rel="stylesheet" href="/static/handover.css?v=2">` : ''}
 <link rel="alternate" type="application/rss+xml" title="${clinic.shortName} 원장 칼럼" href="/column/rss.xml">
 ${lds.map((l) => raw(`<script type="application/ld+json">${JSON.stringify(l).replace(/</g, '\\u003c')}</script>`))}
-${clinic.ga4 && !/^\/(auth|admin|reservation|handover)(\/|$)/.test(meta.path) ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?id=${escAttr(clinic.ga4)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${escAttr(clinic.ga4)}',{anonymize_ip:true});</script>`) : ''}
+${clinic.ga4 && !/^\/(auth|admin|reservation|handover|symptom-check)(\/|$)/.test(meta.path) ? raw(`<script async src="https://www.googletagmanager.com/gtag/js?id=${escAttr(clinic.ga4)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${escAttr(clinic.ga4)}',{anonymize_ip:true});</script>`) : ''}
 ${publicAnalytics ? raw('<script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","yenge7hmxi");</script>') : ''}
 ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/beacon.js"></script>') : ''}
 </head>
@@ -121,6 +122,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
                 <ul class="mega-links">
                   <li><a href="/floor-guide">장비·감염관리</a></li>
                   <li><a href="/pricing">비급여 진료비</a></li>
+                  <li><a href="/symptom-check">내 증상 체크</a></li>
                   <li><a href="/faq">자주 묻는 질문</a></li>
                   <li><a href="/encyclopedia">치과 백과사전</a></li>
                 </ul>
@@ -163,6 +165,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
       <li><a href="/mission">도담의 철학</a></li>
       <li><a href="/doctors">의료진 소개</a></li>
       <li><details><summary>진료안내</summary><ul>
+        <li><a href="/symptom-check">내 증상 체크</a></li>
         ${[...coreTreatments, ...otherTreatments].map((t) => html`<li><a href="/treatments/${t.slug}">${t.name}</a></li>`)}
         <li><a href="/floor-guide">장비·감염관리</a></li>
       </ul></details></li>
@@ -261,7 +264,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
 
 <script src="/static/app.js?v=14" defer></script>
 ${meta.path === '/encyclopedia' || meta.path.startsWith('/encyclopedia/') ? html`<script src="/static/encyclopedia.js?v=20260914" defer></script>` : ''}
-<script type="module" src="/static/experience/main.js?v=12"></script>
+${meta.path === '/symptom-check' ? html`<script src="/static/symptom-check.js?v=1" defer></script>` : html`<script type="module" src="/static/experience/main.js?v=12"></script>`}
 </body>
 </html>`
 }
