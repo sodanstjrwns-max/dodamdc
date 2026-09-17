@@ -27,8 +27,8 @@ const admin = new Hono<Env>()
 admin.get('/login', async (c) => {
   if (c.get('admin')) return c.redirect('/admin')
   const clinic = c.get('clinic') as any
-  return c.html(html`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>관리자 로그인 · ${clinic.shortName}</title><link rel="stylesheet" href="/static/style.css?v=4"></head>
-<body class="admin-login"><div class="form-card"><img src="/static/img/logo-wide.png" alt="${clinic.name}" width="176" height="44" style="margin-bottom:20px">
+  return c.html(html`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>관리자 로그인 · ${clinic.shortName}</title><link rel="canonical" href="https://dodamdc.kr/admin/login"><link rel="stylesheet" href="/static/style.css?v=4"></head>
+<body class="admin-login"><div class="form-card"><img src="/static/img/logo-wide.png" alt="${clinic.name}" width="176" height="44" style="margin-bottom:20px"><h1 style="font-size:18px;margin:0 0 6px">관리자 로그인</h1>
 ${c.req.query('e') ? alertBox('비밀번호를 확인해 주세요.') : ''}<p>관리자 비밀번호를 입력해 주세요.</p>
 <form method="post" action="/admin/login" class="form"><div class="field"><label for="pw">관리자 비밀번호</label><input id="pw" name="password" type="password" required maxlength="128" autofocus autocomplete="current-password"></div><button type="submit" class="btn btn-primary btn-block">로그인</button></form>
 <p class="form-foot"><a href="/">← 사이트로</a></p></div></body></html>`)

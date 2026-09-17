@@ -14,7 +14,7 @@ export const implant: Treatment = {
   heroTitle: '처음부터 발치를 말씀드린 적은 거의 없습니다',
   heroLead:
     '임플란트는 살릴 방법이 없을 때 가는 마지막 선택지입니다. 그 판단이 정확해야 하고, 결정했다면 저선량 CT 진단과 가이드 수술, 안전 원칙을 지켜 오래 쓰실 수 있게 만듭니다.',
-  heroImage: '/static/img/vatech-green16-low-dose-ct-v2.webp',
+  heroImage: '/static/img/dodam-implant-v2.webp',
   summary: [
     '임플란트는 상실된 치아 자리에 티타늄 인공 뿌리를 심고 그 위에 크라운을 올려 씹는 기능을 회복하는 치료입니다.',
     '서울도담치과는 자연치아를 살릴 수 있는지 먼저 확인한 뒤, 정말 살릴 수 없을 때 임플란트를 권합니다.',

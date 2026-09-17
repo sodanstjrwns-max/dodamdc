@@ -518,3 +518,35 @@
 .experience-theme .fab.naver-booking-link,.experience-theme .fab.naver-booking-link:is(:hover,:focus-visible){background:#03c75a;color:#fff;font-size:11.5px;padding:9px 6px 8px}
 .experience-theme .fab.naver-booking-link .naver-mark{width:22px;height:22px;display:block}
 @media(max-width:760px){.experience-theme .fab,.experience-theme .fab.naver-booking-link{width:62px;min-width:62px;min-height:56px;font-size:10.5px}.experience-theme .fab svg{width:20px;height:20px}}
+/* ── 2026-09-17 원장 요청: 첫 화면을 따뜻한 실사 구성으로 (3D 모형 → 상담실 사진 + 원장 컷아웃), 증상 체크·예약 CTA ── */
+.experience-theme.kinetic-home .kinetic-hero{background:radial-gradient(ellipse at 78% 45%,#e3f0fb 0,transparent 46%),radial-gradient(ellipse at 10% 90%,#f4efe4 0,transparent 40%),#fbfcfa}
+.hero-photo-stage{position:relative;min-height:560px;display:flex;align-items:center;justify-content:center;padding:24px 0 28px}
+.hero-photo-blob{position:absolute;inset:8% 2% 10% 6%;background:radial-gradient(ellipse at 30% 30%,#dcebf7,#eaf4f0 60%,#f7f3ea);border-radius:58% 42% 47% 53%/45% 55% 45% 55%;filter:blur(2px);opacity:.9}
+.hero-photo{position:relative;margin:0;width:min(100%,640px);aspect-ratio:16/11;border-radius:46% 54% 50% 50%/56% 44% 56% 44%;overflow:hidden;box-shadow:0 30px 60px -30px #0b2a4a55}
+.hero-photo img{width:100%;height:100%;object-fit:cover;display:block;transform:scale(1.04)}
+.hero-doctor-cut{position:absolute;right:2%;bottom:0;margin:0;width:min(44%,300px);filter:drop-shadow(0 18px 30px #0b2a4a33)}
+.hero-doctor-cut img{width:100%;height:auto;display:block}
+.hero-photo-note{position:absolute;left:3%;bottom:8%;background:#fff;border:1px solid #d9e2e8;border-radius:14px;padding:10px 16px;box-shadow:0 10px 24px #0b2a4a14;display:grid;gap:2px;font-size:12px;color:var(--ink-2)}
+.hero-photo-note strong{font-size:14px;color:var(--ink)}
+.hero-cta-row{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch}
+.hero-cta{display:inline-flex;align-items:center;gap:14px;min-height:56px;padding:8px 10px 8px 18px;border-radius:14px;font-size:14px;font-weight:700;text-decoration:none;transition:transform .2s,box-shadow .2s}
+.hero-cta .pill-link-icon{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;border:1px solid #ffffff50}
+.hero-cta-check{background:var(--brand,#0069b3);color:#fff;box-shadow:0 14px 28px -12px #0069b3aa}
+.hero-cta-check .hero-cta-ico{width:34px;height:34px;border-radius:50%;background:#ffffff22;display:grid;place-items:center;font-weight:800;font-size:18px}
+.hero-cta-check small{display:block;font-size:11px;font-weight:500;opacity:.85;letter-spacing:.02em}
+.hero-cta-check b{display:block;font-size:15px}
+.hero-cta-ghost{background:#fff;color:var(--ink);border:1px solid #cfdbe3}
+.hero-cta-ghost .pill-link-icon{border-color:#142f4133}
+.hero-cta-naver,.experience-theme .hero-cta.naver-booking-link{background:#03c75a;color:#fff;border:0;padding-right:18px}
+.hero-cta-naver::before,.experience-theme .hero-cta.naver-booking-link::before{content:'N';font-family:Arial,sans-serif;font-weight:900;font-size:16px;width:30px;height:30px;border-radius:8px;background:#fff;color:#03c75a;display:grid;place-items:center}
+.hero-cta:hover{transform:translateY(-2px);box-shadow:0 16px 30px -14px #0b2a4a66}
+.hero-trust{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:10px 22px;font-size:13.5px;color:var(--ink-2)}
+.hero-trust li{display:flex;align-items:center;gap:8px}
+.hero-trust li::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--brand,#0069b3);opacity:.7}
+.experience-theme.kinetic-home .hero-copy-bottom{gap:18px}
+@media(max-width:1000px){.hero-photo-stage{min-height:0;padding:8px 0 0}.hero-photo{width:100%}.hero-doctor-cut{width:38%}}
+@media(max-width:760px){.hero-photo-stage{padding:0}.hero-doctor-cut{width:42%;right:0}.hero-photo-note{left:0;bottom:4%;padding:8px 12px}.hero-cta{min-height:50px;width:100%;justify-content:space-between}.hero-cta-row{gap:10px}}
+@media(prefers-reduced-motion:reduce){.hero-cta{transition:none}}
+/* 2026-09-17: 3D 모형 제거 후 GSAP 인트로 트윈이 중간에 멈춰 헤드라인이 잘려 보이는 문제 — 히어로 텍스트는 애니메이션 없이 즉시 표시 */
+.experience-theme.kinetic-home .headline-line>span{transform:none!important;opacity:1!important}
+.experience-theme.kinetic-home .kinetic-hero-top,.experience-theme.kinetic-home .kinetic-eyebrow,.experience-theme.kinetic-home .hero-copy-bottom,.experience-theme.kinetic-home .kinetic-hero-bottom{opacity:1!important;transform:none!important}

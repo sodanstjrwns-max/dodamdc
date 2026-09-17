@@ -15,30 +15,90 @@ export const imageManifest: Record<string, { width: number; height: number; srcs
     "height": 1100,
     "srcset": "/static/img/dental-whitening-light-v2-sm.webp 640w, /static/img/dental-whitening-light-v2.webp 1400w"
   },
+  "/static/img/dodam-autoclave-v2.webp": {
+    "width": 1328,
+    "height": 1184,
+    "srcset": "/static/img/dodam-autoclave-v2-sm.webp 640w, /static/img/dodam-autoclave-v2.webp 1328w"
+  },
+  "/static/img/dodam-band-v2.webp": {
+    "width": 1254,
+    "height": 1254,
+    "srcset": "/static/img/dodam-band-v2-sm.webp 640w, /static/img/dodam-band-v2.webp 1254w"
+  },
+  "/static/img/dodam-checkup-v2.webp": {
+    "width": 1400,
+    "height": 1050,
+    "srcset": "/static/img/dodam-checkup-v2-sm.webp 640w, /static/img/dodam-checkup-v2.webp 1400w"
+  },
   "/static/img/dodam-crown-prosthetic-v2.webp": {
     "width": 1400,
     "height": 933,
     "srcset": "/static/img/dodam-crown-prosthetic-v2-sm.webp 640w, /static/img/dodam-crown-prosthetic-v2.webp 1400w"
+  },
+  "/static/img/dodam-endo-ultrasonic-v2.webp": {
+    "width": 1400,
+    "height": 1050,
+    "srcset": "/static/img/dodam-endo-ultrasonic-v2-sm.webp 640w, /static/img/dodam-endo-ultrasonic-v2.webp 1400w"
   },
   "/static/img/dodam-endodontic-retreat-v2.webp": {
     "width": 1400,
     "height": 955,
     "srcset": "/static/img/dodam-endodontic-retreat-v2-sm.webp 640w, /static/img/dodam-endodontic-retreat-v2.webp 1400w"
   },
+  "/static/img/dodam-glucometer-v2.webp": {
+    "width": 1254,
+    "height": 1254,
+    "srcset": "/static/img/dodam-glucometer-v2-sm.webp 640w, /static/img/dodam-glucometer-v2.webp 1254w"
+  },
+  "/static/img/dodam-iject-warmer-v2.webp": {
+    "width": 1254,
+    "height": 1254,
+    "srcset": "/static/img/dodam-iject-warmer-v2-sm.webp 640w, /static/img/dodam-iject-warmer-v2.webp 1254w"
+  },
   "/static/img/dodam-implant-card-v2.webp": {
     "width": 1400,
     "height": 700,
     "srcset": "/static/img/dodam-implant-card-v2-sm.webp 640w, /static/img/dodam-implant-card-v2.webp 1400w"
+  },
+  "/static/img/dodam-implant-v2.webp": {
+    "width": 1400,
+    "height": 700,
+    "srcset": "/static/img/dodam-implant-v2-sm.webp 640w, /static/img/dodam-implant-v2.webp 1400w"
+  },
+  "/static/img/dodam-intraosseous-denops-v2.webp": {
+    "width": 1254,
+    "height": 1254,
+    "srcset": "/static/img/dodam-intraosseous-denops-v2-sm.webp 640w, /static/img/dodam-intraosseous-denops-v2.webp 1254w"
+  },
+  "/static/img/dodam-intraosseous-quicksleeper-v2.webp": {
+    "width": 1400,
+    "height": 703,
+    "srcset": "/static/img/dodam-intraosseous-quicksleeper-v2-sm.webp 640w, /static/img/dodam-intraosseous-quicksleeper-v2.webp 1400w"
   },
   "/static/img/dodam-mta-pulpotomy-v2.webp": {
     "width": 1400,
     "height": 933,
     "srcset": "/static/img/dodam-mta-pulpotomy-v2-sm.webp 640w, /static/img/dodam-mta-pulpotomy-v2.webp 1400w"
   },
+  "/static/img/dodam-mta-v2.webp": {
+    "width": 1400,
+    "height": 1050,
+    "srcset": "/static/img/dodam-mta-v2-sm.webp 640w, /static/img/dodam-mta-v2.webp 1400w"
+  },
   "/static/img/dodam-oral-surgery-extraction-v2.webp": {
     "width": 1400,
     "height": 933,
     "srcset": "/static/img/dodam-oral-surgery-extraction-v2-sm.webp 640w, /static/img/dodam-oral-surgery-extraction-v2.webp 1400w"
+  },
+  "/static/img/dodam-pa-sensor-v2.webp": {
+    "width": 1254,
+    "height": 1254,
+    "srcset": "/static/img/dodam-pa-sensor-v2-sm.webp 640w, /static/img/dodam-pa-sensor-v2.webp 1254w"
+  },
+  "/static/img/dodam-pano-ct-v2.webp": {
+    "width": 1254,
+    "height": 1254,
+    "srcset": "/static/img/dodam-pano-ct-v2-sm.webp 640w, /static/img/dodam-pano-ct-v2.webp 1254w"
   },
   "/static/img/dodam-pediatric-explain-v2.webp": {
     "width": 1400,
@@ -50,15 +110,80 @@ export const imageManifest: Record<string, { width: number; height: number; srcs
     "height": 933,
     "srcset": "/static/img/dodam-periodontal-care-v2-sm.webp 640w, /static/img/dodam-periodontal-care-v2.webp 1400w"
   },
+  "/static/img/dodam-plasma-sterilizer-v2.webp": {
+    "width": 1274,
+    "height": 1234,
+    "srcset": "/static/img/dodam-plasma-sterilizer-v2-sm.webp 640w, /static/img/dodam-plasma-sterilizer-v2.webp 1274w"
+  },
+  "/static/img/dodam-portable-xray-v2.webp": {
+    "width": 1254,
+    "height": 1254,
+    "srcset": "/static/img/dodam-portable-xray-v2-sm.webp 640w, /static/img/dodam-portable-xray-v2.webp 1254w"
+  },
   "/static/img/dodam-qray-caries-scan-v2.webp": {
     "width": 1400,
     "height": 788,
     "srcset": "/static/img/dodam-qray-caries-scan-v2-sm.webp 640w, /static/img/dodam-qray-caries-scan-v2.webp 1400w"
   },
+  "/static/img/dodam-qray-v2.webp": {
+    "width": 1254,
+    "height": 1254,
+    "srcset": "/static/img/dodam-qray-v2-sm.webp 640w, /static/img/dodam-qray-v2.webp 1254w"
+  },
+  "/static/img/dodam-root-zx-v2.webp": {
+    "width": 1400,
+    "height": 1010,
+    "srcset": "/static/img/dodam-root-zx-v2-sm.webp 640w, /static/img/dodam-root-zx-v2.webp 1400w"
+  },
+  "/static/img/dodam-rubber-dam-v2.webp": {
+    "width": 1060,
+    "height": 1484,
+    "srcset": "/static/img/dodam-rubber-dam-v2-sm.webp 640w, /static/img/dodam-rubber-dam-v2.webp 1060w"
+  },
+  "/static/img/dodam-sterilization-room-v2.webp": {
+    "width": 1400,
+    "height": 1050,
+    "srcset": "/static/img/dodam-sterilization-room-v2-sm.webp 640w, /static/img/dodam-sterilization-room-v2.webp 1400w"
+  },
+  "/static/img/dodam-sterilization-v2.webp": {
+    "width": 1400,
+    "height": 1050,
+    "srcset": "/static/img/dodam-sterilization-v2-sm.webp 640w, /static/img/dodam-sterilization-v2.webp 1400w"
+  },
+  "/static/img/dodam-strip-v2.webp": {
+    "width": 1400,
+    "height": 1050,
+    "srcset": "/static/img/dodam-strip-v2-sm.webp 640w, /static/img/dodam-strip-v2.webp 1400w"
+  },
+  "/static/img/dodam-tmj-physio-v2.webp": {
+    "width": 1400,
+    "height": 1050,
+    "srcset": "/static/img/dodam-tmj-physio-v2-sm.webp 640w, /static/img/dodam-tmj-physio-v2.webp 1400w"
+  },
   "/static/img/dodam-tmj-treatment-v2.webp": {
     "width": 1400,
     "height": 933,
     "srcset": "/static/img/dodam-tmj-treatment-v2-sm.webp 640w, /static/img/dodam-tmj-treatment-v2.webp 1400w"
+  },
+  "/static/img/dodam-trios6-scanner-v2.webp": {
+    "width": 1400,
+    "height": 980,
+    "srcset": "/static/img/dodam-trios6-scanner-v2-sm.webp 640w, /static/img/dodam-trios6-scanner-v2.webp 1400w"
+  },
+  "/static/img/dodam-warm-water-scaling-v2.webp": {
+    "width": 1400,
+    "height": 933,
+    "srcset": "/static/img/dodam-warm-water-scaling-v2-sm.webp 640w, /static/img/dodam-warm-water-scaling-v2.webp 1400w"
+  },
+  "/static/img/dodam-whitening-2-v2.webp": {
+    "width": 1086,
+    "height": 1210,
+    "srcset": "/static/img/dodam-whitening-2-v2-sm.webp 640w, /static/img/dodam-whitening-2-v2.webp 1086w"
+  },
+  "/static/img/dodam-whitening-v2.webp": {
+    "width": 1024,
+    "height": 1156,
+    "srcset": "/static/img/dodam-whitening-v2-sm.webp 640w, /static/img/dodam-whitening-v2.webp 1024w"
   },
   "/static/img/dodam-wisdom-tooth-v2.webp": {
     "width": 1400,

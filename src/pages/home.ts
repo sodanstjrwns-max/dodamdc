@@ -26,7 +26,7 @@ export async function homePage(c: Context<Env>) {
     notice = await c.env.DB.prepare('SELECT id, title, created_at FROM notices WHERE published=1 ORDER BY pinned DESC, created_at DESC LIMIT 1').first<Notice>()
   } catch { /* Preview also works before database migrations. */ }
   const care = [
-    { en: 'PRESERVE', title: html`살릴 수 있다면,<br>한 번 더 살펴봅니다.`, text: '신경치료를 결정하기 전에, 치아 속 살아 있는 신경을 보존할 수 있는지 먼저 확인합니다.', image: 'one-fil-putty-mta-v2', caption: '자연치아 보존을 위한 One-Fil Putty MTA', chips: ['MTA 생활치수치료', '러버댐 격리', '큐레이 진단'] },
+    { en: 'PRESERVE', title: html`살릴 수 있다면,<br>한 번 더 살펴봅니다.`, text: '신경치료를 결정하기 전에, 치아 속 살아 있는 신경을 보존할 수 있는지 먼저 확인합니다.', image: 'dodam-mta-v2', caption: '자연치아 보존을 위한 One-Fil Putty MTA', chips: ['MTA 생활치수치료', '러버댐 격리', '큐레이 진단'] },
     { en: 'PROTECT', title: html`치아를 지탱하는 힘,<br>잇몸부터 지킵니다.`, text: '치아를 오래 쓰려면 그 아래 잇몸이 건강해야 합니다. 잇몸 상태에 맞는 치료와 꾸준한 관리를 함께 계획합니다.', image: 'suwon-dodam-dental-chair-unit-v2', caption: '미온수 스케일링 환경을 갖춘 실제 진료 체어', chips: ['잇몸치료', '미온수 스케일링', '정기검진'] },
     { en: 'RESTORE', title: html`꼭 필요한 자리에는,<br>신중한 임플란트.`, text: '보존이 어려운 치아라면, 뼈와 신경의 위치부터 확인합니다. 구강 상태에 맞는 치료 방법을 충분히 설명드립니다.', image: 'dodam-implant-card-v2', caption: '입체적인 진단을 위한 Vatech Green16 저선량 CT', chips: ['3차원 CT 진단', '치료 계획', '사후관리'] },
   ]
@@ -44,17 +44,20 @@ export async function homePage(c: Context<Env>) {
     <div class="kinetic-hero-copy">
       <p class="kinetic-eyebrow"><span>KEEP YOUR OWN.</span> MAKE IT LAST.</p>
       <h1 id="hero-title"><span class="headline-line"><span>내 치아를 위한</span></span><span class="headline-line"><span>조금 다른</span></span><span class="headline-line"><span>생각, <em>도담</em><i class="headline-dot" aria-hidden="true"></i></span></span></h1>
-      <div class="hero-copy-bottom"><p class="hero-slogan">${clinic.slogan}</p><a href="/mission" class="pill-link" data-magnetic><span>도담의 다른 생각</span><span class="pill-link-icon">${arrow}</span></a></div>
-    </div>
-    <div class="tooth-experience" id="tooth-experience">
-      <div class="sculpture-halo" aria-hidden="true"></div>
-      <div class="tooth-render" id="tooth-render" role="img" aria-label="자연치아를 감싸는 보호 고리를 표현한 도담 입체 브랜드 그래픽">
-        <svg class="tooth-fallback" viewBox="0 0 600 600" aria-hidden="true"><defs><linearGradient id="enamel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".45" stop-color="#f9ffff"/><stop offset="1" stop-color="#aacbdd"/></linearGradient><filter id="enamel-shadow"><feDropShadow dx="6" dy="22" stdDeviation="18" flood-color="#005d98" flood-opacity=".2"/></filter></defs><ellipse cx="310" cy="480" rx="145" ry="28" fill="#bed1d8" opacity=".35"/><g filter="url(#enamel-shadow)"><path d="M300 150C235 94 156 130 166 217C169 260 195 283 204 351C213 431 235 460 252 412L281 315Q300 286 319 315L348 412C365 460 387 431 396 351C405 283 431 260 434 217C444 130 365 94 300 150Z" fill="url(#enamel)" stroke="#fff" stroke-width="3"/></g><ellipse cx="300" cy="293" rx="229" ry="90" transform="rotate(-24 300 293)" fill="none" stroke="#b9e7a6" stroke-width="15"/><ellipse cx="300" cy="293" rx="227" ry="87" transform="rotate(38 300 293)" fill="none" stroke="#087acb" stroke-width="7"/></svg>
+      <div class="hero-copy-bottom"><p class="hero-slogan">${clinic.slogan}</p>
+        <div class="hero-cta-row">
+          <a href="/symptom-check" class="hero-cta hero-cta-check" data-track="symptom_check" data-track-loc="hero"><span class="hero-cta-ico">?</span><span><small>어디가 불편하세요?</small><b>내 증상 체크하기</b></span><span class="pill-link-icon">${arrow}</span></a>
+          <a href="/mission" class="hero-cta hero-cta-ghost"><span>서울도담치과의 진료 원칙</span><span class="pill-link-icon">${arrow}</span></a>
+          ${naverBookingLink(clinic, 'hero-cta hero-cta-naver', '네이버 예약', false)}
+        </div>
+        <ul class="hero-trust" aria-label="진료 원칙"><li>자연치아 보존</li><li>충분한 설명</li><li>필요한 치료만</li></ul>
       </div>
-      <div class="sculpture-caption" aria-hidden="true">${orbitMark}<span>본래의 가치를 지키다<small>THE DODAM WAY</small></span></div>
-      <div class="model-controls" hidden><button type="button" id="model-rotate-left" aria-label="입체 치아 모형 왼쪽으로 회전">${arrow}</button><p><span class="model-desktop-hint">드래그해서 돌려보세요</span><span class="model-mobile-hint">좌우 버튼으로 돌려보세요</span><small>브랜드 그래픽 · 실제 해부 모형이 아닙니다</small></p><button type="button" id="model-rotate-right" aria-label="입체 치아 모형 오른쪽으로 회전">${arrow}</button></div>
-      <button type="button" id="model-enable" class="btn btn-outline btn-sm model-enable" hidden>입체 모형 켜기</button>
-      <span class="tooth-ground-label" aria-hidden="true">THE DODAM WAY</span>
+    </div>
+    <div class="hero-photo-stage" aria-hidden="false">
+      <div class="hero-photo-blob"></div>
+      <figure class="hero-photo"><img src="/static/img/suwon-dodam-dental-consult-room-v2.webp" srcset="/static/img/suwon-dodam-dental-consult-room-v2-sm.webp 640w, /static/img/suwon-dodam-dental-consult-room-v2.webp 1600w" sizes="(max-width: 1000px) 100vw, 52vw" width="1600" height="1100" alt="서울도담치과 상담실 — 밝은 창가에서 설명하는 진료 공간" fetchpriority="high" decoding="async"></figure>
+      <figure class="hero-doctor-cut"><img src="/static/img/dr-han-hwirim-cutout.webp" width="408" height="612" alt="한휘림 대표원장" loading="eager" decoding="async"></figure>
+      <div class="hero-photo-note"><span>통합치의학과 전문의</span><strong>한휘림 대표원장 직접 진료</strong></div>
     </div>
   </div>
   <div class="kinetic-hero-bottom"><a href="#dodam-philosophy" class="kinetic-scroll"><span class="scroll-disc">↓</span><span>SCROLL INTO DODAM</span></a><a href="/doctors/${dr.slug}" class="hero-doctor-chip"><img src="${dr.photoAvatar}" alt="" ${imageAttrs(`${dr.photoAvatar}`, '52px', 52, 52)}><span><small>통합치의학과 전문의</small>${dr.name} 대표원장 직접 진료</span>${arrow}</a><button type="button" class="motion-toggle" id="motion-toggle" aria-pressed="false" aria-label="애니메이션 일시정지" hidden><span class="motion-icon" aria-hidden="true">Ⅱ</span><span class="motion-toggle-label">모션 켜짐</span></button></div>

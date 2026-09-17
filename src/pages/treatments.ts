@@ -18,7 +18,7 @@ const sid = (i: number) => `sec-${i + 1}`
 const treatmentPhotoAlts: Record<string, string> = {
   'vpt-crown': '서울도담치과에서 사용하는 One-Fil Putty MTA 보존 재료',
   periodontal: '미온수 스케일링 환경을 갖춘 서울도담치과의 실제 진료 체어',
-  implant: '서울도담치과에 설치된 바텍 Green16 저선량 CT',
+  implant: '임플란트가 식립된 구조를 보여주는 치아·잇몸 모형',
   endodontics: '신경치료 시 격리에 사용하는 서울도담치과의 러버댐 세트',
   'wisdom-tooth': '사랑니 진단에 사용하는 서울도담치과의 저선량 CT',
   restorative: '서울도담치과의 큐레이 형광 충치 진단기',
@@ -26,8 +26,8 @@ const treatmentPhotoAlts: Record<string, string> = {
   pediatric: '서울도담치과의 별무늬 장식이 있는 진료 공간',
   'oral-surgery': '서울도담치과에서 사용하는 EXARO 휴대용 엑스레이',
   tmj: '서울도담치과의 PHL 턱관절 물리치료 장비',
-  preventive: '검진과 예방관리를 진행하는 서울도담치과 진료실',
-  whitening: '서울도담치과에서 사용하는 치아미백기',
+  preventive: '정기검진에서 구강 검사를 받는 모습',
+  whitening: '치아미백 안내 — 환하게 웃는 모습',
 }
 
 export function treatmentsIndex(c: Context<Env>) {

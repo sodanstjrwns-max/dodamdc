@@ -166,25 +166,27 @@ ${ctaStrip(clinic)}`
 
 // ── 장비·감염관리 (floor-guide) ─────────────────────────
 export const equipment = [
-  { img: 'vatech-green16-low-dose-ct-v2', name: 'Vatech Green16 저선량 CT', cat: '진단', d: '임플란트·사랑니 수술 전 신경관과 뼈 두께를 3차원으로 확인합니다. 저선량 설계로 촬영 시 노출을 줄인 장비입니다.' },
-  { img: 'qraycam-pro-fluorescence-caries-detector-v2', name: 'Q-ray 형광 충치 진단기', cat: '진단', d: '형광 촬영으로 진행 중인 충치와 세균 활성을 확인해, 지켜봐도 되는 충치와 지금 치료할 충치를 구분합니다. 정기검진 때 이전 사진과 비교합니다.' },
-  { img: 'vatech-intraoral-sensor', name: '디지털 구내 센서', cat: '진단', d: '치아 사이 충치, 신경치료 진행 상황을 세부 촬영합니다. 촬영 즉시 모니터로 함께 봅니다.' },
-  { img: 'portable-xray-v2', name: '포터블 X-ray', cat: '진단', d: '진료 도중 자리 이동 없이 촬영해 신경치료 길이 확인 등 단계별 점검이 빠릅니다.' },
-  { img: 'quicksleeper-intraosseous-anesthesia', name: 'QuickSleeper 골내마취기', cat: '무통', d: '치아 바로 옆 뼈로 마취액을 소량 주입해 해당 치아만 마취합니다. 입술·혀가 오래 얼얼한 느낌이 적습니다.' },
-  { img: 'denops-i-portable-intraosseous-anesthesia-v2', name: 'Denops-i 무통마취기', cat: '무통', d: '컴퓨터가 마취액 주입 속도를 일정하게 조절해 압력에 의한 통증을 줄입니다.' },
-  { img: 'iject-painless-anesthesia-gun-v2', name: 'i-JECT 전동 마취기', cat: '무통', d: '전동 주입 장치로 마취액을 천천히 일정하게 주입합니다.' },
-  { img: 'anesthetic-warmer-iject-on-v2', name: '마취액 워머', cat: '무통', d: '차가운 마취액이 들어갈 때의 통증을 줄이기 위해 체온에 가깝게 데워서 사용합니다.' },
-  { img: 'warm-water-scaling-system', name: '미온수 스케일링 시스템', cat: '무통', d: '스케일링 물을 미온수로 공급해 시린 느낌을 줄입니다. 마취 가글과 함께 사용합니다.' },
-  { img: 'morita-dentaport-zx', name: 'Morita Dentaport ZX 근관장 측정기', cat: '신경치료', d: '신경관 길이를 전기적으로 측정해 신경치료 시 과·소충전을 줄입니다.' },
-  { img: 'ultrasonic-endo-uc-one', name: '초음파 근관세정기', cat: '신경치료', d: '초음파 진동으로 신경관 안쪽 세균과 잔사를 씻어냅니다. 러버댐과 함께 사용합니다.' },
-  { img: 'rubber-dam-isolation', name: '러버댐 격리', cat: '신경치료', d: '치료 치아만 노출하고 침과 세균을 차단합니다. 신경치료·레진·MTA 치료의 기본입니다.' },
-  { img: 'one-fil-putty-mta-v2', name: 'One-Fil Putty MTA', cat: '보존', d: '생활치수치료(VPT)에서 살아있는 신경을 덮어 보호하는 생체친화 재료입니다.' },
-  { img: 'bioclear-matrix-system', name: 'Bioclear 매트릭스', cat: '보존', d: '치아 사이 레진을 자연스러운 곡면으로 만들어 음식물이 끼는 공간을 줄입니다.' },
-  { img: 'garrison-deep-margin-elevation-kit', name: 'Garrison DME 키트', cat: '보존', d: '잇몸 아래 깊은 충치 경계를 끌어올려 크라운·인레이 접착 경계를 정확히 만듭니다.' },
+  { img: 'dodam-pano-ct-v2', name: 'Vatech Green16 저선량 CT', cat: '진단', d: '임플란트·사랑니 수술 전 신경관과 뼈 두께를 3차원으로 확인합니다. 저선량 설계로 촬영 시 노출을 줄인 장비입니다.' },
+  { img: 'dodam-qray-v2', name: 'Q-ray 형광 충치 진단기', cat: '진단', d: '형광 촬영으로 진행 중인 충치와 세균 활성을 확인해, 지켜봐도 되는 충치와 지금 치료할 충치를 구분합니다. 정기검진 때 이전 사진과 비교합니다.' },
+  { img: 'dodam-pa-sensor-v2', name: '디지털 구내 센서', cat: '진단', d: '치아 사이 충치, 신경치료 진행 상황을 세부 촬영합니다. 촬영 즉시 모니터로 함께 봅니다.' },
+  { img: 'dodam-portable-xray-v2', name: '포터블 X-ray', cat: '진단', d: '진료 도중 자리 이동 없이 촬영해 신경치료 길이 확인 등 단계별 점검이 빠릅니다.' },
+  { img: 'dodam-trios6-scanner-v2', name: 'TRIOS 6 구강스캐너', cat: '진단', d: '치아와 잇몸을 3차원으로 스캔해 인상재 없이 본을 뜹니다. 크라운·임플란트 보철 제작과 치료 전후 비교에 사용합니다.' },
+  { img: 'dodam-intraosseous-quicksleeper-v2', name: 'Quick Sleeper5 골내마취기', cat: '무통', d: '치아 바로 옆 뼈로 마취액을 소량 주입해 해당 치아만 마취합니다. 입술·혀가 오래 얼얼한 느낌이 적습니다. 골내마취기는 Quick Sleeper5와 DENOPS-i 2대를 보유하고 있습니다.' },
+  { img: 'dodam-intraosseous-denops-v2', name: 'DENOPS-i 골내마취기', cat: '무통', d: '컴퓨터가 마취액 주입 속도를 일정하게 조절하는 휴대형 골내마취기입니다. 주입 압력으로 인한 통증을 줄이도록 돕습니다.' },
+  { img: 'dodam-iject-warmer-v2', name: 'I-JECT 컴퓨터 제어 마취기와 마취액 워머', cat: '무통', d: '컴퓨터 제어로 마취액을 천천히 일정하게 주입하고, 마취액은 체온에 가깝게 데워서 사용합니다. 마취 주사 시의 통증과 불편감을 줄이도록 돕는 장비입니다.' },
+  { img: 'dodam-warm-water-scaling-v2', name: '미온수 스케일링 시스템', cat: '무통', d: '스케일링 물을 미온수로 공급해 시린 느낌을 줄입니다. 마취 가글과 함께 사용합니다.' },
+  { img: 'dodam-root-zx-v2', name: 'Morita Dentaport ZX 근관장 측정기', cat: '신경치료', d: '신경관 길이를 전기적으로 측정해 신경치료 시 과·소충전을 줄입니다.' },
+  { img: 'dodam-endo-ultrasonic-v2', name: '초음파 근관세정기', cat: '신경치료', d: '초음파 진동으로 신경관 안쪽 세균과 잔사를 씻어냅니다. 러버댐과 함께 사용합니다.' },
+  { img: 'dodam-rubber-dam-v2', name: '러버댐 격리', cat: '신경치료', d: '치료 치아만 노출하고 침과 세균을 차단합니다. 신경치료·레진·MTA 치료의 기본입니다.' },
+  { img: 'dodam-mta-v2', name: 'One-Fil Putty MTA', cat: '보존', d: '생활치수치료(VPT)에서 살아있는 신경을 덮어 보호하는 생체친화 재료입니다.' },
+  { img: 'dodam-strip-v2', name: 'Bioclear 매트릭스', cat: '보존', d: '치아 사이 레진을 자연스러운 곡면으로 만들어 음식물이 끼는 공간을 줄입니다.' },
+  { img: 'dodam-band-v2', name: 'Garrison DME 키트', cat: '보존', d: '잇몸 아래 깊은 충치 경계를 끌어올려 크라운·인레이 접착 경계를 정확히 만듭니다.' },
   { img: 'kavo-mastertorque-handpiece', name: 'KaVo MASTERtorque 핸드피스', cat: '진료', d: '진동과 소음이 적은 고속 핸드피스로 치아 삭제량을 세밀하게 조절합니다.' },
-  { img: 'person-vacuum-autoclave-48l-v2', name: 'Class B 진공 고압멸균기 (48L)', cat: '감염관리', d: '134°C 진공 고압 증기로 기구 내부까지 멸균합니다. 유럽 Class B 기준 장비입니다.' },
-  { img: 'explasma-z7x-plasma-sterilizer', name: '플라즈마 소독기', cat: '감염관리', d: '열에 약한 장비와 핸드피스를 저온 플라즈마로 소독합니다.' },
-  { img: 'suwon-dodam-dental-sterilization-room-v2', name: '기구 준비·소독 공간', cat: '감염관리', d: '기구의 세척, 멸균과 보관을 위한 실제 독립 소독 공간입니다.' },
+  { img: 'dodam-tmj-physio-v2', name: '턱관절 물리치료 장비', cat: '진료', d: '턱관절 주변 근육과 관절의 통증·긴장을 완화하도록 돕는 물리치료 장비입니다. 턱관절 치료와 함께 사용합니다.' },
+  { img: 'dodam-glucometer-v2', name: '혈당측정기', cat: '진료', d: '당뇨가 있는 환자분은 발치·임플란트 등 시술 전에 혈당을 확인한 뒤 진행합니다.' },
+  { img: 'dodam-autoclave-v2', name: 'Class B 진공 고압멸균기 (48L)', cat: '감염관리', d: '134°C 진공 고압 증기로 기구 내부까지 멸균합니다. 유럽 Class B 기준 장비입니다.' },
+  { img: 'dodam-plasma-sterilizer-v2', name: '플라즈마 소독기', cat: '감염관리', d: '열에 약한 장비와 핸드피스를 저온 플라즈마로 소독합니다.' },
+  { img: 'dodam-sterilization-room-v2', name: '기구 준비·소독 공간', cat: '감염관리', d: '기구의 세척, 멸균과 보관을 위한 실제 독립 소독 공간입니다.' },
 ]
 const gallery = [
   ['suwon-dodam-dental-entrance-sign', '서울도담치과 입구 간판', 8, 2],
@@ -203,7 +205,7 @@ export function floorGuidePage(c: Context<Env>) {
   const clinic = c.get('clinic') as any
   const cats = [...new Set(equipment.map((e) => e.cat))]
   const body = html`
-${pageHero({ eyebrow: '장비 · 감염관리 · 둘러보기', title: html`눈에 보이지 않는 곳에도,<br>진료의 마음을 담습니다.`, lead: '정확한 진단을 위한 장비부터 환자마다 새로 개봉하는 기구까지. 서울도담치과가 지키는 감염관리 과정과 실제 진료 공간을 확인해 보세요.', crumbs: [{ name: '홈', href: '/' }, { name: '장비·감염관리', href: '/floor-guide' }], image: '/static/img/person-vacuum-autoclave-48l-v2.webp', imageAlt: 'Class B 진공 고압멸균기' })}
+${pageHero({ eyebrow: '장비 · 감염관리 · 둘러보기', title: html`눈에 보이지 않는 곳에도,<br>진료의 마음을 담습니다.`, lead: '정확한 진단을 위한 장비부터 환자마다 새로 개봉하는 기구까지. 서울도담치과가 지키는 감염관리 과정과 실제 진료 공간을 확인해 보세요.', crumbs: [{ name: '홈', href: '/' }, { name: '장비·감염관리', href: '/floor-guide' }], image: '/static/img/dodam-sterilization-v2.webp', imageAlt: '멸균 포장된 기구를 확인하는 모습' })}
 <section class="section" id="sterilization">
   <div class="container">
     <div class="section-head reveal"><p class="eyebrow">감염관리 원칙</p><h2 class="h2">눈에 보이지 않는 곳에<br>기준을 둡니다</h2></div>
@@ -228,5 +230,5 @@ ${cats.map((cat) => html`<section class="section ${cat === '무통' || cat === '
   </div>
 </section>
 ${ctaStrip(clinic, { title: '직접 보시면 더 잘 아실 수 있습니다' })}`
-  return c.html(Layout(c, { title: '장비·감염관리 — 겉은 소박해도 안은 다릅니다', description: '서울도담치과의 진단·무통·신경치료·감염관리 장비. Vatech 저선량 CT, 큐레이, 무통마취기, Class B 고압멸균기, 플라즈마 소독기, 기구별 밀봉 포장. 병원 공간 둘러보기.', path: '/floor-guide', image: '/static/img/person-vacuum-autoclave-48l-v2.webp', crumbs: [{ name: '홈', href: '/' }, { name: '장비·감염관리', href: '/floor-guide' }] }, body))
+  return c.html(Layout(c, { title: '장비·감염관리 — 겉은 소박해도 안은 다릅니다', description: '서울도담치과의 진단·무통·신경치료·감염관리 장비. Vatech 저선량 CT, 큐레이, 무통마취기, Class B 고압멸균기, 플라즈마 소독기, 기구별 밀봉 포장. 병원 공간 둘러보기.', path: '/floor-guide', image: '/static/img/dodam-sterilization-v2.webp', crumbs: [{ name: '홈', href: '/' }, { name: '장비·감염관리', href: '/floor-guide' }] }, body))
 }
