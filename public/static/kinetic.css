@@ -550,3 +550,19 @@
 /* 2026-09-17: 3D 모형 제거 후 GSAP 인트로 트윈이 중간에 멈춰 헤드라인이 잘려 보이는 문제 — 히어로 텍스트는 애니메이션 없이 즉시 표시 */
 .experience-theme.kinetic-home .headline-line>span{transform:none!important;opacity:1!important}
 .experience-theme.kinetic-home .kinetic-hero-top,.experience-theme.kinetic-home .kinetic-eyebrow,.experience-theme.kinetic-home .hero-copy-bottom,.experience-theme.kinetic-home .kinetic-hero-bottom{opacity:1!important;transform:none!important}
+/* ── 히어로 v2 (2026-09-17): 원장 정면 사진 아치 카드 ── */
+.hero-photo-stage,.hero-photo,.hero-photo-blob,.hero-doctor-cut,.hero-photo-note{display:none}
+.hero-portrait-stage{position:relative;min-height:600px;display:flex;align-items:flex-end;justify-content:center;padding:28px 0 0}
+.hero-portrait-backdrop{position:absolute;left:8%;right:4%;top:6%;bottom:12%;background:linear-gradient(160deg,#e4f0fb 0%,#f5f2e9 100%);border-radius:200px 200px 28px 28px;z-index:0}
+.hero-portrait{position:relative;z-index:1;margin:0;width:min(78%,440px);aspect-ratio:4/5;border-radius:220px 220px 22px 22px;overflow:hidden;box-shadow:0 36px 70px -34px #0b2a4a66;border:8px solid #fff}
+.hero-portrait img{width:100%;height:100%;object-fit:cover;object-position:50% 18%;display:block}
+.hero-portrait-chip{position:absolute;z-index:2;left:2%;bottom:16%;display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #d9e2e8;border-radius:16px;padding:10px 16px 10px 10px;box-shadow:0 12px 28px #0b2a4a1a}
+.hero-portrait-chip img{width:40px;height:40px;border-radius:50%;object-fit:cover}
+.hero-portrait-chip small{display:block;font-size:11px;color:var(--ink-2)}
+.hero-portrait-chip strong{font-size:14px;color:var(--ink)}
+.hero-portrait-quote{position:absolute;z-index:2;right:0;top:9%;margin:0;max-width:220px;font-size:13.5px;line-height:1.7;color:var(--ink-2);background:#ffffffcc;backdrop-filter:blur(6px);border-radius:14px;padding:12px 14px;border:1px solid #e3ebf0}
+.hero-principles-link{display:inline-flex;align-items:center;gap:8px;margin-top:-4px;font-size:14px;font-weight:600;color:var(--brand,#0069b3);text-decoration:none}
+.hero-principles-link:hover{text-decoration:underline}
+.hero-cta-row{gap:12px}
+@media(max-width:1000px){.hero-portrait-stage{min-height:0;padding:12px 0 0}.hero-portrait{width:min(70%,380px)}.hero-portrait-quote{display:none}}
+@media(max-width:760px){.hero-portrait{width:78%;border-width:6px}.hero-portrait-chip{left:0;bottom:6%;padding:8px 12px 8px 8px}.hero-portrait-backdrop{left:2%;right:2%}}

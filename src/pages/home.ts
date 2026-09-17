@@ -47,17 +47,17 @@ export async function homePage(c: Context<Env>) {
       <div class="hero-copy-bottom"><p class="hero-slogan">${clinic.slogan}</p>
         <div class="hero-cta-row">
           <a href="/symptom-check" class="hero-cta hero-cta-check" data-track="symptom_check" data-track-loc="hero"><span class="hero-cta-ico">?</span><span><small>어디가 불편하세요?</small><b>내 증상 체크하기</b></span><span class="pill-link-icon">${arrow}</span></a>
-          <a href="/mission" class="hero-cta hero-cta-ghost"><span>서울도담치과의 진료 원칙</span><span class="pill-link-icon">${arrow}</span></a>
           ${naverBookingLink(clinic, 'hero-cta hero-cta-naver', '네이버 예약', false)}
         </div>
+        <a href="/mission" class="hero-principles-link">서울도담치과의 진료 원칙 <span aria-hidden="true">→</span></a>
         <ul class="hero-trust" aria-label="진료 원칙"><li>자연치아 보존</li><li>충분한 설명</li><li>필요한 치료만</li></ul>
       </div>
     </div>
-    <div class="hero-photo-stage" aria-hidden="false">
-      <div class="hero-photo-blob"></div>
-      <figure class="hero-photo"><img src="/static/img/suwon-dodam-dental-consult-room-v2.webp" srcset="/static/img/suwon-dodam-dental-consult-room-v2-sm.webp 640w, /static/img/suwon-dodam-dental-consult-room-v2.webp 1600w" sizes="(max-width: 1000px) 100vw, 52vw" width="1600" height="1100" alt="서울도담치과 상담실 — 밝은 창가에서 설명하는 진료 공간" fetchpriority="high" decoding="async"></figure>
-      <figure class="hero-doctor-cut"><img src="/static/img/dr-han-hwirim-cutout.webp" width="408" height="612" alt="한휘림 대표원장" loading="eager" decoding="async"></figure>
-      <div class="hero-photo-note"><span>통합치의학과 전문의</span><strong>한휘림 대표원장 직접 진료</strong></div>
+    <div class="hero-portrait-stage">
+      <div class="hero-portrait-backdrop" aria-hidden="true"></div>
+      <figure class="hero-portrait"><img src="/static/img/dr-han-hwirim-standing-v2.webp" srcset="/static/img/dr-han-hwirim-standing-v2-sm.webp 640w, /static/img/dr-han-hwirim-standing-v2.webp 1200w" sizes="(max-width: 1000px) 88vw, 40vw" width="1200" height="1500" alt="진료복을 입고 미소 짓는 한휘림 대표원장" fetchpriority="high" decoding="async"></figure>
+      <div class="hero-portrait-chip"><img src="${dr.photo}" alt="" width="40" height="40"><span><small>통합치의학과 전문의</small><strong>한휘림 대표원장 직접 진료</strong></span></div>
+      <p class="hero-portrait-quote">"이해될 때까지 충분히 설명하고,<br>필요한 만큼만 치료합니다."</p>
     </div>
   </div>
   <div class="kinetic-hero-bottom"><a href="#dodam-philosophy" class="kinetic-scroll"><span class="scroll-disc">↓</span><span>SCROLL INTO DODAM</span></a><a href="/doctors/${dr.slug}" class="hero-doctor-chip"><img src="${dr.photoAvatar}" alt="" ${imageAttrs(`${dr.photoAvatar}`, '52px', 52, 52)}><span><small>통합치의학과 전문의</small>${dr.name} 대표원장 직접 진료</span>${arrow}</a><button type="button" class="motion-toggle" id="motion-toggle" aria-pressed="false" aria-label="애니메이션 일시정지" hidden><span class="motion-icon" aria-hidden="true">Ⅱ</span><span class="motion-toggle-label">모션 켜짐</span></button></div>
