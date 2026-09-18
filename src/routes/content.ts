@@ -13,6 +13,7 @@ import { autoLink } from '../data/encyclopedia'
 import { pageHero, ctaStrip, articleHtml, imageAttrs, paginate, alertBox, naverBookingLink } from '../lib/ui'
 import { getNaverBookingUrl } from '../data/clinic'
 import { fmtDate, trackView, stripTags, formData, isEmail, normPhone } from '../lib/util'
+import { sendReservationPush } from '../lib/push'
 
 const content = new Hono<Env>()
 
@@ -289,6 +290,8 @@ content.post('/reservation', async (c) => {
   await c.env.DB.batch([insert, ...(scope ? [conversionStatement(c.env.DB, scope, '/reservation', 'form_completed', 'form')] : [])])
   // Cleanup is independent of the saved reservation, and must not turn success into an error.
   c.executionCtx?.waitUntil?.(cleanupConversions(c.env.DB).catch(() => {}))
+  // 관리자 기기 Web Push 알림 (실패해도 접수에는 영향 없음)
+  c.executionCtx?.waitUntil?.(sendReservationPush(c.env, c.env.DB, { title: '새 예약 신청', body: `${name} · ${f.treatment || '상담'} · ${f.preferred_date || '날짜 미정'}`, url: '/admin/reservations', tag: 'reservation-' + Date.now() }))
   // 이메일 알림 (Resend)
   if (c.env.RESEND_API_KEY && c.env.NOTIFICATION_EMAIL) {
     const clinic = c.get('clinic') as any

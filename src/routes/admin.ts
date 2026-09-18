@@ -19,6 +19,7 @@ import { formData, slugify, fmtDate, stripTags, esc } from '../lib/util'
 import { alertBox } from '../lib/ui'
 import { isoDate } from '../lib/seo'
 import { loadFeeGroupsForAdmin } from '../lib/fees'
+import { pushConfigured, loadPushRows, sendPushTo } from '../lib/push'
 import { AdminStats, fetchSiteStats } from '../lib/stats-page'
 
 const admin = new Hono<Env>()
@@ -70,9 +71,25 @@ admin.get('/stats', async (c) => {
   return shell(c, '통합 통계', body, 'stats')
 })
 
+// 관리자 PWA 매니페스트 — 브라우저가 쿠키 없이 요청하므로 인증 없이 제공 (비밀 정보 없음)
+admin.get('/manifest.webmanifest', (c) => c.json({
+  id: '/admin',
+  name: '도담 관리자',
+  short_name: '도담 관리자',
+  start_url: '/admin',
+  scope: '/',
+  display: 'standalone',
+  background_color: '#ffffff',
+  theme_color: '#006AB5',
+  icons: [
+    { src: '/favicon-192.png', sizes: '192x192', type: 'image/png' },
+    { src: '/favicon-512.png', sizes: '512x512', type: 'image/png' }
+  ]
+}, 200, { 'Cache-Control': 'private, max-age=3600', 'Content-Type': 'application/manifest+json; charset=utf-8' }))
+
 // 인증 가드
 admin.use('/*', async (c, next) => {
-  if (c.req.path === '/admin/login') return next()
+  if (c.req.path === '/admin/login' || c.req.path === '/admin/manifest.webmanifest') return next()
   if (!c.get('admin')) return c.req.method === 'GET' ? c.redirect('/admin/login') : c.text('Unauthorized', 401)
   if (!canAccessStaff(c.get('staff'), c.req.path)) return c.text('이 작업에 접근할 권한이 없습니다.', 403)
   await next()
@@ -300,6 +317,83 @@ admin.post('/notices/:id', async (c) => { const id = Number(c.req.param('id')); 
 admin.post('/notices/:id/delete', async (c) => { await c.env.DB.prepare('DELETE FROM notices WHERE id=?').bind(c.req.param('id')).run(); return c.redirect('/admin/notices') })
 
 // ── 회원 ─────────────────────────────────────────────────
+// ── 예약 알림 (Web Push) ──────────────────────────────────
+const pushDeviceRows = async (db: D1Database) => (await db.prepare('SELECT id,endpoint,label,created_at,last_ok_at,fail_count FROM push_subscriptions ORDER BY created_at DESC').all<any>()).results || []
+const pushDevice = (r: any) => ({ id: r.id, endpoint: r.endpoint, label: r.label || '이름 없는 기기', created_at: r.created_at, last_ok_at: r.last_ok_at, fail_count: r.fail_count })
+const validKey = (v: unknown, max: number) => typeof v === 'string' && v.length > 0 && v.length <= max && /^[A-Za-z0-9_\-=+/]+$/.test(v)
+const validEndpoint = (v: unknown) => { if (typeof v !== 'string' || v.length > 2048) return false; try { return new URL(v).protocol === 'https:' } catch { return false } }
+admin.get('/notifications', async (c) => {
+  const configured = pushConfigured(c.env)
+  const devices = (await pushDeviceRows(c.env.DB)).map(pushDevice)
+  const body = html`
+    <p class="workspace-note">홈페이지에서 새 예약 신청이 들어오면 등록한 휴대폰·PC로 알림을 보냅니다. 문자 요금이 들지 않으며, 알림을 받을 기기마다 한 번씩 아래 버튼으로 켜 주세요.</p>
+    ${configured ? '' : alertBox('서버에 알림 키(VAPID)가 아직 설정되지 않아 발송이 되지 않습니다. 제작사에 문의해 주세요.')}
+    <div class="ops-panel" id="push-panel" data-public-key="${c.env.VAPID_PUBLIC_KEY || ''}" data-configured="${configured ? '1' : '0'}">
+      <h2 class="h3">이 기기에서 알림 받기</h2>
+      <p id="push-status" class="hint" role="status">확인 중…</p>
+      <p id="push-hint" class="hint" hidden></p>
+      <div class="admin-toolbar" style="justify-content:flex-start;margin-top:14px">
+        <button type="button" id="push-enable" class="btn btn-primary" style="min-height:52px;font-size:16px;padding:0 26px" disabled>이 기기에서 알림 켜기</button>
+        <button type="button" id="push-test" class="btn btn-outline" disabled>테스트 알림 보내기</button>
+      </div>
+    </div>
+    <div class="ops-panel">
+      <h2 class="h3">설정 방법</h2>
+      <p><strong>아이폰·아이패드 (iOS 16.4 이상)</strong></p>
+      <ol style="padding-left:20px;line-height:1.9;font-size:14px">
+        <li>사파리로 관리자 페이지(<code>dodamdc.kr/admin</code>)를 연 뒤 하단 <strong>공유</strong> 버튼 → <strong>홈 화면에 추가</strong>를 누릅니다.</li>
+        <li>홈 화면에 생긴 <strong>‘도담 관리자’</strong> 앱을 열고 로그인합니다.</li>
+        <li>이 화면(예약 알림)에서 <strong>이 기기에서 알림 켜기</strong>를 누르고 ‘허용’을 선택합니다.</li>
+      </ol>
+      <p><strong>안드로이드 (크롬)</strong></p>
+      <ol style="padding-left:20px;line-height:1.9;font-size:14px">
+        <li>크롬으로 관리자 페이지에 로그인합니다.</li>
+        <li>이 화면에서 <strong>이 기기에서 알림 켜기</strong>를 누르고 ‘허용’을 선택합니다.</li>
+        <li>(선택) 크롬 메뉴 → <strong>홈 화면에 추가</strong>를 하면 앱처럼 바로 열 수 있습니다.</li>
+      </ol>
+      <p class="hint">PC 크롬·엣지에서도 같은 방법으로 켤 수 있습니다. 알림이 오지 않으면 휴대폰 설정 → 알림에서 ‘도담 관리자’(또는 사파리/크롬) 알림이 허용되어 있는지 확인해 주세요.</p>
+    </div>
+    <div class="ops-panel">
+      <h2 class="h3">알림 받는 기기 <span class="hint" id="push-count">${devices.length}대</span></h2>
+      <p class="hint">기기를 바꾸거나 알림을 끄려면 ‘해제’를 누르세요. 발송이 5회 연속 실패한 기기는 자동으로 제거됩니다.</p>
+      <ul id="push-devices" class="push-devices" style="list-style:none;padding:0;margin:14px 0 0;display:grid;gap:10px">
+        ${devices.length ? devices.map(d => html`<li data-endpoint="${d.endpoint}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border:1px solid #d8e3df;border-radius:12px;background:#f8fbf9"><span><strong>${d.label}</strong><br><span class="hint" style="margin:0">등록 ${fmtDate(d.created_at)}${d.last_ok_at ? ` · 마지막 발송 ${fmtDate(d.last_ok_at)}` : ''}${d.fail_count ? ` · 실패 ${d.fail_count}회` : ''}</span></span><button type="button" class="btn btn-outline btn-sm push-remove" data-endpoint="${d.endpoint}">해제</button></li>`) : html`<li class="hint" id="push-empty">아직 등록된 기기가 없습니다.</li>`}
+      </ul>
+    </div>
+    <script src="/static/admin-push.js?v=1" defer></script>`
+  return shell(c, '예약 알림', body, 'notifications')
+})
+admin.get('/api/push/public-key', (c) => c.json({ key: c.env.VAPID_PUBLIC_KEY || null, configured: pushConfigured(c.env) }))
+admin.get('/api/push/devices', async (c) => c.json({ devices: (await pushDeviceRows(c.env.DB)).map(pushDevice) }))
+admin.post('/api/push/subscribe', async (c) => {
+  let body: any
+  try { body = await c.req.json() } catch { return c.json({ error: '잘못된 요청입니다.' }, 400) }
+  const sub = body?.subscription || body
+  const endpoint = sub?.endpoint, p256dh = sub?.keys?.p256dh, auth = sub?.keys?.auth
+  if (!validEndpoint(endpoint) || !validKey(p256dh, 200) || !validKey(auth, 64)) return c.json({ error: '구독 정보가 올바르지 않습니다.' }, 400)
+  const label = stripTags(String(body?.label || '')).trim().slice(0, 80) || null
+  const staffId = c.get('staff')?.id || null
+  await c.env.DB.prepare('INSERT INTO push_subscriptions (endpoint,p256dh,auth,label,staff_id) VALUES (?,?,?,?,?) ON CONFLICT(endpoint) DO UPDATE SET p256dh=excluded.p256dh, auth=excluded.auth, label=COALESCE(excluded.label,label), staff_id=excluded.staff_id, fail_count=0').bind(endpoint, p256dh, auth, label, staffId).run()
+  return c.json({ ok: true, devices: (await pushDeviceRows(c.env.DB)).map(pushDevice) })
+})
+admin.post('/api/push/unsubscribe', async (c) => {
+  let body: any
+  try { body = await c.req.json() } catch { return c.json({ error: '잘못된 요청입니다.' }, 400) }
+  if (!validEndpoint(body?.endpoint)) return c.json({ error: '구독 정보가 올바르지 않습니다.' }, 400)
+  await c.env.DB.prepare('DELETE FROM push_subscriptions WHERE endpoint=?').bind(body.endpoint).run()
+  return c.json({ ok: true, devices: (await pushDeviceRows(c.env.DB)).map(pushDevice) })
+})
+admin.post('/api/push/test', async (c) => {
+  if (!pushConfigured(c.env)) return c.json({ error: '서버에 알림 키가 설정되지 않았습니다.' }, 503)
+  let body: any = {}
+  try { body = await c.req.json() } catch {}
+  const endpoint = validEndpoint(body?.endpoint) ? String(body.endpoint) : null
+  const rows = await loadPushRows(c.env.DB, endpoint)
+  if (!rows.length) return c.json({ error: endpoint ? '이 기기는 아직 등록되지 않았습니다.' : '등록된 기기가 없습니다.' }, 404)
+  const result = await sendPushTo(c.env, c.env.DB, rows, { title: '테스트 알림', body: `${c.get('staff')?.name || '관리자'}님이 보낸 테스트입니다. 예약이 들어오면 이렇게 알려드립니다.`, url: '/admin/notifications', tag: 'push-test-' + Date.now() })
+  return c.json({ ok: result.sent > 0, ...result, devices: (await pushDeviceRows(c.env.DB)).map(pushDevice) })
+})
+
 admin.get('/members', async (c) => {
   const q = (c.req.query('q') || '').trim()
   const rows = (await c.env.DB.prepare(`SELECT id,email,name,phone,provider,agree_marketing,role,last_login_at,created_at FROM users ${q ? 'WHERE email LIKE ? OR name LIKE ? OR phone LIKE ?' : ''} ORDER BY created_at DESC LIMIT 300`).bind(...(q ? [`%${q}%`, `%${q}%`, `%${q}%`] : [])).all<any>()).results || []

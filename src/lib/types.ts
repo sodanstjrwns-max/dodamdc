@@ -13,6 +13,9 @@ export type Bindings = {
   STATS_API_TOKEN?: string
   LOCAL_STATS_TOKEN?: string
   ANTHROPIC_API_KEY?: string
+  VAPID_PUBLIC_KEY?: string
+  VAPID_PRIVATE_KEY?: string
+  VAPID_SUBJECT?: string
 }
 
 export type SessionUser = {

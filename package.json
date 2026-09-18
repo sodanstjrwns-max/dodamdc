@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/build-image-manifest.mjs && npm run build:experience && npm run build:admin && vite build",
+    "build": "rm -f dist/_routes.json && node scripts/build-image-manifest.mjs && npm run build:experience && npm run build:admin && vite build",
     "build:experience": "rm -rf public/static/experience && esbuild src/client/experience.ts --bundle --splitting --format=esm --target=es2020 --minify --outdir=public/static/experience --entry-names=main --chunk-names=[name]-[hash] --legal-comments=linked",
     "build:admin": "esbuild src/client/admin-sanitizer.ts --bundle --format=iife --global-name=AdminSanitizer --minify --outfile=public/static/admin-sanitizer.js --legal-comments=linked",
     "test:symptom": "node scripts/symptom-smoke.mjs",
@@ -29,6 +29,7 @@
     "test:hours-meta": "node scripts/hours-meta-smoke.mjs"
   },
   "dependencies": {
+    "@block65/webcrypto-web-push": "^2.0.0",
     "dompurify": "^3.4.15",
     "hono": "^4.13.5",
     "xss": "^1.0.15"
