@@ -140,6 +140,61 @@ export const imageManifest: Record<string, { width: number; height: number; srcs
     "height": 1484,
     "srcset": "/static/img/dodam-rubber-dam-v2-sm.webp 640w, /static/img/dodam-rubber-dam-v2.webp 1060w"
   },
+  "/static/img/dodam-space-consult-room-v2.webp": {
+    "width": 1400,
+    "height": 788,
+    "srcset": "/static/img/dodam-space-consult-room-v2-sm.webp 640w, /static/img/dodam-space-consult-room-v2.webp 1400w"
+  },
+  "/static/img/dodam-space-corridor-v2.webp": {
+    "width": 1400,
+    "height": 700,
+    "srcset": "/static/img/dodam-space-corridor-v2-sm.webp 640w, /static/img/dodam-space-corridor-v2.webp 1400w"
+  },
+  "/static/img/dodam-space-drink-corner-v2.webp": {
+    "width": 1400,
+    "height": 895,
+    "srcset": "/static/img/dodam-space-drink-corner-v2-sm.webp 640w, /static/img/dodam-space-drink-corner-v2.webp 1400w"
+  },
+  "/static/img/dodam-space-entrance-exterior-v2.webp": {
+    "width": 1400,
+    "height": 1050,
+    "srcset": "/static/img/dodam-space-entrance-exterior-v2-sm.webp 640w, /static/img/dodam-space-entrance-exterior-v2.webp 1400w"
+  },
+  "/static/img/dodam-space-handpiece-v2.webp": {
+    "width": 1400,
+    "height": 1050,
+    "srcset": "/static/img/dodam-space-handpiece-v2-sm.webp 640w, /static/img/dodam-space-handpiece-v2.webp 1400w"
+  },
+  "/static/img/dodam-space-individual-operatory-v2.webp": {
+    "width": 1400,
+    "height": 788,
+    "srcset": "/static/img/dodam-space-individual-operatory-v2-sm.webp 640w, /static/img/dodam-space-individual-operatory-v2.webp 1400w"
+  },
+  "/static/img/dodam-space-information-desk-v2.webp": {
+    "width": 700,
+    "height": 539,
+    "srcset": "/static/img/dodam-space-information-desk-v2-sm.webp 640w, /static/img/dodam-space-information-desk-v2.webp 700w"
+  },
+  "/static/img/dodam-space-makeup-room-v2.webp": {
+    "width": 1400,
+    "height": 788,
+    "srcset": "/static/img/dodam-space-makeup-room-v2-sm.webp 640w, /static/img/dodam-space-makeup-room-v2.webp 1400w"
+  },
+  "/static/img/dodam-space-treatment-room-v2.webp": {
+    "width": 713,
+    "height": 541,
+    "srcset": "/static/img/dodam-space-treatment-room-v2-sm.webp 640w, /static/img/dodam-space-treatment-room-v2.webp 713w"
+  },
+  "/static/img/dodam-space-waiting-lounge-v2.webp": {
+    "width": 721,
+    "height": 541,
+    "srcset": "/static/img/dodam-space-waiting-lounge-v2-sm.webp 640w, /static/img/dodam-space-waiting-lounge-v2.webp 721w"
+  },
+  "/static/img/dodam-space-xray-room-v2.webp": {
+    "width": 1400,
+    "height": 788,
+    "srcset": "/static/img/dodam-space-xray-room-v2-sm.webp 640w, /static/img/dodam-space-xray-room-v2.webp 1400w"
+  },
   "/static/img/dodam-sterilization-room-v2.webp": {
     "width": 1400,
     "height": 1050,

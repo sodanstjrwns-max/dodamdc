@@ -181,7 +181,7 @@ export const equipment = [
   { img: 'dodam-mta-v2', name: 'One-Fil Putty MTA', cat: '보존', d: '생활치수치료(VPT)에서 살아있는 신경을 덮어 보호하는 생체친화 재료입니다.' },
   { img: 'dodam-strip-v2', name: 'Bioclear 매트릭스', cat: '보존', d: '치아 사이 레진을 자연스러운 곡면으로 만들어 음식물이 끼는 공간을 줄입니다.' },
   { img: 'dodam-band-v2', name: 'Garrison DME 키트', cat: '보존', d: '잇몸 아래 깊은 충치 경계를 끌어올려 크라운·인레이 접착 경계를 정확히 만듭니다.' },
-  { img: 'kavo-mastertorque-handpiece', name: 'KaVo MASTERtorque 핸드피스', cat: '진료', d: '진동과 소음이 적은 고속 핸드피스로 치아 삭제량을 세밀하게 조절합니다.' },
+  { img: 'dodam-space-handpiece-v2', name: 'KaVo MASTERtorque 핸드피스', cat: '진료', d: '진동과 소음이 적은 고속 핸드피스로 치아 삭제량을 세밀하게 조절합니다.' },
   { img: 'dodam-tmj-physio-v2', name: '턱관절 물리치료 장비', cat: '진료', d: '턱관절 주변 근육과 관절의 통증·긴장을 완화하도록 돕는 물리치료 장비입니다. 턱관절 치료와 함께 사용합니다.' },
   { img: 'dodam-glucometer-v2', name: '혈당측정기', cat: '진료', d: '당뇨가 있는 환자분은 발치·임플란트 등 시술 전에 혈당을 확인한 뒤 진행합니다.' },
   { img: 'dodam-autoclave-v2', name: 'Class B 진공 고압멸균기 (48L)', cat: '감염관리', d: '134°C 진공 고압 증기로 기구 내부까지 멸균합니다. 유럽 Class B 기준 장비입니다.' },
@@ -189,16 +189,19 @@ export const equipment = [
   { img: 'dodam-sterilization-room-v2', name: '기구 준비·소독 공간', cat: '감염관리', d: '기구의 세척, 멸균과 보관을 위한 실제 독립 소독 공간입니다.' },
 ]
 const gallery = [
-  ['suwon-dodam-dental-entrance-sign', '서울도담치과 입구 간판', 8, 2],
-  ['suwon-dodam-dental-reception-desk-v2', '접수 데스크', 4, 2],
-  ['suwon-dodam-dental-waiting-lounge-v2', '대기 공간', 4, 1],
-  ['suwon-dodam-dental-consult-room-v2', '상담실', 4, 1],
-  ['suwon-dodam-dental-operatory', '진료실', 4, 1],
-  ['suwon-dodam-dental-treatment-room-v2', '개별 진료실', 6, 2],
+  ['dodam-space-corridor-v2', '서울도담치과 입구 복도', 8, 2],
+  ['dodam-space-information-desk-v2', '접수 데스크', 4, 2],
+  ['dodam-space-waiting-lounge-v2', '대기 공간', 4, 1],
+  ['dodam-space-consult-room-v2', '상담실', 4, 1],
+  ['dodam-space-treatment-room-v2', '진료실', 4, 1],
+  ['dodam-space-individual-operatory-v2', '개별 진료실', 6, 2],
   ['suwon-dodam-dental-chair-unit-v2', '유닛체어', 6, 2],
   ['suwon-dodam-dental-corridor-sign', '복도', 4, 1],
-  ['suwon-dodam-dental-doctor-profile-board', '의료진 안내판', 4, 1],
   ['suwon-dodam-dental-waiting-area', '대기실', 4, 1],
+  ['dodam-space-entrance-exterior-v2', '건물 입구 외관', 4, 1],
+  ['dodam-space-xray-room-v2', '엑스레이실', 4, 1],
+  ['dodam-space-drink-corner-v2', '대기공간 음료 코너', 4, 1],
+  ['dodam-space-makeup-room-v2', '메이크업룸·양치 공간', 4, 1],
 ] as const
 
 export function floorGuidePage(c: Context<Env>) {

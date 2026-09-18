@@ -88,7 +88,7 @@ export function dentistLd(clinic: Clinic, siteUrl: string) {
     '@context': 'https://schema.org', '@type': 'Dentist', '@id': absUrl(siteUrl, '/#clinic'),
     name: clinic.name, alternateName: clinic.nameEn, url: siteUrl + '/',
     logo: absUrl(siteUrl, '/static/img/logo-mark.png'),
-    image: absUrl(siteUrl, '/static/img/suwon-dodam-dental-reception-desk-v2.webp'),
+    image: absUrl(siteUrl, '/static/img/dodam-space-information-desk-v2.webp'),
     telephone: clinic.phoneTel, email: clinic.email,
     address: { '@type': 'PostalAddress', streetAddress: clinic.address, addressLocality: `수원시 ${clinic.district}`, addressRegion: '경기도', postalCode: clinic.postalCode, addressCountry: 'KR' },
     geo: { '@type': 'GeoCoordinates', latitude: clinic.geo.lat, longitude: clinic.geo.lng },

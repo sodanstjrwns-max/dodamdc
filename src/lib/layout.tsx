@@ -23,7 +23,7 @@ export function Layout(c: Context<Env>, meta: PageMeta, body: any) {
   const title = fullTitle(meta.title, clinic) + (pageNumber ? ` · ${pageNumber}페이지` : '')
   const description = meta.description + (pageNumber ? ` (${pageNumber}페이지)` : '')
   const url = absUrl(siteUrl, path)
-  const imagePath = meta.image || '/static/img/suwon-dodam-dental-reception-desk-v2.webp'
+  const imagePath = meta.image || '/static/img/dodam-space-information-desk-v2.webp'
   const image = absUrl(siteUrl, imagePath)
   const imageSize = imageManifest[imagePath]
   const preview = new URL(c.req.url).origin !== siteUrl
