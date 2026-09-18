@@ -12,6 +12,7 @@ export type Bindings = {
   SITE_URL?: string
   STATS_API_TOKEN?: string
   LOCAL_STATS_TOKEN?: string
+  ANTHROPIC_API_KEY?: string
 }
 
 export type SessionUser = {

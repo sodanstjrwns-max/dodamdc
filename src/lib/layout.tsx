@@ -8,7 +8,9 @@ import { doctors } from '../data/doctors'
 import { imageManifest } from '../data/image-manifest'
 import { naverBookingLink } from './ui'
 import { getNaverBookingUrl } from '../data/clinic'
+import { clinicStatus, KR_HOLIDAYS } from './clinic-status'
 import { conversionScope, conversionMeta } from './conversions'
+import { aiChatEnabled, aiChatFab, aiChatWidget } from './ai-chat'
 
 const escAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
@@ -76,7 +78,7 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="preload" href="/static/fonts/WantedSansCore-v2.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/fonts/wanted-subsets.css?v=2">
 <link rel="stylesheet" href="/static/style.css?v=8">
-<link rel="stylesheet" href="/static/kinetic.css?v=21">
+<link rel="stylesheet" href="/static/kinetic.css?v=23">
 ${meta.path === '/symptom-check' ? html`<link rel="stylesheet" href="/static/symptom-check.css?v=1">` : ''}
 ${meta.path === '/encyclopedia' || meta.path.startsWith('/encyclopedia/') ? html`<link rel="stylesheet" href="/static/encyclopedia.css?v=20260914">` : ''}
 ${meta.path === '/handover' ? html`<link rel="stylesheet" href="/static/handover.css?v=2">` : ''}
@@ -153,6 +155,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
       </ul>
     </nav>
     <div class="header-actions">
+      ${(() => { const st = clinicStatus(clinic); return html`<span class="clinic-status is-${st.state}" id="clinic-status" data-hours="${JSON.stringify(clinic.hours)}" data-holidays="${KR_HOLIDAYS.join(',')}" title="${st.detail}" aria-live="polite"><i class="status-dot" aria-hidden="true"></i><b class="status-label">${st.label}</b><small class="status-detail">${st.detail}</small></span>` })()}
       <a href="tel:${clinic.phoneTel}" class="header-phone" aria-label="전화 ${clinic.phone}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg><span>${clinic.phone}</span></a>
       ${user
         ? html`<a href="/auth/mypage" class="header-user">${user.name}님</a>`
@@ -257,13 +260,16 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
 </nav>
 
 <div class="floating-cta" id="floating-cta">
+  ${aiChatEnabled(meta.path) ? aiChatFab() : ''}
   <a href="tel:${clinic.phoneTel}" class="fab fab-call" aria-label="전화하기" data-fab="call"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg></a>
   <a href="${clinic.channels.kakao}" class="fab fab-kakao" target="_blank" rel="noopener" aria-label="카카오톡 상담"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.8 5.2 4.6 6.6L5.5 21l4.3-2.8c.7.1 1.4.2 2.2.2 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg></a>
   ${getNaverBookingUrl(clinic) ? html`<a href="${getNaverBookingUrl(clinic)}" class="fab fab-book naver-booking-link" target="_blank" rel="noopener noreferrer" aria-label="네이버 예약 (새 창)" data-booking-provider="naver"><svg class="naver-mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.273 12.845L7.376 0H0v24h7.726V11.156L16.624 24H24V0h-7.727z"/></svg><span class="fab-label">예약</span></a>` : html`<a href="/reservation" class="fab fab-book"><span class="fab-label">예약</span></a>`}
   <a href="#top" class="fab fab-top" aria-label="맨 위로" id="to-top"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></a>
 </div>
 
-<script src="/static/app.js?v=15" defer></script>
+${aiChatEnabled(meta.path) ? aiChatWidget(clinic) : ''}
+<script src="/static/app.js?v=16" defer></script>
+${aiChatEnabled(meta.path) ? html`<script src="/static/ai-chat.js?v=1" defer></script>` : ''}
 ${meta.path === '/encyclopedia' || meta.path.startsWith('/encyclopedia/') ? html`<script src="/static/encyclopedia.js?v=20260914" defer></script>` : ''}
 ${meta.path === '/symptom-check' ? html`<script src="/static/symptom-check.js?v=1" defer></script>` : html`<script type="module" src="/static/experience/main.js?v=12"></script>`}
 </body>

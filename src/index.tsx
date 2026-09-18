@@ -12,6 +12,7 @@ import { getNaverBookingUrl } from './data/clinic'
 import auth from './routes/auth'
 import admin from './routes/admin'
 import content from './routes/content'
+import aiChat from './routes/ai-chat'
 import conversions from './lib/conversions'
 
 import { firstVisitPage } from './pages/journey'
@@ -95,6 +96,7 @@ app.route('/auth', auth)
 app.route('/admin', admin)
 app.route('/', conversions)
 app.route('/', content)
+app.route('/', aiChat)
 
 // ---------- Public pages ----------
 app.get('/', (c) => homePage(c))

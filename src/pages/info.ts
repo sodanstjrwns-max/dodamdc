@@ -12,7 +12,7 @@ import { hoursNotices, dayHoursText, lunchHoursText } from '../lib/clinic-hours'
 import { pageHero, faqList, ctaStrip, reviewLine } from '../lib/ui'
 
 // ── 통합 FAQ ─────────────────────────────────────────────
-const generalFaqsFor = (clinic: Clinic) => [
+export const generalFaqsFor = (clinic: Clinic) => [
   { q: '예약 없이 방문해도 진료를 받을 수 있나요?', a: '가능합니다. 다만 예약 환자분이 우선이므로 대기 시간이 길어질 수 있습니다. 전화나 온라인 예약 후 방문하시면 기다림을 줄일 수 있습니다.' },
   { q: '화요일 진료시간은 어떻게 되나요?', a: `${dayHoursText(clinic, '화')}가 기본 시간표입니다. ${clinic.hoursNote} 예약 가능 시간은 병원에 확인해 주세요.` },
   { q: '수요일에도 진료하나요?', a: `기본 시간표는 ${dayHoursText(clinic, '수')}입니다. ${clinic.hoursException}` },

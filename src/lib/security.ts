@@ -24,7 +24,8 @@ export const requestSecurity: MiddlewareHandler<Env> = async (c, next) => {
   const unsafe = !['GET', 'HEAD', 'OPTIONS'].includes(c.req.method)
   const origin = new URL(c.req.url).origin
   // Conversion API has its own origin-bound signed ticket and 2 KB limit.
-  if (unsafe && path !== '/api/conversions') {
+  // AI chat API is stateless (no session/cookie effect), checks same-origin itself and is IP rate-limited.
+  if (unsafe && path !== '/api/conversions' && path !== '/api/ai-chat') {
     if (c.req.header('origin') !== origin || (c.req.header('sec-fetch-site') && c.req.header('sec-fetch-site') !== 'same-origin')) return c.text('요청 출처를 확인할 수 없습니다. 같은 사이트에서 다시 시도해 주세요.', 403)
     if (!c.env?.SESSION_SECRET) return c.text('보안 설정을 확인해 주세요.', 503)
     let token = c.req.header('x-csrf-token') || ''
