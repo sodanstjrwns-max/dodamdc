@@ -17,7 +17,7 @@ import { AI_CHAT_TOPICS } from '../lib/ai-chat'
 
 // OpenAI 호환 채팅 API (기본: Gemini Flash-Lite). 시크릿 AI_API_KEY 필수, AI_BASE_URL·AI_MODEL로 공급자 교체 가능(DeepSeek·Qwen 등).
 const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai'
-const DEFAULT_MODEL = 'gemini-2.5-flash-lite'
+const DEFAULT_MODEL = 'gemini-3.5-flash-lite'
 const MAX_TOKENS = 700
 const MAX_MESSAGES = 8
 const MAX_CHARS = 1000

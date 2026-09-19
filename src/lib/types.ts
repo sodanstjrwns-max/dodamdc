@@ -14,7 +14,7 @@ export type Bindings = {
   LOCAL_STATS_TOKEN?: string
   AI_API_KEY?: string      // OpenAI 호환 LLM 키 (기본 Gemini)
   AI_BASE_URL?: string     // 기본 https://generativelanguage.googleapis.com/v1beta/openai
-  AI_MODEL?: string        // 기본 gemini-2.5-flash-lite
+  AI_MODEL?: string        // 기본 gemini-3.5-flash-lite
   VAPID_PUBLIC_KEY?: string
   VAPID_PRIVATE_KEY?: string
   VAPID_SUBJECT?: string
