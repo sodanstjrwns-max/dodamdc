@@ -15,8 +15,9 @@ import { doctors } from '../data/doctors'
 import { generalFaqsFor } from '../pages/info'
 import { AI_CHAT_TOPICS } from '../lib/ai-chat'
 
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-const MODEL = 'claude-haiku-4-5-20251001'
+// OpenAI 호환 채팅 API (기본: Gemini Flash-Lite). 시크릿 AI_API_KEY 필수, AI_BASE_URL·AI_MODEL로 공급자 교체 가능(DeepSeek·Qwen 등).
+const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai'
+const DEFAULT_MODEL = 'gemini-2.5-flash-lite'
 const MAX_TOKENS = 700
 const MAX_MESSAGES = 8
 const MAX_CHARS = 1000
@@ -222,21 +223,20 @@ aiChat.post('/api/ai-chat', async (c) => {
     return c.json({ fallback: true, message: FALLBACK.busy }, 429)
   }
 
-  const key = c.env?.ANTHROPIC_API_KEY
+  const key = c.env?.AI_API_KEY
   if (!key) return c.json({ fallback: true, message: FALLBACK.noKey }, 503)
+  const baseUrl = (c.env?.AI_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, '')
+  const model = c.env?.AI_MODEL || DEFAULT_MODEL
 
   const clinic = c.get('clinic')
-  const system = [
-    { type: 'text', text: await stableSystemPrompt(c, clinic), cache_control: { type: 'ephemeral' } },
-    { type: 'text', text: volatileSystemPrompt(clinic, topic) },
-  ]
+  const systemText = (await stableSystemPrompt(c, clinic)) + '\n\n' + volatileSystemPrompt(clinic, topic)
 
   let upstream: Response
   try {
-    upstream = await fetch(ANTHROPIC_URL, {
+    upstream = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: MODEL, max_tokens: MAX_TOKENS, stream: true, system, messages }),
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model, max_tokens: MAX_TOKENS, temperature: 0.4, stream: true, messages: [{ role: 'system', content: systemText }, ...messages] }),
       signal: AbortSignal.timeout(60_000),
     })
   } catch {
@@ -245,11 +245,11 @@ aiChat.post('/api/ai-chat', async (c) => {
   if (!upstream.ok || !upstream.body) {
     // Never forward provider error bodies (may include request echoes). Status only.
     try { await upstream.body?.cancel() } catch {}
-    if (upstream.status === 429 || upstream.status === 529) c.header('Retry-After', '30')
-    return c.json({ fallback: true, message: upstream.status === 429 || upstream.status === 529 ? FALLBACK.busy : FALLBACK.upstream }, 502)
+    if (upstream.status === 429 || upstream.status === 503) c.header('Retry-After', '30')
+    return c.json({ fallback: true, message: upstream.status === 429 || upstream.status === 503 ? FALLBACK.busy : FALLBACK.upstream }, 502)
   }
 
-  // SSE → plain text: forward only content_block_delta/text_delta payloads.
+  // SSE(OpenAI 호환) → plain text: choices[0].delta.content 만 전달, [DONE] 무시.
   const decoder = new TextDecoder(), encoder = new TextEncoder()
   let buffer = ''
   const textStream = upstream.body.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
@@ -263,8 +263,10 @@ aiChat.post('/api/ai-chat', async (c) => {
         const data = line.slice(5).trim()
         if (!data) continue
         try {
+          if (data === '[DONE]') continue
           const ev = JSON.parse(data)
-          if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta' && typeof ev.delta.text === 'string') controller.enqueue(encoder.encode(ev.delta.text))
+          const t = ev?.choices?.[0]?.delta?.content
+          if (typeof t === 'string' && t) controller.enqueue(encoder.encode(t))
         } catch { /* ignore malformed frame */ }
       }
     },
