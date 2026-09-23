@@ -26,7 +26,8 @@
     "db:reset": "rm -rf .wrangler/state/v3/d1 && npm run db:migrate:local && npm run db:seed",
     "clean-port": "fuser -k 3000/tcp 2>/dev/null || true",
     "test:encyclopedia": "node scripts/encyclopedia-smoke.mjs",
-    "test:hours-meta": "node scripts/hours-meta-smoke.mjs"
+    "test:hours-meta": "node scripts/hours-meta-smoke.mjs",
+    "test:wednesday": "node scripts/wednesday-smoke.mjs"
   },
   "dependencies": {
     "@block65/webcrypto-web-push": "^2.0.0",
