@@ -20,6 +20,7 @@ import { alertBox } from '../lib/ui'
 import { isoDate } from '../lib/seo'
 import { loadFeeGroupsForAdmin } from '../lib/fees'
 import { pushConfigured, loadPushRows, sendPushTo } from '../lib/push'
+import { validatePress } from '../lib/press'
 import { AdminStats, fetchSiteStats } from '../lib/stats-page'
 
 const admin = new Hono<Env>()
@@ -109,9 +110,10 @@ admin.get('/', async (c) => {
   if(principal.role==='editor') return c.redirect('/admin/columns')
   const db = c.env.DB
   const q = async (sql: string) => (await db.prepare(sql).first<any>())?.n ?? 0
-  const [members, cases, columns, notices, pending, views7] = await Promise.all([
+  const [members, cases, columns, notices, pending, views7, press] = await Promise.all([
     q('SELECT COUNT(*) n FROM users'), q('SELECT COUNT(*) n FROM cases'), q('SELECT COUNT(*) n FROM columns'), q('SELECT COUNT(*) n FROM notices'),
     q("SELECT COUNT(*) n FROM reservations WHERE status='pending'"), q("SELECT COUNT(*) n FROM page_views WHERE is_bot=0 AND created_at > datetime('now','-7 days')"),
+    q('SELECT COUNT(*) n FROM press').catch(() => 0),
   ])
   const recent = (await db.prepare('SELECT id,name,phone,treatment,preferred_date,status,created_at FROM reservations ORDER BY created_at DESC LIMIT 8').all<any>()).results || []
   const top = (await db.prepare("SELECT path, COUNT(*) n FROM page_views WHERE is_bot=0 AND created_at > datetime('now','-30 days') GROUP BY path ORDER BY n DESC LIMIT 10").all<any>()).results || []
@@ -121,6 +123,7 @@ admin.get('/', async (c) => {
     <a href="/admin/cases" class="admin-card"><span class="n">${cases}</span><span class="l">치료 전후</span></a>
     <a href="/admin/columns" class="admin-card"><span class="n">${columns}</span><span class="l">칼럼</span></a>
     <a href="/admin/notices" class="admin-card"><span class="n">${notices}</span><span class="l">공지</span></a>
+    <a href="/admin/press" class="admin-card"><span class="n">${press}</span><span class="l">언론보도</span></a>
     <a href="/admin/stats" class="admin-card"><span class="n">${views7}</span><span class="l">7일 조회 (봇 제외)</span></a>
   </div>
   <div class="grid-2" style="margin-top:28px">
@@ -315,6 +318,39 @@ async function saveNotice(c: Context<Env>, id?: number) {
 admin.post('/notices/new', async (c) => { try { await saveNotice(c); return cmsSaved(c, '/admin/notices') } catch (e: any) { if (c.req.header('x-cms-request') === '1') return cmsError(c,e); return noticeForm(c, {}, e.message) } })
 admin.post('/notices/:id', async (c) => { const id = Number(c.req.param('id')); try { await saveNotice(c, id); return cmsSaved(c, '/admin/notices') } catch (e: any) { if (c.req.header('x-cms-request') === '1') return cmsError(c,e); return noticeForm(c, await c.env.DB.prepare('SELECT * FROM notices WHERE id=?').bind(id).first(), e.message) } })
 admin.post('/notices/:id/delete', async (c) => { await c.env.DB.prepare('DELETE FROM notices WHERE id=?').bind(c.req.param('id')).run(); return c.redirect('/admin/notices') })
+
+// ── 언론보도 ─────────────────────────────────────────────
+function pressForm(c: any, p: any = {}, err?: string) {
+  const body = html`${alertBox(err)}<form method="post" class="admin-form" data-once>
+  <div class="grid-2">
+    <div class="field"><label>보도일 *</label><input name="date" type="date" required value="${p.date || ''}"></div>
+    <div class="field"><label>매체명 *</label><input name="outlet" required maxlength="60" placeholder="예: 스포츠경향" value="${p.outlet || ''}"></div>
+  </div>
+  <div class="field"><label>기사 제목 *</label><input name="title" required maxlength="200" value="${p.title || ''}"></div>
+  <div class="field"><label>요약 (2~3줄) <small class="hint">기사 본문은 저작권상 게시하지 않습니다. 요약과 링크만 올려 주세요.</small></label><textarea name="summary" rows="4" maxlength="600">${p.summary || ''}</textarea></div>
+  <div class="field"><label>원문 링크 (https) *</label><input name="url" type="url" required maxlength="500" placeholder="https://" value="${p.url || ''}"></div>
+  <div class="field"><label>정렬 <small class="hint">같은 날짜 안에서 숫자가 클수록 위에 표시됩니다. 보통 0</small></label><input name="sort" type="number" value="${p.sort ?? 0}" min="-9999" max="9999"></div>
+  <label class="check"><input type="checkbox" name="published" value="1" ${p.published || !p.id ? 'checked' : ''}> 공개 (언론보도 페이지·원장 소개에 표시)</label>
+  <div class="admin-toolbar"><button type="submit" class="btn btn-primary">저장</button><a href="/admin/press" class="btn btn-outline">목록</a>${p.id ? html`<button type="submit" form="del-press" class="btn btn-danger" onclick="return confirm('삭제할까요?')">삭제</button>` : ''}</div>
+</form>${p.id ? html`<form id="del-press" method="post" action="/admin/press/${p.id}/delete"></form>` : ''}`
+  return shell(c, p.id ? '보도 수정' : '보도 등록', body, 'press')
+}
+admin.get('/press', async (c) => {
+  const rows = (await c.env.DB.prepare('SELECT id,date,outlet,title,url,published,sort FROM press ORDER BY date DESC, sort DESC, id DESC').all<any>()).results || []
+  return shell(c, '언론보도', html`<p class="hint">인터뷰·기고 기사의 날짜·매체·제목·요약·원문 링크를 등록합니다. 공개 항목은 <a href="/press" target="_blank" rel="noopener">언론보도 페이지</a>와 원장 소개의 ‘언론 활동’에 최신순으로 표시됩니다.</p><div class="admin-toolbar"><a href="/admin/press/new" class="btn btn-primary">+ 새 보도</a></div><table class="admin-table"><thead><tr><th>보도일</th><th>매체</th><th>제목</th><th>공개</th><th>원문</th></tr></thead><tbody>${rows.map((r: any) => html`<tr><td>${fmtDate(r.date)}</td><td>${r.outlet}</td><td><a href="/admin/press/${r.id}">${r.title}</a></td><td>${r.published ? html`<span class="badge-on">공개</span>` : html`<span class="badge-off">비공개</span>`}</td><td><a href="${r.url}" target="_blank" rel="noopener noreferrer">열기 ↗</a></td></tr>`)}${rows.length ? '' : html`<tr><td colspan="5">등록된 보도가 없습니다.</td></tr>`}</tbody></table>`, 'press')
+})
+admin.get('/press/new', (c) => pressForm(c))
+admin.get('/press/:id', async (c) => { const p = await c.env.DB.prepare('SELECT * FROM press WHERE id=?').bind(Number(c.req.param('id')) || 0).first(); return p ? pressForm(c, p) : c.notFound() })
+async function savePress(c: Context<Env>, id?: number) {
+  const fd = await c.req.formData(); const g = (k: string) => String(fd.get(k) || '').trim()
+  if (id && !(await c.env.DB.prepare('SELECT id FROM press WHERE id=?').bind(id).first())) throw new Error('수정할 보도를 찾을 수 없습니다.')
+  const v = validatePress(g)
+  const vals = [v.date, v.outlet, v.title, v.summary, v.url, fd.get('published') ? 1 : 0, v.sort]
+  await (id ? c.env.DB.prepare('UPDATE press SET date=?,outlet=?,title=?,summary=?,url=?,published=?,sort=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(...vals, id) : c.env.DB.prepare('INSERT INTO press (date,outlet,title,summary,url,published,sort) VALUES (?,?,?,?,?,?,?)').bind(...vals)).run()
+}
+admin.post('/press/new', async (c) => { try { await savePress(c); return c.redirect('/admin/press?saved=1') } catch (e: any) { return pressForm(c, await formData(c), e.message) } })
+admin.post('/press/:id', async (c) => { const id = Number(c.req.param('id')) || 0; try { await savePress(c, id); return c.redirect('/admin/press?saved=1') } catch (e: any) { return pressForm(c, { ...(await formData(c)), id }, e.message) } })
+admin.post('/press/:id/delete', async (c) => { await c.env.DB.prepare('DELETE FROM press WHERE id=?').bind(Number(c.req.param('id')) || 0).run(); return c.redirect('/admin/press') })
 
 // ── 회원 ─────────────────────────────────────────────────
 // ── 예약 알림 (Web Push) ──────────────────────────────────

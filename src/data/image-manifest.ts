@@ -325,6 +325,11 @@ export const imageManifest: Record<string, { width: number; height: number; srcs
     "height": 1100,
     "srcset": "/static/img/suwon-dodam-dental-sterilization-room-v2-sm.webp 640w, /static/img/suwon-dodam-dental-sterilization-room-v2.webp 1600w"
   },
+  "/static/img/suwon-dodam-dental-sterilization-room-v3.webp": {
+    "width": 1600,
+    "height": 1100,
+    "srcset": "/static/img/suwon-dodam-dental-sterilization-room-v3-sm.webp 640w, /static/img/suwon-dodam-dental-sterilization-room-v3.webp 1600w"
+  },
   "/static/img/suwon-dodam-dental-treatment-explanation-v2.webp": {
     "width": 1024,
     "height": 683,

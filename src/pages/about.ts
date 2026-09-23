@@ -6,6 +6,7 @@ import { physicianLd } from '../lib/seo'
 import { doctors, getDoctor, type Doctor } from '../data/doctors'
 import { getTreatment } from '../data/treatments'
 import { imageAttrs, pageHero, ctaStrip, reviewLine } from '../lib/ui'
+import { PRESS_SELECT, pressItem } from '../lib/press'
 
 // ── 의료진 ───────────────────────────────────────────────
 export function doctorsIndex(c: Context<Env>) {
@@ -34,11 +35,13 @@ export async function doctorDetail(c: Context<Env>, d: Doctor) {
   const clinic = c.get('clinic') as any
   const siteUrl = c.get('siteUrl')
   const txs = d.treatments.map(getTreatment).filter(Boolean) as NonNullable<ReturnType<typeof getTreatment>>[]
-  let cases: any[] = [], columns: any[] = []
+  let cases: any[] = [], columns: any[] = [], press: any[] = []
   try {
     cases = (await c.env.DB.prepare('SELECT slug, title, treatment_slug, age_group, gender, intra_before, pano_before FROM cases WHERE published=1 AND doctor_slug=? ORDER BY created_at DESC LIMIT 3').bind(d.slug).all()).results || []
     columns = (await c.env.DB.prepare('SELECT slug, title, excerpt FROM columns WHERE published=1 AND author_slug=? ORDER BY published_at DESC LIMIT 3').bind(d.slug).all()).results || []
   } catch { /* */ }
+  // 언론 활동은 대표원장(첫 번째 의료진) 기준. 항목이 없으면 섹션 자체를 숨긴다.
+  try { if (d.slug === doctors[0].slug) press = (await c.env.DB.prepare(PRESS_SELECT).all()).results || [] } catch { /* */ }
 
   const body = html`
 <section class="doctor-hero">
@@ -83,6 +86,13 @@ export async function doctorDetail(c: Context<Env>, d: Doctor) {
     </div>
   </div>
 </section>
+${press.length ? html`<section class="section section-bg doctor-press" id="press">
+  <div class="container container-narrow">
+    <div class="section-head reveal"><p class="eyebrow">언론 활동</p><h2 class="h2">언론 활동</h2><p class="lead">${d.name} 원장의 인터뷰·기고입니다. 기사 본문은 원문 링크에서 확인해 주세요.</p></div>
+    <ul class="press-list reveal">${press.map((p: any) => pressItem(p, 'h3'))}</ul>
+    <p><a href="/press" class="link-arrow">언론보도 전체 보기</a></p>
+  </div>
+</section>` : ''}
 
 <section class="section section-bg" id="doctor-treatments">
   <div class="container">
@@ -105,7 +115,7 @@ ${ctaStrip(clinic, { title: `${d.name} 원장에게 직접 진료받기`, sub: `
     path: `/doctors/${d.slug}`,
     image: d.photo,
     type: 'profile',
-    jsonld: [physicianLd(d, clinic, siteUrl)],
+    jsonld: [physicianLd(d, clinic, siteUrl, press)],
     crumbs: [{ name: '홈', href: '/' }, { name: '의료진', href: '/doctors' }, { name: `${d.name} ${d.title}`, href: `/doctors/${d.slug}` }],
   }, body))
 }

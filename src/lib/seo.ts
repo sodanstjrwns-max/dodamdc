@@ -1,6 +1,7 @@
 import type { Clinic } from '../data/clinic'
 import type { Doctor } from '../data/doctors'
 import type { Treatment, FAQ } from '../data/treatments-types'
+import { substituteWednesdays, substituteWednesdayHours } from './clinic-status'
 
 export type Crumb = { name: string; href: string }
 export type PageMeta = {
@@ -75,13 +76,26 @@ export function isoDate(value?: string | null): string | undefined {
 export const xmlEscape = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
 
 const dayMap: Record<string, string> = { 월: 'Monday', 화: 'Tuesday', 수: 'Wednesday', 목: 'Thursday', 금: 'Friday', 토: 'Saturday', 일: 'Sunday' }
+const hourPeriods = (h: { open: string | null; close: string | null; lunch: string | null }) => {
+  if (!h.open || !h.close) return [] as [string, string][]
+  const lunch = h.lunch?.split(/[–—-]/)
+  return (lunch?.length === 2 ? [[h.open, lunch[0]], [lunch[1], h.close]] : [[h.open, h.close]]) as [string, string][]
+}
 export function openingHours(clinic: Clinic) {
-  return clinic.hours.flatMap(h => {
-    if (!h.open || !h.close) return []
-    const lunch = h.lunch?.split(/[–—-]/)
-    const periods = lunch?.length === 2 ? [[h.open, lunch[0]], [lunch[1], h.close]] : [[h.open, h.close]]
-    return periods.map(([opens, closes]) => ({ '@type': 'OpeningHoursSpecification', dayOfWeek: `https://schema.org/${dayMap[h.day]}`, opens, closes }))
-  })
+  return clinic.hours.flatMap(h => hourPeriods(h).map(([opens, closes]) => ({ '@type': 'OpeningHoursSpecification', dayOfWeek: `https://schema.org/${dayMap[h.day]}`, opens, closes })))
+}
+/** 공휴일 주 수요일 대체 진료일(향후 12개월)을 날짜 지정 영업시간으로 명시한다. */
+export function specialOpeningHours(clinic: Clinic, now = new Date()) {
+  const row = substituteWednesdayHours(clinic)
+  if (!row) return []
+  return substituteWednesdays(now, 12).flatMap(ymd => hourPeriods(row).map(([opens, closes]) => ({ '@type': 'OpeningHoursSpecification', validFrom: ymd, validThrough: ymd, dayOfWeek: 'https://schema.org/Wednesday', opens, closes })))
+}
+export type PressItem = { date: string; outlet: string; title: string; summary?: string | null; url: string }
+export function newsArticleLd(p: PressItem) {
+  return { '@type': 'NewsArticle', headline: p.title, datePublished: p.date, publisher: { '@type': 'Organization', name: p.outlet }, url: p.url, ...(p.summary ? { description: p.summary } : {}) }
+}
+export function pressListLd(items: PressItem[], siteUrl: string) {
+  return { '@context': 'https://schema.org', '@type': 'ItemList', '@id': absUrl(siteUrl, '/press#list'), name: '서울도담치과 언론보도', itemListOrder: 'https://schema.org/ItemListOrderDescending', numberOfItems: items.length, itemListElement: items.map((p, i) => ({ '@type': 'ListItem', position: i + 1, item: newsArticleLd(p) })) }
 }
 export function dentistLd(clinic: Clinic, siteUrl: string) {
   return {
@@ -92,14 +106,14 @@ export function dentistLd(clinic: Clinic, siteUrl: string) {
     telephone: clinic.phoneTel, email: clinic.email,
     address: { '@type': 'PostalAddress', streetAddress: clinic.address, addressLocality: `수원시 ${clinic.district}`, addressRegion: '경기도', postalCode: clinic.postalCode, addressCountry: 'KR' },
     geo: { '@type': 'GeoCoordinates', latitude: clinic.geo.lat, longitude: clinic.geo.lng },
-    hasMap: clinic.channels.naverPlace, openingHoursSpecification: openingHours(clinic),
+    hasMap: clinic.channels.naverPlace, openingHoursSpecification: openingHours(clinic), specialOpeningHoursSpecification: specialOpeningHours(clinic),
     sameAs: Object.values(clinic.channels).filter(url => /^https?:\/\//.test(url)),
     areaServed: { '@type': 'City', name: clinic.city },
     medicalSpecialty: 'https://schema.org/Dentistry', slogan: clinic.slogan,
     // No invented ratings, price range, acceptance status or founding date.
   }
 }
-export function physicianLd(d: Doctor, clinic: Clinic, siteUrl: string) {
+export function physicianLd(d: Doctor, clinic: Clinic, siteUrl: string, press: PressItem[] = []) {
   return {
     '@context': 'https://schema.org', '@type': 'Person', '@id': absUrl(siteUrl, `/doctors/${d.slug}#person`),
     name: d.name, alternateName: d.nameEn, jobTitle: `${d.title} · ${d.specialty}`,
@@ -109,6 +123,7 @@ export function physicianLd(d: Doctor, clinic: Clinic, siteUrl: string) {
     alumniOf: d.education.map(name => ({ '@type': 'EducationalOrganization', name })),
     memberOf: d.societies.map(name => ({ '@type': 'Organization', name })),
     description: d.quote,
+    ...(press.length ? { subjectOf: press.map(newsArticleLd) } : {}),
   }
 }
 export function websiteLd(clinic: Clinic, siteUrl: string) {

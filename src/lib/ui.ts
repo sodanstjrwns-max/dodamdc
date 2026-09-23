@@ -1,4 +1,5 @@
 import { html, raw } from 'hono/html'
+import { thisWeekSubstituteWednesday, SUBSTITUTE_WEDNESDAY_NOTE } from './clinic-status'
 import type { HtmlEscapedString } from 'hono/utils/html'
 import type { FAQ } from '../data/treatments'
 import type { Crumb } from './seo'
@@ -101,4 +102,10 @@ export const paginate = (base: string, page: number, total: number, per: number)
     ${Array.from({ length: pages }, (_, i) => i + 1).map((p) => html`<li>${p === page ? html`<span aria-current="page">${p}</span>` : html`<a href="${q(p)}">${p}</a>`}</li>`)}
     ${page < pages ? html`<li><a href="${q(page + 1)}" rel="next">다음</a></li>` : ''}
   </ul></nav>`
+}
+
+/** 진료시간 표 아래 공휴일 주 수요일 안내. 이번 주에 해당하면 날짜를 강조한다. */
+export function substituteWednesdayNotice(clinic: Pick<Clinic, 'hours'>, now = new Date()) {
+  const sub = thisWeekSubstituteWednesday(clinic, now)
+  return html`<p class="hours-sub-wed">${SUBSTITUTE_WEDNESDAY_NOTE}${sub ? html` <strong class="sub-wed-line">${sub.label}</strong>` : ''}</p>`
 }

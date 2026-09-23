@@ -153,7 +153,7 @@ app.get('/sitemap.xml', async (c) => {
   const add = (path: string, pri = '0.6', freq = 'monthly', lastmod?: string) => urls.push({ loc: site + path, pri, freq, lastmod: isoDate(lastmod) })
 
   add('/', '1.0', 'weekly')
-  for (const p of ['/first-visit', '/symptom-check', '/mission', '/doctors', '/treatments', '/floor-guide', '/directions', '/hours', '/pricing', '/faq', '/encyclopedia', '/cases/gallery', '/column', '/notice', '/reservation']) add(p, '0.8', 'weekly')
+  for (const p of ['/first-visit', '/symptom-check', '/mission', '/doctors', '/treatments', '/floor-guide', '/directions', '/hours', '/pricing', '/faq', '/encyclopedia', '/cases/gallery', '/column', '/press', '/notice', '/reservation']) add(p, '0.8', 'weekly')
   for (const d of doctors) add(`/doctors/${d.slug}`, '0.8')
   for (const t of treatments) add(`/treatments/${t.slug}`, '0.9', 'monthly')
   for (const a of areaPages) add(`/area/${a.slug}`, '0.6')
@@ -233,6 +233,7 @@ ${treatments.map(t => `- [${t.name}](${site}/treatments/${t.slug}): ${t.short}`)
 - [진료시간](${site}/hours)
 - [공지사항](${site}/notice): 임시 휴진 등 최신 변경 확인
 - [원장 칼럼](${site}/column)
+- [언론보도](${site}/press): 원장 인터뷰·기고 기사 요약과 원문 링크
 - [진료 예약 방법](${site}/reservation): 네이버 예약과 홈페이지 신청 안내
 ${getNaverBookingUrl(clinic) ? `- [공식 네이버 예약](${getNaverBookingUrl(clinic)}): 외부 예약 페이지` : ''}
 

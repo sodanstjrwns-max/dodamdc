@@ -1,4 +1,5 @@
-import { hoursNotices } from '../lib/clinic-hours'
+import { hoursNotices, dayHoursText } from '../lib/clinic-hours'
+import { thisWeekSubstituteWednesday, SUBSTITUTE_WEDNESDAY_NOTE } from '../lib/clinic-status'
 import { Hono } from 'hono'
 import { safeFileKey, hasPublishedEditorialImage } from '../lib/content-safety'
 import { canAccessStaff } from '../lib/security'
@@ -6,7 +7,7 @@ import { conversionScope, conversionStatement, cleanupConversions } from '../lib
 import { html, raw } from 'hono/html'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
-import { articleLd, truncate, physicianLd, isoDate, paginationPage } from '../lib/seo'
+import { articleLd, truncate, physicianLd, isoDate, paginationPage, pressListLd } from '../lib/seo'
 import { treatments, getTreatment } from '../data/treatments'
 import { doctors, getDoctor } from '../data/doctors'
 import { autoLink } from '../data/encyclopedia'
@@ -14,6 +15,7 @@ import { pageHero, ctaStrip, articleHtml, imageAttrs, paginate, alertBox, naverB
 import { getNaverBookingUrl } from '../data/clinic'
 import { fmtDate, trackView, stripTags, formData, isEmail, normPhone } from '../lib/util'
 import { sendReservationPush } from '../lib/push'
+import { PRESS_SELECT, pressItem } from '../lib/press'
 
 const content = new Hono<Env>()
 
@@ -212,6 +214,19 @@ ${ctaStrip(clinic)}`
   return c.html(Layout(c, { title: p.meta_title || p.title, description: p.meta_description || truncate(p.excerpt || stripTags(p.content_html)), path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, type: 'article', author: d, publishedAt: p.published_at, modifiedAt: p.updated_at, jsonld: [physicianLd(d, clinic, siteUrl), articleLd({ title: p.title, description: p.meta_description || p.excerpt || '', path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, author: `${d.name}`, authorPath: `/doctors/${d.slug}`, publishedAt: p.published_at, modifiedAt: p.updated_at }, clinic, siteUrl)], crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }, { name: p.title, href: `/column/${p.slug}` }] }, body))
 })
 
+// ── 언론보도 ─────────────────────────────────────────────
+// 기사 본문은 저작권상 게시하지 않는다. 요약과 원문 링크만 보여준다.
+content.get('/press', async (c) => {
+  const clinic = c.get('clinic') as any, siteUrl = c.get('siteUrl')
+  const rows = (await c.env.DB.prepare(PRESS_SELECT).all<any>()).results || []
+  const body = html`${pageHero({ eyebrow: '언론보도', title: html`언론이 전한<br>도담의 이야기`, lead: `${doctors[0].name} 원장의 인터뷰와 기고, 병원 관련 보도를 모았습니다. 기사 본문은 원문 링크에서 확인해 주세요.`, crumbs: [{ name: '홈', href: '/' }, { name: '언론보도', href: '/press' }] })}
+<section class="section"><div class="container container-narrow">
+  ${rows.length ? html`<ul class="press-list reveal in">${rows.map((p: any) => pressItem(p))}</ul><p class="press-note">기사 저작권은 각 매체에 있으며, 이 페이지에는 요약과 원문 링크만 게시합니다. 보도 내용은 일반적인 정보이며 개인의 진단·치료를 대신하지 않습니다.</p>` : html`<section class="empty-content"><p class="edition-label">IN THE PRESS</p><h2>아직 등록된 보도가 없습니다.</h2><p>원장 칼럼에서 진료실의 이야기를 먼저 읽어보세요.</p><a href="/column" class="editorial-link">원장 칼럼 읽기 <span aria-hidden="true">↗</span></a></section>`}
+</div></section>
+${ctaStrip(clinic)}`
+  return c.html(Layout(c, { title: '언론보도', description: `서울도담치과 언론보도. ${doctors[0].name} 원장의 인터뷰·기고와 병원 관련 기사를 날짜·매체·요약과 원문 링크로 정리했습니다.`, path: '/press', jsonld: rows.length ? [pressListLd(rows, siteUrl)] : [], crumbs: [{ name: '홈', href: '/' }, { name: '언론보도', href: '/press' }] }, body))
+})
+
 // ── 공지사항 ─────────────────────────────────────────────
 content.get('/notice', async (c) => {
   const page = paginationPage(c.req.query('page'))
@@ -258,7 +273,7 @@ ${!o.ok && getNaverBookingUrl(clinic) ? html`<section class="section-sm naver-re
       <div class="field"><label for="email">이메일 <small>(선택)</small></label><input id="email" name="email" type="email" value="${v.email || user?.email || ''}" autocomplete="email"></div>
       <div class="field"><label for="treatment">희망 진료</label><select id="treatment" name="treatment"><option value="">잘 모르겠어요 / 상담 먼저</option>${treatments.map((t) => html`<option value="${t.name}" ${tx === t.slug || tx === t.name ? 'selected' : ''}>${t.name}</option>`)}<option value="정기검진·스케일링" ${tx === '정기검진·스케일링' ? 'selected' : ''}>정기검진·스케일링</option></select></div>
       <div class="form-row">
-        <div class="field"><label for="preferred_date">희망 날짜</label><input id="preferred_date" name="preferred_date" type="date" value="${v.preferred_date || ''}" min="${new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10)}"></div>
+        <div class="field"><label for="preferred_date">희망 날짜</label><input id="preferred_date" name="preferred_date" type="date" value="${v.preferred_date || ''}" min="${new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10)}" aria-describedby="preferred_date_hint"><small id="preferred_date_hint" class="hint">${dayHoursText(clinic, '수')}. ${SUBSTITUTE_WEDNESDAY_NOTE}${(() => { const sub = thisWeekSubstituteWednesday(clinic); return sub ? ` (${sub.label})` : '' })()} 공휴일은 휴진입니다.</small></div>
         <div class="field"><label for="preferred_time">희망 시간</label><select id="preferred_time" name="preferred_time">${['상관없음', '오전 (09:00–12:00)', '오후 (14:00–18:00)', '화요일 야간 (18:00–20:30)', '토요일 오전'].map((s) => html`<option ${v.preferred_time === s ? 'selected' : ''}>${s}</option>`)}</select></div>
       </div>
       <div class="field"><label for="message">증상·문의 내용</label><textarea id="message" name="message" rows="4" maxlength="1000" placeholder="예: 오른쪽 아래 어금니가 찬물에 시립니다. 다른 치과에서 신경치료를 권했는데 상담받고 싶습니다.">${v.message || ''}</textarea></div>

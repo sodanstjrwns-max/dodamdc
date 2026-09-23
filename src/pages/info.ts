@@ -9,7 +9,7 @@ import { loadPricingGroups } from '../lib/fees'
 import { areaPages, areaAccess, type AreaPage } from '../data/areas'
 import { nearbyAreas, type Clinic } from '../data/clinic'
 import { hoursNotices, dayHoursText, lunchHoursText } from '../lib/clinic-hours'
-import { pageHero, faqList, ctaStrip, reviewLine } from '../lib/ui'
+import { pageHero, faqList, ctaStrip, reviewLine, substituteWednesdayNotice } from '../lib/ui'
 
 // ── 통합 FAQ ─────────────────────────────────────────────
 export const generalFaqsFor = (clinic: Clinic) => [
@@ -51,8 +51,8 @@ export { encyclopediaIndex, encyclopediaTerm } from './encyclopedia'
 
 // ── 오시는 길 / 진료시간 ────────────────────────────────
 const hoursTable = (clinic: any) => html`<table class="hours-table"><thead><tr><th>요일</th><th>진료</th><th>비고</th></tr></thead><tbody>
-  ${clinic.hours.map((h: any) => html`<tr data-day="${h.day}"><th>${h.day}</th><td>${h.open ? `${h.open} – ${h.close}` : html`<span class="closed">휴진</span>`}</td><td class="note">${h.note || (h.lunch ? `점심 ${h.lunch}` : '')}</td></tr>`)}
-</tbody></table>`
+  ${clinic.hours.map((h: any) => html`<tr data-day="${h.day}"><th>${h.day}</th><td>${h.open ? `${h.open} – ${h.close}` : html`<span class="closed">휴진</span>`}</td><td class="note">${h.note || (h.lunch ? `점심 ${h.lunch}` : h.day === '수' && !h.open ? '공휴일 주 진료' : '')}</td></tr>`)}
+</tbody></table>${substituteWednesdayNotice(clinic)}`
 
 export function directionsPage(c: Context<Env>) {
   const clinic = c.get('clinic') as any
@@ -233,7 +233,7 @@ export function sitemapHtml(c: Context<Env>) {
   const groups: [string, [string, string][]][] = [
     ['병원', [['/', '홈'], ['/mission', '병원 미션'], ['/doctors', '의료진'], ['/doctors/han-hwirim', '한휘림 대표원장'], ['/floor-guide', '장비·감염관리']]],
     ['진료', [['/treatments', '진료 안내'], ...treatments.map((t) => [`/treatments/${t.slug}`, t.name] as [string, string])]],
-    ['콘텐츠', [['/cases/gallery', '치료 전후'], ['/column', '원장 칼럼'], ['/encyclopedia', '치과 백과사전'], ['/notice', '공지사항']]],
+    ['콘텐츠', [['/cases/gallery', '치료 전후'], ['/column', '원장 칼럼'], ['/press', '언론보도'], ['/encyclopedia', '치과 백과사전'], ['/notice', '공지사항']]],
     ['안내', [['/symptom-check', '내 증상 체크'], ['/first-visit', '첫 방문 안내'], ['/directions', '오시는 길'], ['/hours', '진료시간'], ['/pricing', '비급여 진료비'], ['/faq', 'FAQ'], ['/reservation', '진료 예약'], ['/area', '지역별 안내']]],
     ['회원', [['/auth/login', '로그인'], ['/auth/register', '회원가입'], ['/privacy', '개인정보 처리방침'], ['/terms', '이용약관']]],
   ]

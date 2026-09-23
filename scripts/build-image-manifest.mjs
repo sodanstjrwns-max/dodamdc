@@ -4,7 +4,7 @@ import sharp from 'sharp'
 const root = new URL('../public/static/img/', import.meta.url)
 const files = (await readdir(root)).sort()
 const manifest = {}
-for (const file of files.filter(name => /-v2\.webp$/.test(name))) {
+for (const file of files.filter(name => /-v\d+\.webp$/.test(name))) {
   const full = await sharp(new URL(file, root).pathname).metadata()
   const smallName = file.replace('.webp', '-sm.webp')
   if (!files.includes(smallName)) continue

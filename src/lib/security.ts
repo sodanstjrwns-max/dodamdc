@@ -76,7 +76,7 @@ export function canAccessStaff(staff: StaffPrincipal | null | undefined, path: s
   if (staff.role === 'owner') return true
   if (path === '/admin' || path === '/admin/logout') return true
   if (staff.role === 'reception') return /^\/admin\/reservations(?:\/\d+)?$/.test(path) || /^\/admin\/(notifications$|api\/push\/)/.test(path)
-  return /^\/admin\/(cases|columns|notices)(\/|$)/.test(path) || path === '/admin/api/upload'
+  return /^\/admin\/(cases|columns|notices|press)(\/|$)/.test(path) || path === '/admin/api/upload'
 }
 export const auditStatement = (db: D1Database, actor: number | null, action: string, target: number | null, detail: object = {}) =>
   db.prepare('INSERT INTO staff_audit (actor_id,action,target_id,detail) VALUES (?,?,?,?)').bind(actor, action, target, JSON.stringify(detail))
