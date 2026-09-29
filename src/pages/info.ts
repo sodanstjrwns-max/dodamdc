@@ -179,7 +179,7 @@ ${pageHero({ eyebrow: '지역 안내', title: html`수원 어디에서 오시든
 <section class="section"><div class="container">
   ${nearbyAreas.map((a) => html`<div class="reveal" style="margin-bottom:32px"><h2 class="h3">${a.full}</h2><ul class="pill-list">${areaPages.filter((p) => p.areaSlug === a.slug).map((p) => html`<li><a href="/area/${p.slug}">${p.treatmentName}</a></li>`)}</ul></div>`)}
 </div></section>`
-  return c.html(Layout(c, { title: '지역별 진료 안내', description: `화서동·화서역·정자동·율전동·천천동·서둔동·수원역 등 수원 인근 지역에서 서울도담치과로 오시는 길과 진료 안내.`, path: '/area', noindex: true }, body))
+  return c.html(Layout(c, { title: '지역별 진료 안내', description: `화서동·화서역·정자동·율전동·천천동·서둔동·수원역 등 수원 인근 지역에서 서울도담치과로 오시는 길과 진료 안내.`, path: '/area' }, body))
 }
 
 // ── 법적 고지 / 404 / HTML 사이트맵 ─────────────────────

@@ -156,6 +156,7 @@ app.get('/sitemap.xml', async (c) => {
   for (const p of ['/first-visit', '/symptom-check', '/mission', '/doctors', '/treatments', '/floor-guide', '/directions', '/hours', '/pricing', '/faq', '/encyclopedia', '/cases/gallery', '/column', '/press', '/notice', '/reservation']) add(p, '0.8', 'weekly')
   for (const d of doctors) add(`/doctors/${d.slug}`, '0.8')
   for (const t of treatments) add(`/treatments/${t.slug}`, '0.9', 'monthly')
+  add('/area', '0.7', 'monthly')
   for (const a of areaPages) add(`/area/${a.slug}`, '0.6')
   for (const t of terms) add(`/encyclopedia/${t.slug}`, '0.4', 'monthly', EDITORIAL_UPDATED)
   try {
