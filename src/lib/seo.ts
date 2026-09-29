@@ -21,7 +21,13 @@ export type PageMeta = {
   reviewedAt?: string
   reviewer?: Doctor
   author?: Doctor
+  /** 음성·AI 답변용 요약 요소 CSS 셀렉터(실제 DOM에 있는 것만) */
+  speakable?: string[]
 }
+
+// 공유 미리보기 기본 이미지: 1200×630 가로형 JPG(scripts/build-og-image.mjs로 실사 사진·로고 합성)
+export const OG_IMAGE = '/static/img/og-dodam-1200x630.jpg'
+export const OG_IMAGE_SIZE = { width: 1200, height: 630 }
 
 // Verified custom domain attached to the existing Cloudflare Pages project.
 export const DEFAULT_SITE_URL = 'https://dodamdc.kr'
@@ -143,6 +149,7 @@ export function webpageLd(meta: PageMeta, siteUrl: string, path: string) {
     reviewedBy: meta.reviewer ? { '@id': absUrl(siteUrl, `/doctors/${meta.reviewer.slug}#person`) } : undefined,
     citation: meta.citations,
     lastReviewed: isoDate(meta.reviewedAt), datePublished: isoDate(meta.publishedAt), dateModified: isoDate(meta.modifiedAt),
+    speakable: meta.speakable?.length ? { '@type': 'SpeakableSpecification', cssSelector: meta.speakable } : undefined,
   }
 }
 export function procedureLd(t: Treatment, clinic: Clinic, siteUrl: string) {

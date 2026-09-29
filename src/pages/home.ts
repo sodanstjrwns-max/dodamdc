@@ -3,7 +3,7 @@ import { html } from 'hono/html'
 import type { Context } from 'hono'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
-import { faqLd } from '../lib/seo'
+import { faqLd, OG_IMAGE } from '../lib/seo'
 import { coreTreatments, otherTreatments } from '../data/treatments'
 import { doctors } from '../data/doctors'
 import { faqList, imageAttrs, naverBookingLink, substituteWednesdayNotice } from '../lib/ui'
@@ -131,7 +131,8 @@ ${patientSituations(true)}
   return c.html(Layout(c, {
     title: `${clinic.shortName} | 수원 화서역 치과 · 내 치아를 위한 조금 다른 생각, 도담`,
     description: `수원 화서동 서울도담치과. 통합치의학과 전문의 한휘림 대표원장이 충분히 설명하고 필요한 만큼 치료합니다. MTA 생활치수치료·잇몸치료·임플란트. 화요일 야간진료 20:30. ${clinic.phone}`,
-    path: '/', bodyClass: 'home-page kinetic-home', image: dr.photo,
+    path: '/', bodyClass: 'home-page kinetic-home', image: OG_IMAGE, imageAlt: `${clinic.name} 로고와 ${dr.name} ${dr.title} 사진`,
+    speakable: ['#hero-title', '.hero-slogan'],
     jsonld: [faqLd(faqs)],
   }, body))
 }

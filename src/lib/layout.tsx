@@ -2,7 +2,7 @@ import { hoursNotices } from './clinic-hours'
 import { html, raw } from 'hono/html'
 import type { Context } from 'hono'
 import type { Env } from './types'
-import { fullTitle, absUrl, breadcrumbLd, canonicalPath, dentistLd, websiteLd, webpageLd, isoDate, type PageMeta } from './seo'
+import { fullTitle, absUrl, breadcrumbLd, canonicalPath, dentistLd, websiteLd, webpageLd, isoDate, OG_IMAGE, OG_IMAGE_SIZE, type PageMeta } from './seo'
 import { coreTreatments, otherTreatments } from '../data/treatments'
 import { doctors } from '../data/doctors'
 import { imageManifest } from '../data/image-manifest'
@@ -23,9 +23,9 @@ export function Layout(c: Context<Env>, meta: PageMeta, body: any) {
   const title = fullTitle(meta.title, clinic) + (pageNumber ? ` · ${pageNumber}페이지` : '')
   const description = meta.description + (pageNumber ? ` (${pageNumber}페이지)` : '')
   const url = absUrl(siteUrl, path)
-  const imagePath = meta.image || '/static/img/dodam-space-information-desk-v2.webp'
+  const imagePath = meta.image || OG_IMAGE
   const image = absUrl(siteUrl, imagePath)
-  const imageSize = imageManifest[imagePath]
+  const imageSize = imageManifest[imagePath] || (imagePath === OG_IMAGE ? OG_IMAGE_SIZE : undefined)
   const preview = new URL(c.req.url).origin !== siteUrl
   const noindex = preview || meta.noindex || !['GET', 'HEAD'].includes(c.req.method) || (meta.path === '/reservation' && c.req.query('ok') === '1')
   const publicAnalytics = !preview && !noindex && !user && conversionScope(c) === 'production' && !/^\/(auth|admin|reservation|handover|symptom-check|cases|files)(\/|$)/.test(meta.path)

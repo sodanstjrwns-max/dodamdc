@@ -194,6 +194,7 @@ ${ctaStrip(clinic, { title: `${t.name}, 필요한지부터 함께 확인해 드�
     image: t.heroImage,
     type: 'article', reviewer: t.core ? undefined : dr, reviewedAt: t.core ? undefined : t.reviewedAt,
     imageAlt: treatmentPhotoAlts[t.slug],
+    speakable: ['h1', '.treatment-answer'],
     jsonld: [procedureLd(t, clinic, siteUrl), physicianLd(dr, clinic, siteUrl), faqLd(t.faqs, `${siteUrl}/treatments/${t.slug}`)],
     crumbs: [{ name: '홈', href: '/' }, { name: '진료 안내', href: '/treatments' }, { name: t.name, href: `/treatments/${t.slug}` }],
   }, body))

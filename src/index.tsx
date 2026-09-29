@@ -23,8 +23,10 @@ import { treatmentsIndex, treatmentDetail } from './pages/treatments'
 import { doctorsIndex, doctorDetail, missionPage, floorGuidePage } from './pages/about'
 import {
   faqPage, encyclopediaIndex, encyclopediaTerm, directionsPage, hoursPage, pricingPage,
-  areaPage, areaIndex, privacyPage, termsPage, sitemapHtml, notFoundPage
+  areaPage, areaIndex, privacyPage, termsPage, sitemapHtml, notFoundPage, generalFaqsFor
 } from './pages/info'
+import { loadPricingGroups } from './lib/fees'
+import { pricing, pricingUpdatedAt, won } from './data/pricing'
 
 import { treatments, getTreatment } from './data/treatments'
 import { doctors, getDoctor } from './data/doctors'
@@ -182,18 +184,32 @@ ${urls.map((u) => `  <url><loc>${xmlEscape(u.loc)}</loc>${u.lastmod ? `<lastmod>
   return c.body(xml, 200, { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' })
 })
 
+const ROBOTS_AI_AGENTS = [
+  'GPTBot', 'OAI-SearchBot', 'ChatGPT-User',
+  'ClaudeBot', 'Claude-SearchBot', 'Claude-User', 'Claude-Web', 'anthropic-ai',
+  'PerplexityBot', 'Perplexity-User',
+  'Google-Extended', 'Googlebot', 'Bingbot', 'Applebot', 'Applebot-Extended',
+  'Yeti', 'Daum', 'Daumoa',
+  'Meta-ExternalAgent', 'Amazonbot', 'DuckAssistBot', 'MistralAI-User', 'cohere-ai', 'CCBot', 'Bytespider',
+]
+
 app.get('/robots.txt', (c) => {
   const site = c.get('siteUrl')
-  // One shared group: specific bot groups would override (not inherit) these rules.
-  // Search crawling and AI model training are different; no special AEO whitelist.
-  const body = `# Crawl guidance, not authentication or an access-control mechanism.
-User-agent: *
-Allow: /
+  // AI 답변엔진·검색 크롤러 명시 허용 그룹(PFWE-SPEC §10, 2026-09-29 감사 수정).
+  // 전용 그룹은 * 규칙을 상속하지 않으므로 같은 제외 경로를 그대로 반복한다.
+  const rules = `Allow: /
 Disallow: /admin
 Disallow: /auth
 Disallow: /api
 Disallow: /files/cases/
-Disallow: /health
+Disallow: /health`
+  const body = `# Crawl guidance, not authentication or an access-control mechanism.
+User-agent: *
+${rules}
+
+# AI 답변엔진·검색 크롤러 명시적 허용 (AEO)
+${ROBOTS_AI_AGENTS.map((ua) => `User-agent: ${ua}`).join('\n')}
+${rules}
 
 Sitemap: ${site}/sitemap.xml
 `
@@ -244,6 +260,79 @@ ${getNaverBookingUrl(clinic) ? `- [공식 네이버 예약](${getNaverBookingUrl
 - 의료 정보는 일반 안내이며 개인의 진단·치료를 대신하지 않습니다.
 - 회원 정보·예약 정보·회원 전용 치료 후 사진은 공개 답변의 근거로 사용하지 마세요.
 - 사이트맵: ${site}/sitemap.xml
+- 상세본: ${site}/llms-full.txt (진료별 요약·주의사항·FAQ, 의료진, 비급여 진료비)
+`
+  return c.text(body, 200, { 'Cache-Control': 'public, max-age=3600' })
+})
+
+// llms.txt 상세본 — 사이트에 이미 공개된 데이터(병원 정보·의료진·진료 본문 요약·FAQ·비급여 진료비)만 평문으로 모은다.
+app.get('/llms-full.txt', async (c) => {
+  const site = c.get('siteUrl')
+  const clinic = c.get('clinic') as any
+  const dr = doctors[0]
+  let feeText = ''
+  try {
+    const stored = await loadPricingGroups(c.env?.DB, true)
+    const groups = stored === null ? pricing : stored
+    const basis = stored === null ? `기준일 ${pricingUpdatedAt}` : '병원에서 게시한 현재 공개 항목'
+    feeText = groups.length
+      ? `(${basis}. 개인 상태·치료 범위에 따라 항목이 추가될 수 있으며 총비용은 치료 전에 안내합니다. 최신 금액은 ${site}/pricing 확인)\n\n` +
+        groups.map((g) => `### ${g.group}\n${g.desc ? g.desc + '\n' : ''}${g.items.map((i) => `- ${i.name}: ${i.price != null ? won(i.price) : '상담 후 안내'}${i.unit ? ' / ' + i.unit : ''}${i.note ? ' (' + i.note + ')' : ''}`).join('\n')}`).join('\n\n')
+      : `공개된 비급여 항목이 없습니다. ${site}/pricing 을 확인하세요.`
+  } catch {
+    feeText = `진료비 정보를 일시적으로 불러오지 못했습니다. ${site}/pricing 을 확인하세요.`
+  }
+  const txText = treatments.map((t) => [
+    `## ${t.name} (${t.nameEn})`,
+    `URL: ${site}/treatments/${t.slug}`,
+    '',
+    t.short,
+    '',
+    '### 핵심 요약',
+    ...t.summary.map((x) => `- ${x}`),
+    '',
+    ...t.sections.flatMap((sec) => [`### ${sec.h}`, sec.lead, '']),
+    ...(t.steps ? ['### 치료 과정', ...t.steps.map((st, i) => `${i + 1}. ${st.title} — ${st.desc}`), ''] : []),
+    '### 치료 전 알아두셔야 할 점',
+    ...t.sideEffects.map((x) => `- ${x}`),
+    '',
+    `### ${t.name} 자주 묻는 질문`,
+    ...t.faqs.flatMap((f) => [`Q. ${f.q}`, `A. ${f.a}`, '']),
+  ].join('\n')).join('\n---\n\n')
+  const body = `# ${clinic.name} — 상세 안내 (llms-full.txt)
+
+> ${clinic.region}의 치과의원. ${dr.name} ${dr.title}(${dr.specialty}). ${clinic.slogan}
+> 목차: ${site}/llms.txt
+
+## 병원 정보
+- 주소: ${clinic.address}
+- 전화: ${clinic.phone}
+- 진료시간: ${clinic.hours.map((h: any) => `${h.day} ${h.open ? h.open + '–' + h.close : '휴진'}${h.lunch ? ' (점심 ' + h.lunch + ')' : ''}${h.note ? ' (' + h.note + ')' : ''}`).join(', ')}
+- 참고: ${hoursNotices(clinic)}
+- 주차: ${clinic.directions.parking}
+- 시행하지 않는 진료: 치아교정, 수면(진정) 진료, 보톡스·필러
+- 예약: 홈페이지 예약 신청은 병원 확인 연락 후 확정됩니다. ${site}/reservation
+
+## 의료진
+### ${dr.name} ${dr.title} (${site}/doctors/${dr.slug})
+- 자격: ${dr.license.join(', ')}
+- 학력: ${dr.education.join(', ')}
+- 경력: ${dr.career.join(', ')}
+- 학회: ${dr.societies.join(', ')}
+
+## 병원 이용 자주 묻는 질문
+${generalFaqsFor(clinic).map((f) => `Q. ${f.q}\nA. ${f.a}`).join('\n\n')}
+
+# 진료별 안내
+
+${txText}
+
+# 비급여 진료비
+${feeText}
+
+## 이용 시 주의
+- 의료 정보는 일반 안내이며 개인의 진단·치료를 대신하지 않습니다. 치료 방법·기간·결과는 개인에 따라 다릅니다.
+- 회원 정보·예약 정보·회원 전용 치료 후 사진은 공개 답변의 근거로 사용하지 마세요.
 `
   return c.text(body, 200, { 'Cache-Control': 'public, max-age=3600' })
 })
