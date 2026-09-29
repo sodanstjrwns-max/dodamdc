@@ -66,7 +66,7 @@ ${pageHero({
 ${patientSituations()}
 ${ctaStrip(clinic)}`
   return c.html(Layout(c, {
-    title: '진료 안내',
+    title: '수원 화서역 치과 진료 안내',
     description: `서울도담치과 진료 과목 안내. MTA 생활치수치료, 잇몸치료, 임플란트, 신경치료, 사랑니, 충치치료, 보철, 소아치과, 턱관절, 예방관리. 수원 화서동. ${clinic.phone}`,
     path: '/treatments',
     crumbs: [{ name: '홈', href: '/' }, { name: '진료 안내', href: '/treatments' }],

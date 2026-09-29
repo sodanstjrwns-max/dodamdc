@@ -129,7 +129,7 @@ ${patientSituations(true)}
   ${notice ? html`<a href="/notice/${notice.id}" class="editorial-notice"><span>NOTICE</span><strong>${notice.title}</strong><time>${fmtDate(notice.created_at)}</time>${arrow}</a>` : ''}
 </div></section>`
   return c.html(Layout(c, {
-    title: `${clinic.shortName} | 내 치아를 위한 조금 다른 생각, 도담`,
+    title: `${clinic.shortName} | 수원 화서역 치과 · 내 치아를 위한 조금 다른 생각, 도담`,
     description: `수원 화서동 서울도담치과. 통합치의학과 전문의 한휘림 대표원장이 충분히 설명하고 필요한 만큼 치료합니다. MTA 생활치수치료·잇몸치료·임플란트. 화요일 야간진료 20:30. ${clinic.phone}`,
     path: '/', bodyClass: 'home-page kinetic-home', image: dr.photo,
     jsonld: [faqLd(faqs)],
