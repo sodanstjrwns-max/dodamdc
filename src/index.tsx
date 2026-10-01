@@ -1,4 +1,5 @@
 import { hoursNotices } from './lib/clinic-hours'
+import { upcomingSpecialDays, specialDaysText } from './lib/clinic-status'
 import { Hono } from 'hono'
 import { secureHeaders } from 'hono/secure-headers'
 import type { Env } from './lib/types'
@@ -234,7 +235,7 @@ app.get('/llms.txt', (c) => {
 - 전화: ${clinic.phone}
 - 진료시간: ${clinic.hours.map(h => `${h.day} ${h.open ? h.open + '–' + h.close : '휴진'}${h.lunch ? ' (점심 ' + h.lunch + ')' : ''}${h.note ? ' (' + h.note + ')' : ''}`).join(', ')}
 - 참고: ${hoursNotices(clinic)}
-- 주차: ${clinic.directions.parking}
+${(() => { const t = specialDaysText(upcomingSpecialDays(clinic, new Date(), 60)); return t ? `- 기본 시간표와 다른 날(향후 60일): ${t}\n` : '' })()}- 주차: ${clinic.directions.parking}
 - 홈페이지 예약 신청은 병원의 확인 연락 후 확정됩니다. 네이버 예약의 가능 일정과 확정 조건은 네이버 예약 페이지에서 확인하세요.
 
 ## 공식 안내와 근거 페이지
@@ -309,7 +310,7 @@ app.get('/llms-full.txt', async (c) => {
 - 전화: ${clinic.phone}
 - 진료시간: ${clinic.hours.map((h: any) => `${h.day} ${h.open ? h.open + '–' + h.close : '휴진'}${h.lunch ? ' (점심 ' + h.lunch + ')' : ''}${h.note ? ' (' + h.note + ')' : ''}`).join(', ')}
 - 참고: ${hoursNotices(clinic)}
-- 주차: ${clinic.directions.parking}
+${(() => { const t = specialDaysText(upcomingSpecialDays(clinic, new Date(), 60)); return t ? `- 기본 시간표와 다른 날(향후 60일): ${t}\n` : '' })()}- 주차: ${clinic.directions.parking}
 - 시행하지 않는 진료: 치아교정, 수면(진정) 진료, 보톡스·필러
 - 예약: 홈페이지 예약 신청은 병원 확인 연락 후 확정됩니다. ${site}/reservation
 

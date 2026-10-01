@@ -1,5 +1,5 @@
 import { clinicDefaults, type Clinic } from '../data/clinic'
-import { parseClinicHours } from './clinic-hours'
+import { parseClinicHours, parseExtraOpenDays, parseExtraClosedDays } from './clinic-hours'
 
 /** 관리자에서 수정 가능한 기본정보 키 (한 곳에서 수정 → 전체 반영) */
 export const EDITABLE_KEYS: { key: string; label: string; type?: 'text' | 'textarea' }[] = [
@@ -31,6 +31,8 @@ export const EDITABLE_KEYS: { key: string; label: string; type?: 'text' | 'texta
 
 export function validSetting(key: string, value: string): boolean {
   if (key === 'hours') return value === '' || (value.length <= 3000 && parseClinicHours(value) !== null)
+  if (key === 'extraOpenDays') return value === '' || (value.length <= 16000 && parseExtraOpenDays(value) !== null)
+  if (key === 'extraClosedDays') return value === '' || (value.length <= 8000 && parseExtraClosedDays(value) !== null)
   if (!EDITABLE_KEYS.some(k => k.key === key) || value.length > 3000) return false
   if (!value) return true
   if (key === 'ga4') return /^G-[A-Z0-9]{4,20}$/.test(value)
@@ -69,6 +71,8 @@ export async function loadClinic(db: D1Database | undefined): Promise<Clinic & {
     const { results } = await db.prepare('SELECT key, value FROM site_settings').all<{ key: string; value: string }>()
     for (const r of results || []) if (r.value !== null && (r.value !== '' || ['hoursNote', 'hoursException'].includes(r.key)) && validSetting(r.key, r.value)) {
       if (r.key === 'hours') base.hours = parseClinicHours(r.value)!
+      else if (r.key === 'extraOpenDays') base.extraOpenDays = r.value ? parseExtraOpenDays(r.value)! : []
+      else if (r.key === 'extraClosedDays') base.extraClosedDays = r.value ? parseExtraClosedDays(r.value)! : []
       else setPath(base, r.key, r.value)
     }
   } catch {

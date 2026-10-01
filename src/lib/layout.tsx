@@ -8,7 +8,7 @@ import { doctors } from '../data/doctors'
 import { imageManifest } from '../data/image-manifest'
 import { naverBookingLink } from './ui'
 import { getNaverBookingUrl } from '../data/clinic'
-import { clinicStatus, KR_HOLIDAYS, substituteWednesdays, substituteWednesdayHours, thisWeekSubstituteWednesday, SUBSTITUTE_WEDNESDAY_NOTE } from './clinic-status'
+import { clinicStatus, KR_HOLIDAYS, substituteWednesdays, substituteWednesdayHours, thisWeekSpecialLines, clientSpecialDays, effectiveHours, extraOpenOn, extraClosedOn, kstNow, toYmd, SUBSTITUTE_WEDNESDAY_NOTE } from './clinic-status'
 import { conversionScope, conversionMeta } from './conversions'
 import { aiChatEnabled, aiChatFab, aiChatWidget } from './ai-chat'
 
@@ -35,11 +35,13 @@ export function Layout(c: Context<Env>, meta: PageMeta, body: any) {
   const lds = [dentistLd(clinic, siteUrl), websiteLd(clinic, siteUrl), webpageLd({ ...meta, title, description }, siteUrl, path), ...(meta.jsonld || [])]
   if (meta.crumbs && meta.crumbs.length > 1) lds.push(breadcrumbLd(meta.crumbs, siteUrl, path))
   const hoursToday = (() => {
-    const d = ['일', '월', '화', '수', '목', '금', '토'][new Date(Date.now() + 9 * 3600e3).getUTCDay()]
+    const kst = kstNow(), ymd = toYmd(kst)
+    const d = ['일', '월', '화', '수', '목', '금', '토'][kst.getUTCDay()]
     const h = clinic.hours.find((x: any) => x.day === d)
-    const sub = thisWeekSubstituteWednesday(clinic)
-    const base = h?.open ? `기본 시간표: ${d}요일 ${h.open}–${h.close}` : `기본 시간표: ${d}요일 휴진`
-    return sub ? `${base} · ${sub.label}` : base
+    const today = effectiveHours(clinic, ymd)
+    const base = extraClosedOn(clinic, ymd) ? `오늘(${d}요일) 임시 휴진` : extraOpenOn(clinic, ymd) && today ? `오늘(${d}요일) 임시 진료 ${today.open}–${today.close}` : h?.open ? `기본 시간표: ${d}요일 ${h.open}–${h.close}` : `기본 시간표: ${d}요일 휴진`
+    const lines = thisWeekSpecialLines(clinic).filter(l => !l.includes(`(${kst.getUTCMonth() + 1}/${kst.getUTCDate()})`) || !(extraOpenOn(clinic, ymd) || extraClosedOn(clinic, ymd)))
+    return lines.length ? `${base} · ${lines.join(' · ')}` : base
   })()
 
   return html`<!DOCTYPE html>
@@ -158,7 +160,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
       </ul>
     </nav>
     <div class="header-actions">
-      ${(() => { const st = clinicStatus(clinic); return html`<span class="clinic-status is-${st.state}" id="clinic-status" data-hours="${JSON.stringify(clinic.hours)}" data-holidays="${KR_HOLIDAYS.join(',')}" data-sub-wed="${substituteWednesdays(new Date(), 12).join(',')}" data-sub-wed-hours="${JSON.stringify(substituteWednesdayHours(clinic))}" title="${st.detail}" aria-live="polite"><i class="status-dot" aria-hidden="true"></i><b class="status-label">${st.label}</b><small class="status-detail">${st.detail}</small></span>` })()}
+      ${(() => { const st = clinicStatus(clinic); return html`<span class="clinic-status is-${st.state}" id="clinic-status" data-hours="${JSON.stringify(clinic.hours)}" data-holidays="${KR_HOLIDAYS.join(',')}" data-sub-wed="${substituteWednesdays(new Date(), 12).join(',')}" data-sub-wed-hours="${JSON.stringify(substituteWednesdayHours(clinic))}" data-special="${JSON.stringify(clientSpecialDays(clinic))}" title="${st.detail}" aria-live="polite"><i class="status-dot" aria-hidden="true"></i><b class="status-label">${st.label}</b><small class="status-detail">${st.detail}</small></span>` })()}
       <a href="tel:${clinic.phoneTel}" class="header-phone" aria-label="전화 ${clinic.phone}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg><span>${clinic.phone}</span></a>
       ${user
         ? html`<a href="/auth/mypage" class="header-user">${user.name}님</a>`
@@ -241,7 +243,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
       <ul class="footer-hours">
         ${clinic.hours.map((h: any) => html`<li><span>${h.day}</span><span>${h.open ? `${h.open} – ${h.close}` : '휴진'}${h.note ? html` <em>${h.note}</em>` : h.day === '수' && !h.open ? html` <em>공휴일 주 진료</em>` : ''}</span></li>`)}
       </ul>
-      ${(() => { const sub = thisWeekSubstituteWednesday(clinic); return sub ? html`<p class="footer-hours-note sub-wed-line"><strong>${sub.label}</strong></p>` : '' })()}
+      ${thisWeekSpecialLines(clinic).map(l => html`<p class="footer-hours-note sub-wed-line"><strong>${l}</strong></p>`)}
       <p class="footer-hours-note">${hoursNotices(clinic).includes('수요일') ? hoursNotices(clinic) : `${SUBSTITUTE_WEDNESDAY_NOTE} ${hoursNotices(clinic)}`}</p>
       <a href="tel:${clinic.phoneTel}" class="footer-phone">${clinic.phone}</a>
     </div>
@@ -273,7 +275,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
 </div>
 
 ${aiChatEnabled(meta.path) ? aiChatWidget(clinic) : ''}
-<script src="/static/app.js?v=17" defer></script>
+<script src="/static/app.js?v=18" defer></script>
 ${aiChatEnabled(meta.path) ? html`<script src="/static/ai-chat.js?v=2" defer></script>` : ''}
 ${meta.path === '/encyclopedia' || meta.path.startsWith('/encyclopedia/') ? html`<script src="/static/encyclopedia.js?v=20260914" defer></script>` : ''}
 ${meta.path === '/symptom-check' ? html`<script src="/static/symptom-check.js?v=1" defer></script>` : html`<script type="module" src="/static/experience/main.js?v=12"></script>`}

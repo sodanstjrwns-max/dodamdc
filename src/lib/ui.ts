@@ -1,5 +1,5 @@
 import { html, raw } from 'hono/html'
-import { thisWeekSubstituteWednesday, SUBSTITUTE_WEDNESDAY_NOTE } from './clinic-status'
+import { thisWeekSpecialLines, upcomingSpecialDays, specialDaysText, kstNow, toYmd, SUBSTITUTE_WEDNESDAY_NOTE, type HoursSource } from './clinic-status'
 import type { HtmlEscapedString } from 'hono/utils/html'
 import type { FAQ } from '../data/treatments'
 import type { Crumb } from './seo'
@@ -104,8 +104,13 @@ export const paginate = (base: string, page: number, total: number, per: number)
   </ul></nav>`
 }
 
-/** 진료시간 표 아래 공휴일 주 수요일 안내. 이번 주에 해당하면 날짜를 강조한다. */
-export function substituteWednesdayNotice(clinic: Pick<Clinic, 'hours'>, now = new Date()) {
-  const sub = thisWeekSubstituteWednesday(clinic, now)
-  return html`<p class="hours-sub-wed">${SUBSTITUTE_WEDNESDAY_NOTE}${sub ? html` <strong class="sub-wed-line">${sub.label}</strong>` : ''}</p>`
+/** 진료시간 표 아래 공휴일 주 수요일·임시 진료일 안내. 이번 주(오늘 이후)에 해당하는 날은 강조하고,
+ *  이후 4주 안에 직접 지정한 임시 진료·휴진일이 있으면 함께 알린다. */
+export function substituteWednesdayNotice(clinic: HoursSource, now = new Date()) {
+  const lines = thisWeekSpecialLines(clinic, now)
+  const kst = kstNow(now)
+  const restOfWeek = 8 - (kst.getUTCDay() || 7) // 오늘 포함 이번 주 남은 일수
+  const nextMonday = toYmd(new Date(Date.parse(toYmd(kst) + 'T00:00:00Z') + restOfWeek * 86400000))
+  const later = upcomingSpecialDays(clinic, now, restOfWeek + 28).filter(d => d.source === 'manual' && d.ymd >= nextMonday).slice(0, 4)
+  return html`<p class="hours-sub-wed">${SUBSTITUTE_WEDNESDAY_NOTE}${lines.map(l => html` <strong class="sub-wed-line">${l}</strong>`)}${later.length ? html` <span class="sub-wed-next">예정된 임시 일정: ${specialDaysText(later)}</span>` : ''}</p>`
 }

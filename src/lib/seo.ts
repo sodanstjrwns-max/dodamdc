@@ -1,7 +1,7 @@
 import type { Clinic } from '../data/clinic'
 import type { Doctor } from '../data/doctors'
 import type { Treatment, FAQ } from '../data/treatments-types'
-import { substituteWednesdays, substituteWednesdayHours } from './clinic-status'
+import { upcomingSpecialDays, dayOf } from './clinic-status'
 
 export type Crumb = { name: string; href: string }
 export type PageMeta = {
@@ -90,11 +90,13 @@ const hourPeriods = (h: { open: string | null; close: string | null; lunch: stri
 export function openingHours(clinic: Clinic) {
   return clinic.hours.flatMap(h => hourPeriods(h).map(([opens, closes]) => ({ '@type': 'OpeningHoursSpecification', dayOfWeek: `https://schema.org/${dayMap[h.day]}`, opens, closes })))
 }
-/** 공휴일 주 수요일 대체 진료일(향후 12개월)을 날짜 지정 영업시간으로 명시한다. */
+/** 기본 시간표와 다른 날(향후 12개월): 공휴일 주 수요일·임시 진료일은 그날 시간, 임시 휴진일은 opens=closes=00:00(종일 휴무)으로 명시한다. */
 export function specialOpeningHours(clinic: Clinic, now = new Date()) {
-  const row = substituteWednesdayHours(clinic)
-  if (!row) return []
-  return substituteWednesdays(now, 12).flatMap(ymd => hourPeriods(row).map(([opens, closes]) => ({ '@type': 'OpeningHoursSpecification', validFrom: ymd, validThrough: ymd, dayOfWeek: 'https://schema.org/Wednesday', opens, closes })))
+  return upcomingSpecialDays(clinic, now, 366).flatMap(d => {
+    const base = { '@type': 'OpeningHoursSpecification', validFrom: d.ymd, validThrough: d.ymd, dayOfWeek: `https://schema.org/${dayMap[dayOf(d.ymd)]}` }
+    if (d.kind === 'closed') return d.baseOpen ? [{ ...base, opens: '00:00', closes: '00:00' }] : []
+    return d.row ? hourPeriods(d.row).map(([opens, closes]) => ({ ...base, opens, closes })) : []
+  })
 }
 export type PressItem = { date: string; outlet: string; title: string; summary?: string | null; url: string }
 export function newsArticleLd(p: PressItem) {

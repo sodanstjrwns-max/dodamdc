@@ -9,7 +9,7 @@ import { symptomGuides, symptomAreas } from '../data/symptom-check'
 import { pricing, won, type PriceGroup } from '../data/pricing'
 import { loadPricingGroups } from '../lib/fees'
 import { dayHoursText, lunchHoursText, hoursNotices, WEEKDAYS } from '../lib/clinic-hours'
-import { clinicStatus } from '../lib/clinic-status'
+import { clinicStatus, upcomingSpecialDays, specialDaysText } from '../lib/clinic-status'
 import { getNaverBookingUrl, type Clinic } from '../data/clinic'
 import { doctors } from '../data/doctors'
 import { generalFaqsFor } from '../pages/info'
@@ -176,6 +176,8 @@ function volatileSystemPrompt(clinic: Clinic, topic: string) {
   const kst = new Date(Date.now() + 9 * 3600e3)
   const day = ['일', '월', '화', '수', '목', '금', '토'][kst.getUTCDay()]
   const lines = [`## 현재 시점\n- 오늘: ${kst.toISOString().slice(0, 10)} (${day}요일, 한국 시간) · 현재 병원 상태: ${st.label} — ${st.detail}`]
+  const special = specialDaysText(upcomingSpecialDays(clinic, new Date(), 60))
+  if (special) lines.push(`- 기본 시간표와 다른 날(향후 60일, 병원 지정·공휴일 주 수요일): ${special}`)
   const t = AI_CHAT_TOPICS.find((x) => x.id === topic)
   if (t) lines.push(`- 사용자가 고른 상담 주제: ${t.label}`)
   return lines.join('\n')

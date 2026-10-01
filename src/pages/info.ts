@@ -9,13 +9,14 @@ import { loadPricingGroups } from '../lib/fees'
 import { areaPages, areaAccess, type AreaPage } from '../data/areas'
 import { nearbyAreas, type Clinic } from '../data/clinic'
 import { hoursNotices, dayHoursText, lunchHoursText } from '../lib/clinic-hours'
+import { upcomingSpecialDays, specialDaysText, dayOf } from '../lib/clinic-status'
 import { pageHero, faqList, ctaStrip, reviewLine, substituteWednesdayNotice } from '../lib/ui'
 
 // ── 통합 FAQ ─────────────────────────────────────────────
 export const generalFaqsFor = (clinic: Clinic) => [
   { q: '예약 없이 방문해도 진료를 받을 수 있나요?', a: '가능합니다. 다만 예약 환자분이 우선이므로 대기 시간이 길어질 수 있습니다. 전화나 온라인 예약 후 방문하시면 기다림을 줄일 수 있습니다.' },
   { q: '화요일 진료시간은 어떻게 되나요?', a: `${dayHoursText(clinic, '화')}가 기본 시간표입니다. ${clinic.hoursNote} 예약 가능 시간은 병원에 확인해 주세요.` },
-  { q: '수요일에도 진료하나요?', a: `기본 시간표는 ${dayHoursText(clinic, '수')}입니다. ${clinic.hoursException}` },
+  { q: '수요일에도 진료하나요?', a: `기본 시간표는 ${dayHoursText(clinic, '수')}입니다. ${clinic.hoursException} 이 밖에 임시로 진료하거나 쉬는 날은 진료시간 안내에 날짜로 표시합니다.${(() => { const t = specialDaysText(upcomingSpecialDays(clinic, new Date(), 31).filter(d => dayOf(d.ymd) === '수')); return t ? ` 앞으로 한 달 안의 수요일 일정: ${t}.` : '' })()}` },
   { q: '주차는 가능한가요?', a: '건물 사정상 주차가 어렵습니다. 인근 공영주차장 또는 대중교통(1호선 화서역 도보 약 10분, 블루밍푸른숲아파트 정류장 하차) 이용을 권장드립니다.' },
   { q: '첫 방문 때 무엇을 준비해야 하나요?', a: '신분증(건강보험 확인용)을 가져오세요. 복용 중인 약이 있으면 약 이름을 메모해 오시고, 다른 병원 방사선 사진이 있으면 함께 보여주시면 진단에 도움이 됩니다.' },
   { q: '비급여 진료비는 어디서 확인하나요?', a: '홈페이지 비급여 진료비 페이지와 원내 게시물에 고지되어 있습니다. 치료 전 상담에서 예상 비용을 먼저 안내드리고, 고지된 금액대로 동일하게 적용합니다.' },

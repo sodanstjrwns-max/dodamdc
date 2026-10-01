@@ -1,4 +1,7 @@
 export type ClinicHour = { day: string; open: string | null; close: string | null; lunch: string | null; note?: string }
+/** 관리자에서 지정하는 날짜별 예외 (원장 요청 2026-10-01). date는 KST 'YYYY-MM-DD'. */
+export type ExtraOpenDay = { date: string; open: string; close: string; lunch: string | null; note: string }
+export type ExtraClosedDay = { date: string; note: string }
 
 // 병원 기본 정보 — 기본값. 관리자 > 기본정보에서 D1(site_settings)로 덮어쓸 수 있음.
 export const clinicDefaults = {
@@ -32,6 +35,9 @@ export const clinicDefaults = {
     { day: '토', open: '09:00', close: '14:00', lunch: null },
     { day: '일', open: null, close: null, lunch: null },
   ] as ClinicHour[],
+  // 임시 진료일·임시 휴진일 — 관리자 '진료시간·기본정보'에서 추가 (site_settings extraOpenDays / extraClosedDays)
+  extraOpenDays: [] as ExtraOpenDay[],
+  extraClosedDays: [] as ExtraClosedDay[],
   hoursNote: '공휴일 휴진. 마감 30분 전 접수 마감.',
   hoursException: '공휴일이 있는 주에는 수요일에도 평일 시간으로 진료합니다. 해당 주의 일정은 예약 전 확인해 주세요.',
   founded: '2022-05-10',

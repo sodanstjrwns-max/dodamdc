@@ -11,8 +11,9 @@ import staffRoutes from './staff'
 import reservationDesk from './reservation-desk'
 import privacyOps from './privacy-ops'
 import { EDITABLE_KEYS, getPath, saveSettings, invalidateClinicCache, validSetting } from '../lib/settings'
-import { clinicHoursFromForm } from '../lib/clinic-hours'
-import { hoursEditor } from '../lib/hours-editor'
+import { clinicHoursFromForm, parseExtraOpenDays, parseExtraClosedDays, isYmd, MAX_EXTRA_DAYS } from '../lib/clinic-hours'
+import { kstNow, toYmd } from '../lib/clinic-status'
+import { hoursEditor, specialDaysEditor, todayQuickPanel, defaultExtraHours } from '../lib/hours-editor'
 import { treatments, getTreatment } from '../data/treatments'
 import { doctors } from '../data/doctors'
 import { formData, slugify, fmtDate, stripTags, esc } from '../lib/util'
@@ -117,7 +118,7 @@ admin.get('/', async (c) => {
   ])
   const recent = (await db.prepare('SELECT id,name,phone,treatment,preferred_date,status,created_at FROM reservations ORDER BY created_at DESC LIMIT 8').all<any>()).results || []
   const top = (await db.prepare("SELECT path, COUNT(*) n FROM page_views WHERE is_bot=0 AND created_at > datetime('now','-30 days') GROUP BY path ORDER BY n DESC LIMIT 10").all<any>()).results || []
-  const body = html`<div class="admin-cards">
+  const body = html`${c.req.query('special') ? alertBox(specialMessage(c.req.query('special')), 'ok') : ''}${todayQuickPanel(c.get('clinic') as any, 'dash')}<div class="admin-cards">
     <a href="/admin/reservations?status=pending" class="admin-card"><span class="n">${pending}</span><span class="l">대기 예약</span></a>
     <a href="/admin/members" class="admin-card"><span class="n">${members}</span><span class="l">회원</span></a>
     <a href="/admin/cases" class="admin-card"><span class="n">${cases}</span><span class="l">치료 전후</span></a>
@@ -442,7 +443,8 @@ admin.post('/members/:id/delete', async (c) => { await c.env.DB.batch([c.env.DB.
 admin.get('/settings', async (c) => {
   const clinic = c.get('clinic') as any
   const saved = c.req.query('saved')
-  return shell(c, '진료시간·기본정보', html`${saved ? alertBox('저장되었습니다. 전체 페이지에 반영됩니다. 이미 열린 페이지는 새로고침해 주세요.', 'ok') : ''}${hoursEditor(clinic)}<h2 class="h3">병원 기본정보</h2><p class="hint">여기서 수정한 값은 헤더·푸터·오시는 길 등 사이트 전체에 반영됩니다. 비워두면 기본값을 사용합니다.</p>
+  const special = c.req.query('special')
+  return shell(c, '진료시간·기본정보', html`${saved ? alertBox('저장되었습니다. 전체 페이지에 반영됩니다. 이미 열린 페이지는 새로고침해 주세요.', 'ok') : ''}${special ? alertBox(specialMessage(special), 'ok') : ''}${specialDaysEditor(clinic)}${hoursEditor(clinic)}<h2 class="h3">병원 기본정보</h2><p class="hint">여기서 수정한 값은 헤더·푸터·오시는 길 등 사이트 전체에 반영됩니다. 비워두면 기본값을 사용합니다.</p>
   <form method="post" class="admin-form" data-once>${EDITABLE_KEYS.filter(k => !['hoursNote', 'hoursException'].includes(k.key)).map((k) => { const v = getPath(clinic, k.key) ?? ''; return html`<div class="field"><label>${k.label} <small class="hint">${k.key}</small></label>${k.type === 'textarea' ? html`<textarea name="${k.key}" rows="3">${v}</textarea>` : html`<input name="${k.key}" value="${v}">`}</div>` })}
   <div class="admin-toolbar"><button type="submit" class="btn btn-primary">저장</button></div></form>`, 'settings')
 })
@@ -459,6 +461,55 @@ admin.post('/settings', async (c) => {
   await saveSettings(c.env.DB, entries)
   invalidateClinicCache()
   return c.redirect('/admin/settings?saved=1' + (f.hoursIncluded === '1' ? '#hours' : ''))
+})
+
+// ── 임시 진료일·임시 휴진일 (날짜별 예외, site_settings extraOpenDays / extraClosedDays) ──
+function specialMessage(code: string | undefined) {
+  return ({ open: '임시 진료일로 저장했습니다. 홈페이지에 1분 안에 반영됩니다.', closed: '임시 휴진일로 저장했습니다. 홈페이지에 1분 안에 반영됩니다.', removed: '삭제했습니다. 기본 시간표대로 표시됩니다.' } as Record<string, string>)[code || ''] || '저장했습니다.'
+}
+admin.post('/settings/special-days', async (c) => {
+  const f = await formData(c)
+  const action = String(f.action || '')
+  const ret = f.return === 'dash' ? '/admin' : '/admin/settings'
+  const today = toYmd(kstNow())
+  const maxDate = toYmd(new Date(Date.parse(today + 'T00:00:00Z') + 366 * 86400000))
+  const date = action === 'today-open' || action === 'today-closed' ? today : String(f.date || '').trim()
+  const bad = (msg: string) => c.text(msg + ' 뒤로 돌아가 다시 시도해 주세요.', 400)
+  if (!isYmd(date) || date < today || date > maxDate) return bad('날짜를 확인해 주세요. 오늘부터 1년 안의 날짜만 지정할 수 있습니다.')
+  const db = c.env.DB
+  // 30초 설정 캐시가 아닌 DB 원본을 읽어 다른 기기에서 방금 바꾼 값을 덮어쓰지 않는다.
+  const stored = (await db.prepare("SELECT key, value FROM site_settings WHERE key IN ('extraOpenDays','extraClosedDays')").all<{ key: string; value: string }>()).results || []
+  const read = <T,>(key: string, parse: (v: string) => T[] | null) => { const v = stored.find(r => r.key === key)?.value; return (v && parse(v)) || [] }
+  let open = read('extraOpenDays', parseExtraOpenDays).filter(d => d.date >= today && d.date !== date)
+  let closed = read('extraClosedDays', parseExtraClosedDays).filter(d => d.date >= today && d.date !== date)
+  const prevOpen = read('extraOpenDays', parseExtraOpenDays).find(d => d.date === date)
+  const prevClosed = read('extraClosedDays', parseExtraClosedDays).find(d => d.date === date)
+  const note = String(f.note || '').trim().slice(0, 40)
+  const kind = action === 'add' ? (f.kind === 'closed' ? 'add-closed' : 'add-open') : action
+  let code: 'open' | 'closed' | 'removed'
+  if (kind === 'add-open' || kind === 'today-open') {
+    const def = defaultExtraHours(c.get('clinic') as any)
+    const fromForm = kind === 'add-open' && action === 'add'
+    const ls = fromForm ? String(f.lunchStart || '').trim() : '', le = fromForm ? String(f.lunchEnd || '').trim() : ''
+    const row = fromForm
+      ? { date, open: String(f.open || '').trim(), close: String(f.close || '').trim(), lunch: ls || le ? `${ls}–${le}` : null, note }
+      : { date, open: def.open, close: def.close, lunch: def.lunch, note: '' }
+    open.push(row); code = 'open'
+  } else if (kind === 'add-closed' || kind === 'today-closed') {
+    closed.push({ date, note: action === 'add' ? note : '' }); code = 'closed'
+  } else if (kind === 'remove-open') {
+    if (prevClosed) closed.push(prevClosed)
+    code = 'removed'
+  } else if (kind === 'remove-closed') {
+    if (prevOpen) open.push(prevOpen)
+    code = 'removed'
+  } else return bad('알 수 없는 요청입니다.')
+  if (open.length > MAX_EXTRA_DAYS || closed.length > MAX_EXTRA_DAYS) return bad(`임시 일정은 각각 ${MAX_EXTRA_DAYS}개까지 저장할 수 있습니다.`)
+  const openJson = parseExtraOpenDays(JSON.stringify(open)), closedJson = parseExtraClosedDays(JSON.stringify(closed))
+  if (!openJson || !closedJson) return bad('시간을 확인해 주세요. 진료 종료는 시작보다 늦어야 하고, 점심시간은 진료시간 안에서 시작·종료를 모두 입력해야 합니다.')
+  await saveSettings(db, { extraOpenDays: JSON.stringify(openJson), extraClosedDays: JSON.stringify(closedJson) })
+  invalidateClinicCache()
+  return c.redirect(`${ret}?special=${code}${ret === '/admin' ? '' : '#special-days'}`)
 })
 
 // ── 로컬 조회·동선 통계 (D1) — /admin/stats 하단에 포함 ──────

@@ -1,5 +1,5 @@
 import { hoursNotices, dayHoursText } from '../lib/clinic-hours'
-import { thisWeekSubstituteWednesday, SUBSTITUTE_WEDNESDAY_NOTE } from '../lib/clinic-status'
+import { thisWeekSpecialLines, SUBSTITUTE_WEDNESDAY_NOTE } from '../lib/clinic-status'
 import { Hono } from 'hono'
 import { safeFileKey, hasPublishedEditorialImage } from '../lib/content-safety'
 import { canAccessStaff } from '../lib/security'
@@ -273,7 +273,7 @@ ${!o.ok && getNaverBookingUrl(clinic) ? html`<section class="section-sm naver-re
       <div class="field"><label for="email">이메일 <small>(선택)</small></label><input id="email" name="email" type="email" value="${v.email || user?.email || ''}" autocomplete="email"></div>
       <div class="field"><label for="treatment">희망 진료</label><select id="treatment" name="treatment"><option value="">잘 모르겠어요 / 상담 먼저</option>${treatments.map((t) => html`<option value="${t.name}" ${tx === t.slug || tx === t.name ? 'selected' : ''}>${t.name}</option>`)}<option value="정기검진·스케일링" ${tx === '정기검진·스케일링' ? 'selected' : ''}>정기검진·스케일링</option></select></div>
       <div class="form-row">
-        <div class="field"><label for="preferred_date">희망 날짜</label><input id="preferred_date" name="preferred_date" type="date" value="${v.preferred_date || ''}" min="${new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10)}" aria-describedby="preferred_date_hint"><small id="preferred_date_hint" class="hint">${dayHoursText(clinic, '수')}. ${SUBSTITUTE_WEDNESDAY_NOTE}${(() => { const sub = thisWeekSubstituteWednesday(clinic); return sub ? ` (${sub.label})` : '' })()} 공휴일은 휴진입니다.</small></div>
+        <div class="field"><label for="preferred_date">희망 날짜</label><input id="preferred_date" name="preferred_date" type="date" value="${v.preferred_date || ''}" min="${new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10)}" aria-describedby="preferred_date_hint"><small id="preferred_date_hint" class="hint">${dayHoursText(clinic, '수')}. ${SUBSTITUTE_WEDNESDAY_NOTE}${(() => { const lines = thisWeekSpecialLines(clinic); return lines.length ? ` (${lines.join(', ')})` : '' })()} 공휴일은 휴진입니다.</small></div>
         <div class="field"><label for="preferred_time">희망 시간</label><select id="preferred_time" name="preferred_time">${['상관없음', '오전 (09:00–12:00)', '오후 (14:00–18:00)', '화요일 야간 (18:00–20:30)', '토요일 오전'].map((s) => html`<option ${v.preferred_time === s ? 'selected' : ''}>${s}</option>`)}</select></div>
       </div>
       <div class="field"><label for="message">증상·문의 내용</label><textarea id="message" name="message" rows="4" maxlength="1000" placeholder="예: 오른쪽 아래 어금니가 찬물에 시립니다. 다른 치과에서 신경치료를 권했는데 상담받고 싶습니다.">${v.message || ''}</textarea></div>
