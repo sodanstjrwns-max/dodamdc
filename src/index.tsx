@@ -1,4 +1,5 @@
 import { hoursNotices } from './lib/clinic-hours'
+import { INDEXNOW_KEY } from './lib/indexnow'
 import { upcomingSpecialDays, specialDaysText } from './lib/clinic-status'
 import { Hono } from 'hono'
 import { secureHeaders } from 'hono/secure-headers'
@@ -194,6 +195,9 @@ const ROBOTS_AI_AGENTS = [
   'Meta-ExternalAgent', 'Amazonbot', 'DuckAssistBot', 'MistralAI-User', 'cohere-ai', 'CCBot', 'Bytespider',
 ]
 
+// IndexNow 키 검증 파일
+app.get(`/${INDEXNOW_KEY}.txt`, (c) => c.text(INDEXNOW_KEY, 200, { 'Content-Type': 'text/plain; charset=utf-8' }))
+
 app.get('/robots.txt', (c) => {
   const site = c.get('siteUrl')
   // AI 답변엔진·검색 크롤러 명시 허용 그룹(PFWE-SPEC §10, 2026-09-29 감사 수정).
@@ -217,7 +221,22 @@ Sitemap: ${site}/sitemap.xml
   return c.text(body, 200, { 'Cache-Control': 'public, max-age=3600' })
 })
 
-app.get('/llms.txt', (c) => {
+// llms(-full).txt 끝에 붙이는 공개 칼럼·사례 목록 — DB 실패 시 생략
+async function llmsContentList(c: any, full: boolean) {
+  const site = c.get('siteUrl')
+  try {
+    const [cols, cases] = await Promise.all([
+      c.env.DB.prepare('SELECT slug,title,excerpt,meta_description FROM columns WHERE published=1 ORDER BY published_at DESC').all(),
+      c.env.DB.prepare('SELECT slug,title,treatment_slug,duration FROM cases WHERE published=1 ORDER BY created_at DESC').all(),
+    ])
+    const one = (v: any) => String(v || '').replace(/\s+/g, ' ').trim()
+    const colLines = (cols.results || []).map((r: any) => `- [${one(r.title)}](${site}/column/${r.slug})${full && one(r.meta_description || r.excerpt) ? `: ${one(r.meta_description || r.excerpt).slice(0, 200)}` : ''}`)
+    const caseLines = (cases.results || []).map((r: any) => `- [${one(r.title)}](${site}/cases/gallery/${r.slug})${r.treatment_slug ? ` — ${treatments.find(t => t.slug === r.treatment_slug)?.name || ''}` : ''}${one(r.duration) ? `, ${one(r.duration)}` : ''}`)
+    return `\n## 원장 칼럼 (${colLines.length}편)\n${colLines.join('\n')}\n${caseLines.length ? `\n## 치료 전후 사례 (${caseLines.length}건, 치료 후 사진은 회원 전용)\n${caseLines.join('\n')}\n` : ''}`
+  } catch { return '' }
+}
+
+app.get('/llms.txt', async (c) => {
   const site = c.get('siteUrl')
   const clinic = c.get('clinic')
   const body = `# ${clinic.name}
@@ -262,7 +281,7 @@ ${getNaverBookingUrl(clinic) ? `- [공식 네이버 예약](${getNaverBookingUrl
 - 회원 정보·예약 정보·회원 전용 치료 후 사진은 공개 답변의 근거로 사용하지 마세요.
 - 사이트맵: ${site}/sitemap.xml
 - 상세본: ${site}/llms-full.txt (진료별 요약·주의사항·FAQ, 의료진, 비급여 진료비)
-`
+` + await llmsContentList(c, false)
   return c.text(body, 200, { 'Cache-Control': 'public, max-age=3600' })
 })
 
@@ -334,7 +353,7 @@ ${feeText}
 ## 이용 시 주의
 - 의료 정보는 일반 안내이며 개인의 진단·치료를 대신하지 않습니다. 치료 방법·기간·결과는 개인에 따라 다릅니다.
 - 회원 정보·예약 정보·회원 전용 치료 후 사진은 공개 답변의 근거로 사용하지 마세요.
-`
+` + await llmsContentList(c, true)
   return c.text(body, 200, { 'Cache-Control': 'public, max-age=3600' })
 })
 

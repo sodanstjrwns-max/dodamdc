@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { pingLater } from '../lib/indexnow'
 import { eventLabels, locationLabels, cleanupConversions } from '../lib/conversions'
 import type { Context } from 'hono'
 import { html, raw } from 'hono/html'
@@ -222,6 +223,8 @@ async function saveCase(c: Context<Env>, id?: number) {
   const vals = [slug, title, g('description') || null, g('treatment_slug'), g('doctor_slug') || 'han-hwirim', g('age_group') || null, g('gender') || null, g('region') || null, g('duration') || null, photos.pano_before, photos.pano_after, photos.intra_before, photos.intra_after, fd.get('published') ? 1 : 0]
   if (id) await c.env.DB.prepare('UPDATE cases SET slug=?,title=?,description=?,treatment_slug=?,doctor_slug=?,age_group=?,gender=?,region=?,duration=?,pano_before=?,pano_after=?,intra_before=?,intra_after=?,published=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(...vals, id).run()
   else await c.env.DB.prepare('INSERT INTO cases (slug,title,description,treatment_slug,doctor_slug,age_group,gender,region,duration,pano_before,pano_after,intra_before,intra_after,published) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(...vals).run()
+  // 공개 사례만 검색엔진 통보(IndexNow, 응답 뒤)
+  if (fd.get('published')) pingLater(c, [`/cases/gallery/${slug}`, '/cases/gallery', g('treatment_slug') ? `/treatments/${g('treatment_slug')}` : '', '/sitemap.xml'])
 }
 admin.post('/cases/new', async (c) => { try { await saveCase(c); return cmsSaved(c, '/admin/cases') } catch (e: any) { if (c.req.header('x-cms-request') === '1') return cmsError(c,e); return caseForm(c, {}, e.message) } })
 admin.post('/cases/:id', async (c) => { const id = Number(c.req.param('id')); try { await saveCase(c, id); return cmsSaved(c, '/admin/cases') } catch (e: any) { if (c.req.header('x-cms-request') === '1') return cmsError(c,e); return caseForm(c, { ...(await c.env.DB.prepare('SELECT * FROM cases WHERE id=?').bind(id).first<any>()) }, e.message) } })
@@ -279,6 +282,7 @@ async function saveColumn(c: Context<Env>, id?: number) {
   const vals = [slug, title, excerpt, content, thumb, g('author_slug') || 'han-hwirim', g('treatment_slug') || null, g('meta_title') || null, g('meta_description') || null, g('tags') || null, fd.get('published') ? 1 : 0, pub]
   if (id) await c.env.DB.prepare('UPDATE columns SET slug=?,title=?,excerpt=?,content_html=?,thumbnail=?,author_slug=?,treatment_slug=?,meta_title=?,meta_description=?,tags=?,published=?,published_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(...vals, id).run()
   else await c.env.DB.prepare('INSERT INTO columns (slug,title,excerpt,content_html,thumbnail,author_slug,treatment_slug,meta_title,meta_description,tags,published,published_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(...vals).run()
+  if (fd.get('published')) pingLater(c, [`/column/${slug}`, '/column', g('treatment_slug') ? `/treatments/${g('treatment_slug')}` : '', '/sitemap.xml'])
 }
 admin.post('/columns/new', async (c) => { try { await saveColumn(c); return cmsSaved(c, '/admin/columns') } catch (e: any) { if (c.req.header('x-cms-request') === '1') return cmsError(c,e); return columnForm(c, {}, e.message) } })
 admin.post('/columns/:id', async (c) => { const id = Number(c.req.param('id')); try { await saveColumn(c, id); return cmsSaved(c, '/admin/columns') } catch (e: any) { if (c.req.header('x-cms-request') === '1') return cmsError(c,e); return columnForm(c, await c.env.DB.prepare('SELECT * FROM columns WHERE id=?').bind(id).first(), e.message) } })

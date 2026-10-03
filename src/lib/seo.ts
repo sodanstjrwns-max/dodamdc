@@ -23,6 +23,8 @@ export type PageMeta = {
   author?: Doctor
   /** 음성·AI 답변용 요약 요소 CSS 셀렉터(실제 DOM에 있는 것만) */
   speakable?: string[]
+  /** 페이지 주제 MedicalProcedure 경로(예: /treatments/root-canal) → about @id */
+  aboutPath?: string
 }
 
 // 공유 미리보기 기본 이미지: 1200×630 가로형 JPG(scripts/build-og-image.mjs로 실사 사진·로고 합성)
@@ -138,10 +140,11 @@ export function websiteLd(clinic: Clinic, siteUrl: string) {
   return { '@context': 'https://schema.org', '@type': 'WebSite', '@id': siteUrl + '/#website', url: siteUrl + '/', name: clinic.name, alternateName: clinic.shortName, inLanguage: 'ko-KR', publisher: { '@id': siteUrl + '/#clinic' } }
 }
 export function webpageLd(meta: PageMeta, siteUrl: string, path: string) {
-  const medical = /^\/(treatments|encyclopedia)\/.+/.test(meta.path)
-  const article = meta.jsonld?.find(node => (node as Record<string, unknown>)['@type'] === 'Article') as Record<string, unknown> | undefined
+  const medical = /^\/(treatments|encyclopedia|column|cases\/gallery)\/.+/.test(meta.path)
+  const collection = ['/column', '/cases/gallery'].includes(meta.path)
+  const article = meta.jsonld?.find(node => ['Article', 'BlogPosting'].includes(String((node as Record<string, unknown>)['@type']))) as Record<string, unknown> | undefined
   return {
-    '@context': 'https://schema.org', '@type': medical ? 'MedicalWebPage' : meta.type === 'profile' ? 'ProfilePage' : 'WebPage',
+    '@context': 'https://schema.org', '@type': medical ? 'MedicalWebPage' : collection ? 'CollectionPage' : meta.type === 'profile' ? 'ProfilePage' : 'WebPage',
     '@id': absUrl(siteUrl, path + '#webpage'), url: absUrl(siteUrl, path), name: meta.title,
     description: meta.description, inLanguage: 'ko-KR', isPartOf: { '@id': siteUrl + '/#website' },
     publisher: { '@id': siteUrl + '/#clinic' },
@@ -152,6 +155,7 @@ export function webpageLd(meta: PageMeta, siteUrl: string, path: string) {
     citation: meta.citations,
     lastReviewed: isoDate(meta.reviewedAt), datePublished: isoDate(meta.publishedAt), dateModified: isoDate(meta.modifiedAt),
     speakable: meta.speakable?.length ? { '@type': 'SpeakableSpecification', cssSelector: meta.speakable } : undefined,
+    about: meta.aboutPath ? { '@id': absUrl(siteUrl, meta.aboutPath + '#procedure') } : undefined,
   }
 }
 export function procedureLd(t: Treatment, clinic: Clinic, siteUrl: string) {
@@ -227,11 +231,15 @@ export function breadcrumbLd(crumbs: Crumb[], siteUrl: string, path?: string) {
     itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: absUrl(siteUrl, c.href) })),
   }
 }
-export function articleLd(a: { title: string; description: string; path: string; image?: string; author?: string; authorPath?: string; publishedAt: string; modifiedAt?: string }, clinic: Clinic, siteUrl: string) {
+export function articleLd(a: { title: string; description: string; path: string; image?: string; author?: string; authorPath?: string; publishedAt: string; modifiedAt?: string; aboutPath?: string; keywords?: string; type?: 'Article' | 'BlogPosting' }, clinic: Clinic, siteUrl: string) {
   return {
-    '@context': 'https://schema.org', '@type': 'Article', '@id': absUrl(siteUrl, a.path + '#article'),
+    '@context': 'https://schema.org', '@type': a.type || 'Article', '@id': absUrl(siteUrl, a.path + '#article'),
+    url: absUrl(siteUrl, a.path), isPartOf: { '@id': siteUrl + '/#website' },
+    ...(a.aboutPath ? { about: { '@id': absUrl(siteUrl, a.aboutPath + '#procedure') } } : {}),
+    ...(a.author && a.authorPath ? { reviewedBy: { '@id': absUrl(siteUrl, a.authorPath + '#person') } } : {}),
+    ...(a.keywords ? { keywords: a.keywords } : {}),
     headline: a.title, description: a.description, inLanguage: 'ko-KR',
-    image: a.image ? absUrl(siteUrl, a.image) : undefined,
+    image: a.image ? { '@type': 'ImageObject', url: absUrl(siteUrl, a.image) } : undefined,
     // Editorial columns name their doctor; clinic notices use the publishing organization.
     author: a.author && a.authorPath ? { '@type': 'Person', '@id': absUrl(siteUrl, a.authorPath + '#person'), name: a.author, url: absUrl(siteUrl, a.authorPath) } : { '@id': absUrl(siteUrl, '/#clinic') },
     publisher: { '@id': absUrl(siteUrl, '/#clinic') },
@@ -245,4 +253,37 @@ export function definedTermLd(term: { term: string; en: string; def: string; slu
     name: term.term, alternateName: term.en, description: term.def, url: absUrl(siteUrl, `/encyclopedia/${term.slug}`),
     inDefinedTermSet: { '@type': 'DefinedTermSet', name: '서울도담치과 치과 백과사전', url: absUrl(siteUrl, '/encyclopedia') },
   }
+}
+
+// ── 칼럼·사례 목록 ItemList (PFWE-COLUMN-CASE-SEO 2026-10-03) ──
+export function itemListLd(items: { name: string; path: string }[], siteUrl: string, listPath: string, start = 0) {
+  return {
+    '@context': 'https://schema.org', '@type': 'ItemList', '@id': absUrl(siteUrl, listPath + '#itemlist'), numberOfItems: items.length,
+    itemListElement: items.map((it, i) => ({ '@type': 'ListItem', position: start + i + 1, name: it.name, url: absUrl(siteUrl, it.path) })),
+  }
+}
+// ── 핵심 요약 박스: 본문 앞부분 문단을 그대로 발췌(새 문장 생성 없음) ──
+const GREETING = /^(안녕하세요|안녕하십니까|반갑습니다)/
+const CONNECTOR = /^(그리고|그런데|하지만|그러나|그래서|그렇게|또|또한|특히|물론|이처럼|이렇게)\s/
+const LEAD_IN = /(이런|다음과 같|아래와 같|아래처럼)/
+export function answerSummaryFromHtml(html: string): string {
+  const paras = Array.from(String(html || '').matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/gi)).slice(0, 25).map(m => htmlText(m[1])).filter(t => t.length >= 20)
+  const ok = (t: string) => t.length >= 40 && !GREETING.test(t) && !/^[“"'「『(]/.test(t) && !/[“”"]/.test(t) && !CONNECTOR.test(t) && !/원장입니다\.?$/.test(t) && !/[?？]$|까요\.?$/.test(t) && !(LEAD_IN.test(t) && t.length < 90)
+  const pick = paras.find(t => /^(먼저\s*)?(결론부터|결론적으로|요약하면|한마디로|핵심만)/.test(t))
+    || paras.slice(0, 15).find(t => ok(t) && /(입니다|됩니다|습니다)\.?$/.test(t) && /(입니다|됩니다|때문입니다)/.test(t))
+    || paras.find(ok)
+  if (!pick) return ''
+  let out = ''
+  for (const sen of pick.split(/(?<=[.!?。])\s+/).filter(Boolean).slice(0, 3)) {
+    if ((out + ' ' + sen).trim().length > 220 && out) break
+    out = (out + ' ' + sen).trim()
+  }
+  return out.length > 220 ? out.slice(0, 219).trimEnd() + '…' : out
+}
+/** meta description 80~160자 — 우선 값이 짧으면 본문 발췌로 보충 */
+export function metaDescription(primary: string | null | undefined, fallback: string, max = 158) {
+  const norm = (v: string) => String(v || '').replace(/\s+/g, ' ').trim()
+  let d = norm(primary || '')
+  if (d.length < 80) { const f = norm(fallback); d = d ? (f && !f.startsWith(d) ? `${d} ${f}` : d) : f }
+  return truncate(d, max)
 }

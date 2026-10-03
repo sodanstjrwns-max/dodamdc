@@ -7,7 +7,8 @@ import { conversionScope, conversionStatement, cleanupConversions } from '../lib
 import { html, raw } from 'hono/html'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
-import { articleLd, truncate, physicianLd, isoDate, paginationPage, pressListLd, faqsFromArticleHtml, withFaqLd, absUrl } from '../lib/seo'
+import { articleLd, truncate, physicianLd, isoDate, paginationPage, pressListLd, faqsFromArticleHtml, withFaqLd, absUrl, itemListLd, answerSummaryFromHtml, metaDescription } from '../lib/seo'
+import { pingIndexNow } from '../lib/indexnow'
 import { treatments, getTreatment } from '../data/treatments'
 import { doctors, getDoctor } from '../data/doctors'
 import { autoLink } from '../data/encyclopedia'
@@ -90,7 +91,7 @@ content.get('/api/regions', (c) => {
 
 // ── 치료 전후 ────────────────────────────────────────────
 const caseCard = (k: any) => html`<a href="/cases/gallery/${k.slug}" class="case-card reveal">
-  <div class="case-thumb">${k.intra_before || k.pano_before ? html`<img src="/files/${k.intra_before || k.pano_before}" alt="${k.title} 치료 전" width="480" height="320" loading="lazy" decoding="async">` : html`<span class="lock">사진 준비 중</span>`}<span class="tag">${getTreatment(k.treatment_slug)?.name || k.treatment_slug}</span></div>
+  <div class="case-thumb">${k.intra_before || k.pano_before ? html`<img src="/files/${k.intra_before || k.pano_before}" alt="${getTreatment(k.treatment_slug)?.name || k.title} 치료 전" width="480" height="320" loading="lazy" decoding="async">` : html`<span class="lock">사진 준비 중</span>`}<span class="tag">${getTreatment(k.treatment_slug)?.name || k.treatment_slug}</span></div>
   <div class="case-body"><h3>${k.title}</h3><p class="case-meta">${[k.age_group, k.gender, k.region, k.duration].filter(Boolean).join(' · ')}</p></div>
 </a>`
 
@@ -116,7 +117,7 @@ content.get('/cases/gallery', async (c) => {
   ${rows.length ? html`<div class="case-grid">${rows.map(caseCard)}</div>${paginate(base, page, total, PER)}` : html`<section class="empty-content"><p class="edition-label">CARE, WITH YOUR CONSENT</p><h2>공개된 치료 사례를 준비하고 있습니다.</h2><p>환자분의 동의를 받은 사례만 게시합니다.<br>궁금한 치료의 과정과 주의사항은 진료 안내에서 먼저 확인하실 수 있습니다.</p><a href="/treatments" class="editorial-link">진료 안내 살펴보기 <span aria-hidden="true">↗</span></a></section>`}
 </div></section>
 ${ctaStrip(clinic)}`
-  return c.html(Layout(c, { title: tx ? `${getTreatment(tx)?.name || ''} 치료 전후` : '치료 전후 사진', description: '서울도담치과 치료 전후 사진. 생활치수치료·잇몸치료·임플란트·충치치료 사례. 치료 후 사진은 병원의 공개 정책에 따라 회원에게 제공합니다.', path: '/cases/gallery', noindex: !!tx || !!dr || (page > 1 && !rows.length), crumbs: [{ name: '홈', href: '/' }, { name: '치료 전후', href: '/cases/gallery' }] }, body))
+  return c.html(Layout(c, { title: tx ? `${getTreatment(tx)?.name || ''} 치료 전후` : '치료 전후 사진', description: '서울도담치과 치료 전후 사례. 생활치수치료·잇몸치료·임플란트·충치치료의 진단과 치료 과정을 사례별로 설명합니다. 치료 후 사진은 병원의 공개 정책에 따라 회원에게 제공합니다.', path: '/cases/gallery', noindex: !!tx || !!dr || (page > 1 && !rows.length), jsonld: rows.length ? [itemListLd(rows.map((r: any) => ({ name: r.title, path: `/cases/gallery/${r.slug}` })), c.get('siteUrl'), '/cases/gallery' + (page > 1 ? `?page=${page}` : ''), (page - 1) * PER)] : [], crumbs: [{ name: '홈', href: '/' }, { name: '치료 전후', href: '/cases/gallery' }] }, body))
 })
 
 content.get('/cases/gallery/:slug', async (c) => {
@@ -127,19 +128,30 @@ content.get('/cases/gallery/:slug', async (c) => {
   await trackView(c, 'case', k.id, 'cases')
   const user = c.get('user')
   const t = getTreatment(k.treatment_slug), d = getDoctor(k.doctor_slug) || doctors[0]
+  const txName = t?.name || '치료'
+  // 구조 필드만으로 만든 사례 요약(데이터에 있는 값만) — 텍스트는 공개·색인, 치료 후 사진만 회원 게이트
+  const summary = [`${txName} 사례`, [k.age_group, k.gender].filter(Boolean).join(' ') ? `${[k.age_group, k.gender].filter(Boolean).join(' ')} 환자` : '', k.duration ? `치료 기간 ${k.duration}` : '', `담당 ${d.name} ${d.title}`].filter(Boolean).join(' · ') + '.'
+  const headTitle = `${txName} 사례 — ${k.title}${k.duration && !String(k.title).includes(k.duration) ? `, ${k.duration}` : ''}`
+  const [relCases, relCols] = await Promise.all([
+    c.env.DB.prepare('SELECT slug,title,duration FROM cases WHERE published=1 AND treatment_slug=? AND id<>? ORDER BY created_at DESC LIMIT 3').bind(k.treatment_slug, k.id).all<any>().then((r: any) => r.results || []),
+    c.env.DB.prepare('SELECT slug,title,published_at FROM columns WHERE published=1 AND treatment_slug=? ORDER BY published_at DESC LIMIT 3').bind(k.treatment_slug).all<any>().then((r: any) => r.results || []),
+  ])
   const pair = (label: string, before?: string, after?: string) => {
     if (!before && !after) return ''
-    if (!user) return html`<figure class="reveal"><figcaption class="h3">${label}</figcaption>${before ? html`<img src="/files/${before}" alt="${k.title} ${label} 치료 전" width="960" height="640" class="case-single" loading="lazy">` : ''}<div class="locked-box"><p><strong>치료 후 사진은 회원 로그인 후 볼 수 있습니다.</strong> 사진 게시에는 환자 동의와 별도의 적법성 검토가 필요합니다.</p><div class="hero-actions"><a href="/auth/login?next=${encodeURIComponent(c.req.path)}" class="btn btn-primary btn-sm">로그인</a><a href="/auth/register?next=${encodeURIComponent(c.req.path)}" class="btn btn-outline btn-sm">회원가입</a></div></div></figure>`
-    if (before && after) return html`<figure class="reveal"><figcaption class="h3">${label} <small class="hint">슬라이더를 좌우로 움직여 비교하세요</small></figcaption><div class="ba"><img src="/files/${before}" alt="${k.title} ${label} 치료 전" width="960" height="640"><img src="/files/${after}" alt="${k.title} ${label} 치료 후" width="960" height="640" class="after"><span class="ba-label l">BEFORE</span><span class="ba-label r">AFTER</span><span class="ba-handle" aria-hidden="true"></span><input type="range" min="0" max="100" value="50" aria-label="${label} 전후 비교"></div></figure>`
-    return html`<figure class="reveal"><figcaption class="h3">${label} (${before ? '치료 전' : '치료 후'})</figcaption><img src="/files/${before || after}" alt="${k.title} ${label}" width="960" height="640" class="case-single" loading="lazy"></figure>`
+    if (!user) return html`<figure class="reveal"><figcaption class="h3">${label}</figcaption>${before ? html`<img src="/files/${before}" alt="${txName} 치료 전 — ${label}" width="960" height="640" class="case-single" loading="lazy">` : ''}<div class="locked-box"><p><strong>치료 후 사진은 회원 로그인 후 볼 수 있습니다.</strong> 사진 게시에는 환자 동의와 별도의 적법성 검토가 필요합니다.</p><div class="hero-actions"><a href="/auth/login?next=${encodeURIComponent(c.req.path)}" class="btn btn-primary btn-sm">로그인</a><a href="/auth/register?next=${encodeURIComponent(c.req.path)}" class="btn btn-outline btn-sm">회원가입</a></div></div></figure>`
+    if (before && after) return html`<figure class="reveal"><figcaption class="h3">${label} <small class="hint">슬라이더를 좌우로 움직여 비교하세요</small></figcaption><div class="ba"><img src="/files/${before}" alt="${txName} 치료 전 — ${label}" width="960" height="640"><img src="/files/${after}" alt="${txName} 치료 후 — ${label}" width="960" height="640" class="after"><span class="ba-label l">BEFORE</span><span class="ba-label r">AFTER</span><span class="ba-handle" aria-hidden="true"></span><input type="range" min="0" max="100" value="50" aria-label="${label} 전후 비교"></div></figure>`
+    return html`<figure class="reveal"><figcaption class="h3">${label} (${before ? '치료 전' : '치료 후'})</figcaption><img src="/files/${before || after}" alt="${txName} ${before ? '치료 전' : '치료 후'} — ${label}" width="960" height="640" class="case-single" loading="lazy"></figure>`
   }
   const body = html`${pageHero({ eyebrow: `치료 전후 · ${t?.name || k.treatment_slug}`, title: k.title, crumbs: [{ name: '홈', href: '/' }, { name: '치료 전후', href: '/cases/gallery' }, { name: k.title, href: `/cases/gallery/${k.slug}` }] })}
 <div class="container tx-layout">
   <article class="tx-body case-detail-grid">
+    <aside class="summary-box answer-summary" aria-label="사례 요약"><h2 class="h3">사례 요약</h2><p>${summary}</p></aside>
     ${pair('구내 사진', k.intra_before, k.intra_after)}
     ${pair('파노라마 방사선', k.pano_before, k.pano_after)}
     <section class="prose reveal"><h2>치료 설명</h2>${k.description ? raw(autoLink(String(k.description).split(/\n{2,}|\n/).map((p: string) => `<p>${p.replace(/</g, '&lt;')}</p>`).join(''), { max: 5 })) : ''}</section>
-    <p class="reviewed">본 사례는 해당 환자의 치료 결과이며 개인의 구강 상태에 따라 결과는 다를 수 있습니다. 환자 동의 하에 개인정보를 제외하고 게시하였으며, 무단 복제를 금합니다. 담당: ${d.name} ${d.title}.</p>
+    <p class="reviewed">본 사례는 해당 환자의 치료 결과이며 개인의 구강 상태에 따라 결과는 다를 수 있습니다. 환자 동의 하에 개인정보를 제외하고 게시하였으며, 무단 복제를 금합니다. 전후 사진은 같은 촬영 조건을 기준으로 하며 개인차가 있습니다. 담당: ${d.name} ${d.title}.</p>
+    ${relCols.length ? html`<section class="reveal"><h2 class="h3">${txName} 관련 칼럼</h2><ul class="notice-list">${relCols.map((m: any) => html`<li class="notice-row"><a href="/column/${m.slug}">${m.title}</a><span class="date">${fmtDate(m.published_at)}</span></li>`)}</ul></section>` : ''}
+    ${relCases.length ? html`<section class="reveal"><h2 class="h3">다른 ${txName} 사례</h2><ul class="notice-list">${relCases.map((m: any) => html`<li class="notice-row"><a href="/cases/gallery/${m.slug}">${m.title}</a><span class="date">${m.duration || ''}</span></li>`)}</ul></section>` : ''}
   </article>
   <aside class="tx-side">
     <div class="side-card"><p class="side-title">사례 정보</p><table class="meta-table"><tbody>
@@ -152,7 +164,7 @@ content.get('/cases/gallery/:slug', async (c) => {
   </aside>
 </div>
 ${ctaStrip(clinic)}`
-  return c.html(Layout(c, { title: `${k.title} — 치료 전후`, description: truncate(`${t?.name || ''} 치료 전후 사례. ${[k.age_group, k.gender, k.region, k.duration].filter(Boolean).join(' · ')}. ${k.description || ''}`), path: `/cases/gallery/${k.slug}`, image: k.intra_before ? `/files/${k.intra_before}` : undefined, type: 'article', crumbs: [{ name: '홈', href: '/' }, { name: '치료 전후', href: '/cases/gallery' }, { name: k.title, href: `/cases/gallery/${k.slug}` }] }, body))
+  return c.html(Layout(c, { title: headTitle.length > 52 ? headTitle.slice(0, 51).trimEnd() + '…' : headTitle, description: metaDescription(k.description ? `${summary} ${stripTags(String(k.description))}` : '', `${summary} 서울도담치과 치료 전후 사례이며 결과는 개인에 따라 다를 수 있습니다.`), path: `/cases/gallery/${k.slug}`, imageAlt: k.title, type: 'article', reviewer: d, reviewedAt: k.updated_at || k.created_at, publishedAt: k.created_at, modifiedAt: k.updated_at, aboutPath: t ? `/treatments/${t.slug}` : undefined, speakable: ['.page-hero h1', '.answer-summary'], jsonld: [physicianLd(d, clinic, siteUrl)], crumbs: [{ name: '홈', href: '/' }, { name: '치료 전후', href: '/cases/gallery' }, { name: k.title, href: `/cases/gallery/${k.slug}` }] }, body))
 })
 
 // ── 원장 칼럼 ────────────────────────────────────────────
@@ -164,17 +176,17 @@ content.get('/column', async (c) => {
   const total = (await c.env.DB.prepare(`SELECT COUNT(*) n FROM columns WHERE ${w}`).bind(...args).first<any>())?.n || 0
   const rows = (await c.env.DB.prepare(`SELECT slug,title,excerpt,thumbnail,author_slug,treatment_slug,published_at,views FROM columns WHERE ${w} ORDER BY published_at DESC LIMIT ? OFFSET ?`).bind(...args, PER, (page - 1) * PER).all<any>()).results || []
   const [first, ...rest] = page === 1 ? rows : [null, ...rows]
-  const card = (p: any) => html`<a href="/column/${p.slug}" class="post-card reveal">${p.thumbnail ? html`<div class="post-thumb"><img src="/files/${p.thumbnail}" alt="" width="640" height="400" loading="lazy" decoding="async"></div>` : ''}<div class="post-body"><p class="post-meta">${fmtDate(p.published_at)} · ${getDoctor(p.author_slug)?.name || ''} 원장${p.treatment_slug ? ` · ${getTreatment(p.treatment_slug)?.name || ''}` : ''}</p><h3>${p.title}</h3><p>${p.excerpt || ''}</p></div></a>`
+  const card = (p: any) => html`<a href="/column/${p.slug}" class="post-card reveal">${p.thumbnail ? html`<div class="post-thumb"><img src="/files/${p.thumbnail}" alt="${p.title}" width="640" height="400" loading="lazy" decoding="async"></div>` : ''}<div class="post-body"><p class="post-meta">${fmtDate(p.published_at)} · ${getDoctor(p.author_slug)?.name || ''} 원장${p.treatment_slug ? ` · ${getTreatment(p.treatment_slug)?.name || ''}` : ''}</p><h3>${p.title}</h3><p>${p.excerpt || ''}</p></div></a>`
   const body = html`${pageHero({ eyebrow: '원장 칼럼', title: html`진료실에서<br>못 다한 이야기`, lead: '상담 시간에 다 설명하지 못한 것들을 글로 남깁니다. 광고가 아니라 설명입니다.', crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }] })}
 <section class="section"><div class="container">
   <h2 class="sr-only">진료별 게시물 목록</h2>
   <nav class="faq-filter reveal in" aria-label="진료별 보기"><a href="/column" class="${!tx ? 'active' : ''}">전체</a>${treatments.map((t) => html`<a href="/column?treatment=${t.slug}" class="${tx === t.slug ? 'active' : ''}">${t.name}</a>`)}</nav>
-  ${first ? html`<a href="/column/${first.slug}" class="post-featured reveal">${first.thumbnail ? html`<div class="post-thumb"><img src="/files/${first.thumbnail}" alt="" width="960" height="600" decoding="async"></div>` : ''}<div class="post-body"><p class="post-meta">${fmtDate(first.published_at)} · ${getDoctor(first.author_slug)?.name || ''} 원장</p><h2 class="h2">${first.title}</h2><p class="lead">${first.excerpt || ''}</p><span class="link-arrow">읽기</span></div></a>` : ''}
+  ${first ? html`<a href="/column/${first.slug}" class="post-featured reveal">${first.thumbnail ? html`<div class="post-thumb"><img src="/files/${first.thumbnail}" alt="${first.title}" width="960" height="600" decoding="async"></div>` : ''}<div class="post-body"><p class="post-meta">${fmtDate(first.published_at)} · ${getDoctor(first.author_slug)?.name || ''} 원장</p><h2 class="h2">${first.title}</h2><p class="lead">${first.excerpt || ''}</p><span class="link-arrow">읽기</span></div></a>` : ''}
   ${rest.length ? html`<div class="post-grid">${rest.map(card)}</div>` : ''}
   ${!rows.length ? html`<section class="empty-content"><p class="edition-label">DODAM JOURNAL</p><h2>차근차근, 진료 이야기를 채워갑니다.</h2><p>이 분류에 아직 게시된 칼럼이 없습니다.<br>먼저 진료 안내에서 치아 건강에 필요한 정보를 살펴보세요.</p><a href="/treatments" class="editorial-link">진료 이야기 읽기 <span aria-hidden="true">↗</span></a></section>` : ''}
   ${paginate(`/column${tx ? `?treatment=${encodeURIComponent(tx)}` : ''}`, page, total, PER)}
 </div></section>`
-  return c.html(Layout(c, { title: '원장 칼럼', description: '서울도담치과 한휘림 원장이 진료실에서 못 다한 이야기를 씁니다. 생활치수치료, 신경치료, 잇몸관리, 임플란트, 사랑니에 대한 솔직한 설명.', path: '/column', noindex: !!tx || (page > 1 && !rows.length), crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }] }, body))
+  return c.html(Layout(c, { title: '원장 칼럼', description: '서울도담치과 한휘림 원장이 진료실에서 못 다한 이야기를 씁니다. 생활치수치료, 신경치료, 잇몸관리, 임플란트, 사랑니에 대한 솔직한 설명과 치료 전 알아둘 점을 정리했습니다.', path: '/column', noindex: !!tx || (page > 1 && !rows.length), jsonld: rows.length ? [itemListLd(rows.map((r: any) => ({ name: r.title, path: `/column/${r.slug}` })), c.get('siteUrl'), '/column' + (page > 1 ? `?page=${page}` : ''), (page - 1) * PER)] : [], crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }] }, body))
 })
 
 content.get('/column/rss.xml', async (c) => {
@@ -191,11 +203,23 @@ content.get('/column/:slug', async (c) => {
   if (!p) return c.notFound()
   await trackView(c, 'column', p.id, 'columns')
   const d = getDoctor(p.author_slug) || doctors[0], t = p.treatment_slug ? getTreatment(p.treatment_slug) : undefined
-  const more = (await c.env.DB.prepare('SELECT slug,title,published_at FROM columns WHERE published=1 AND id<>? ORDER BY published_at DESC LIMIT 4').bind(p.id).all<any>()).results || []
+  // 관련 칼럼: 같은 진료 최신 3편(부족하면 최신 글로 채움) + 같은 진료 치료 사례 3건
+  const sameTx = t ? ((await c.env.DB.prepare('SELECT slug,title,published_at FROM columns WHERE published=1 AND id<>? AND treatment_slug=? ORDER BY published_at DESC LIMIT 3').bind(p.id, t.slug).all<any>()).results || []) : []
+  const fill = sameTx.length < 3 ? ((await c.env.DB.prepare('SELECT slug,title,published_at FROM columns WHERE published=1 AND id<>? ORDER BY published_at DESC LIMIT 6').bind(p.id).all<any>()).results || []) : []
+  const more = [...sameTx, ...fill.filter((m: any) => !sameTx.some((x: any) => x.slug === m.slug))].slice(0, 3)
+  const relCases = t ? ((await c.env.DB.prepare('SELECT slug,title,duration FROM cases WHERE published=1 AND treatment_slug=? ORDER BY created_at DESC LIMIT 3').bind(t.slug).all<any>()).results || []) : []
   const tags = String(p.tags || '').split(',').map((s: string) => s.trim()).filter(Boolean)
   // 화면에 보이는 정제 본문 하나로 렌더와 FAQPage 추출을 같이 한다(내용 일치).
-  const articleBody = String(articleHtml(p.content_html))
+  // 본문 이미지 alt 가 비어 있으면 글 제목 기반 alt 보강(내용 변경 없음)
+  let imgN = 0
+  const articleBody = String(articleHtml(p.content_html)).replace(/<img\b[^>]*>/gi, (tag) => {
+    imgN++
+    return /\salt="[^"]+"/i.test(tag) ? tag : tag.replace(/\salt="[^"]*"/i, '').replace(/^<img\b/i, `<img alt="${String(p.title).replace(/[&"<>]/g, (ch) => ({ '&': '&amp;', '"': '&quot;', '<': '&lt;', '>': '&gt;' } as any)[ch])} 이미지 ${imgN}"`)
+  })
   const faqs = faqsFromArticleHtml(articleBody)
+  const answer = answerSummaryFromHtml(articleBody)
+  const description = metaDescription(p.meta_description || p.excerpt, answer || stripTags(p.content_html))
+  const reviewedYmd = String(p.updated_at || p.published_at || '').slice(0, 10)
   const body = html`<article class="container container-narrow article">
   <header class="article-head">
     <nav class="crumbs" aria-label="현재 위치"><ol><li><a href="/">홈</a></li><li><a href="/column">원장 칼럼</a></li><li aria-current="page">${p.title}</li></ol></nav>
@@ -204,17 +228,20 @@ content.get('/column/:slug', async (c) => {
     ${p.excerpt ? html`<p class="lead">${p.excerpt}</p>` : ''}
     <div class="article-author"><img src="${d.photoAvatar}" alt="${d.photoAlt}" ${imageAttrs(d.photoAvatar, '48px', 48, 48)}><div><strong><a href="/doctors/${d.slug}">${d.name} ${d.title}</a></strong><br><small>${d.specialty} · <time datetime="${isoDate(p.published_at)}">${fmtDate(p.published_at)}</time>${p.updated_at && p.updated_at.slice(0, 10) !== p.published_at.slice(0, 10) ? ` (수정 ${fmtDate(p.updated_at)})` : ''}</small></div><button type="button" class="btn btn-outline btn-sm" data-share>공유</button></div>
   </header>
-  ${p.thumbnail ? html`<figure class="article-hero-img"><img src="/files/${p.thumbnail}" alt="" width="1200" height="700" fetchpriority="high" decoding="async"></figure>` : ''}
+  ${p.thumbnail ? html`<figure class="article-hero-img"><img src="/files/${p.thumbnail}" alt="${p.title} 대표 이미지" width="1200" height="700" fetchpriority="high" decoding="async"></figure>` : ''}
+  ${answer ? html`<aside class="summary-box answer-summary" aria-label="핵심 요약"><h2 class="h3">핵심 요약</h2><p>${answer}</p></aside>` : ''}
   <div class="article-body prose">${raw(autoLink(articleBody, { exclude: t ? [t.slug] : [], max: 10 }))}</div>
   <footer class="article-foot">
     ${tags.length ? html`<ul class="pill-list">${tags.map((s: string) => html`<li>#${s}</li>`)}</ul>` : ''}
     ${t ? html`<div class="summary-box"><h2 class="h3">이 글과 관련된 진료</h2><p>${t.short}</p><a href="/treatments/${t.slug}" class="link-arrow">${t.name} 안내 보기</a></div>` : ''}
     <p class="reviewed">이 글은 일반적인 정보 제공을 위한 것으로 개인의 상태에 따라 다를 수 있습니다. 치료 효과를 보장하거나 다른 의료기관과 비교하는 내용은 포함하지 않습니다.</p>
-    ${more.length ? html`<h2 class="h3">다른 글</h2><ul class="notice-list">${more.map((m: any) => html`<li class="notice-row"><a href="/column/${m.slug}">${m.title}</a><span class="date">${fmtDate(m.published_at)}</span></li>`)}</ul>` : ''}
+    <div class="article-author author-box"><img src="${d.photoAvatar}" alt="${d.photoAlt}" ${imageAttrs(d.photoAvatar, '48px', 48, 48)} loading="lazy"><div><small>글쓴이</small><br><strong><a href="/doctors/${d.slug}">${d.name} ${d.title}</a></strong><br><small>${d.specialty}${d.career.find((x) => !/^現/.test(x)) ? ` · 前 ${d.career.find((x) => !/^現/.test(x))}` : ''}${reviewedYmd ? html` · 최종 검토일 <time datetime="${reviewedYmd}">${fmtDate(p.updated_at || p.published_at)}</time>` : ''}</small></div></div>
+    ${relCases.length ? html`<h2 class="h3">${t!.name} 치료 사례</h2><ul class="notice-list">${relCases.map((k: any) => html`<li class="notice-row"><a href="/cases/gallery/${k.slug}">${k.title}</a><span class="date">${k.duration || ''}</span></li>`)}</ul>` : ''}
+    ${more.length ? html`<h2 class="h3">${sameTx.length ? `${t!.name} 관련 칼럼` : '다른 글'}</h2><ul class="notice-list">${more.map((m: any) => html`<li class="notice-row"><a href="/column/${m.slug}">${m.title}</a><span class="date">${fmtDate(m.published_at)}</span></li>`)}</ul>` : ''}
   </footer>
 </article>
 ${ctaStrip(clinic)}`
-  return c.html(Layout(c, { title: p.meta_title || p.title, description: p.meta_description || truncate(p.excerpt || stripTags(p.content_html)), path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, type: 'article', author: d, publishedAt: p.published_at, modifiedAt: p.updated_at, jsonld: withFaqLd([physicianLd(d, clinic, siteUrl), articleLd({ title: p.title, description: p.meta_description || p.excerpt || '', path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, author: `${d.name}`, authorPath: `/doctors/${d.slug}`, publishedAt: p.published_at, modifiedAt: p.updated_at }, clinic, siteUrl)], faqs, absUrl(siteUrl, `/column/${p.slug}`)), crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }, { name: p.title, href: `/column/${p.slug}` }] }, body))
+  return c.html(Layout(c, { title: p.meta_title || p.title, description, path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, imageAlt: p.title, type: 'article', author: d, reviewer: d, reviewedAt: p.updated_at || p.published_at, publishedAt: p.published_at, modifiedAt: p.updated_at, aboutPath: t ? `/treatments/${t.slug}` : undefined, speakable: ['.article-head h1', ...(answer ? ['.answer-summary'] : [])], jsonld: withFaqLd([physicianLd(d, clinic, siteUrl), articleLd({ type: 'BlogPosting', title: p.title, description, path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, author: `${d.name}`, authorPath: `/doctors/${d.slug}`, publishedAt: p.published_at, modifiedAt: p.updated_at, aboutPath: t ? `/treatments/${t.slug}` : undefined, keywords: p.tags || undefined }, clinic, siteUrl)], faqs, absUrl(siteUrl, `/column/${p.slug}`)), crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }, ...(t ? [{ name: t.name, href: `/column?treatment=${t.slug}` }] : []), { name: p.title, href: `/column/${p.slug}` }] }, body))
 })
 
 // ── 언론보도 ─────────────────────────────────────────────

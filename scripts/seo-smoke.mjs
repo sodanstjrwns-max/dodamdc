@@ -71,19 +71,20 @@ try {
     const schemaTypes = data.schemas.map(s => s['@type'])
     if (path !== '/handover') {
     check(schemaTypes.filter(t => t === 'Dentist').length === 1, `${path}: one clinic entity`)
-    check(schemaTypes.filter(t => ['WebPage', 'MedicalWebPage', 'ProfilePage'].includes(t)).length === 1, `${path}: one primary page entity`)
+    check(schemaTypes.filter(t => ['WebPage', 'MedicalWebPage', 'ProfilePage', 'CollectionPage'].includes(t)).length === 1, `${path}: one primary page entity`)
     check(schemaTypes.includes('WebSite'), `${path}: website entity missing`)
     const ids = data.schemas.map(s => s['@id']).filter(Boolean)
     check(ids.length === new Set(ids).size, `${path}: conflicting schema IDs`)
     const serialized = JSON.stringify(data.schemas)
-    check(!serialized.includes('NoninvasiveProcedure') && !serialized.includes('speakable') && !serialized.includes('aggregateRating'), `${path}: inaccurate schema claim`)
-    const pageNode = data.schemas.find(s => ['WebPage', 'MedicalWebPage', 'ProfilePage'].includes(s['@type']))
+    // speakable 은 PFWE-SPEC §3.4 에 따라 실제 DOM 셀렉터로 허용(e69416e). 평점·비침습 오분류만 금지.
+    check(!serialized.includes('NoninvasiveProcedure') && !serialized.includes('aggregateRating'), `${path}: inaccurate schema claim`)
+    const pageNode = data.schemas.find(s => ['WebPage', 'MedicalWebPage', 'ProfilePage', 'CollectionPage'].includes(s['@type']))
     check(pageNode?.url === data.canonicals[0] && pageNode?.inLanguage === 'ko-KR', `${path}: page schema URL/language`)
     if (pageNode?.mainEntity) check(ids.includes(pageNode.mainEntity['@id']), `${path}: unresolved main entity`)
     if (pageNode?.reviewedBy) check(ids.includes(pageNode.reviewedBy['@id']), `${path}: unresolved reviewer`)
     }
     for (const faq of data.schemas.filter(s => s['@type'] === 'FAQPage')) {
-      for (const question of faq.mainEntity) check(data.faqs.some(f => f.q === question.name && f.a === question.acceptedAnswer.text), `${path}: FAQ differs from visible HTML`)
+      for (const question of faq.mainEntity) check(data.faqs.some(f => f.q === question.name && f.a === question.acceptedAnswer.text) || (path.startsWith('/column/') && data.headings.some(h => h.level === 3 && h.text.replace(/^(?:Q\s*\d*\s*[.:)]|질문\s*\d*\s*[.:)])\s*/i, '').trim() === question.name)), `${path}: FAQ differs from visible HTML`)
     }
     for (const image of data.images) {
       check(image.alt !== null && Number(image.width) > 0 && Number(image.height) > 0, `${path}: missing image alt/dimensions: ${image.src}`)
@@ -151,7 +152,7 @@ try {
   const articleResponse = await app.request(site + '/column/qa-only', {}, { ...env, DB: fixtureDB })
   const articlePage = await inspect(await articleResponse.text())
   check(articlePage.headings.filter(h => h.level === 1).length === 1, 'CMS body must not introduce a second H1')
-  const articleNode = articlePage.schemas.find(s => s['@type'] === 'Article')
+  const articleNode = articlePage.schemas.find(s => ['Article', 'BlogPosting'].includes(s['@type']))
   check(articleNode?.datePublished === '2026-09-01T09:00:00.000Z' && articleNode?.dateModified === '2026-09-03T10:00:00.000Z', 'CMS Article timestamps must be valid ISO dates')
   check(articleNode?.author?.['@id'] === site + '/doctors/han-hwirim#person', 'CMS article author identity')
   const notice = { id: 1, title: '병원 일정 안내', content_html: '<h1>일정 안내</h1><p>진료 일정을 확인해 주세요.</p>', created_at: '2026-09-01 09:00:00', updated_at: '2026-09-03 10:00:00' }
