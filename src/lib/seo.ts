@@ -169,6 +169,58 @@ export function faqLd(faqs: FAQ[], url?: string) {
     mainEntity: faqs.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
   }
 }
+// ── CMS 본문 → FAQPage (원장 요청 2026-10-03) ─────────────────────
+// 칼럼 본문의 질문형 <h3>과 그 아래 내용(다음 h1~h3 전까지)을 Q&A로 읽는다.
+// 화면에 렌더되는 정제 HTML(articleHtml 결과)을 입력으로 받아 보이는 내용과 일치시킨다.
+const QUESTION_END = /(?:[?？]|(?:나요|까요|가요|은가|는가|인가|니까|는지요|을까|ㄹ까|죠|습니까)[.!]?)$/
+const decodeEntities = (s: string) => s
+  .replace(/&nbsp;|&#160;/g, ' ')
+  .replace(/&#(\d+);/g, (_, n) => { const c = Number(n); return c > 0 && c < 0x110000 ? String.fromCodePoint(c) : '' })
+  .replace(/&#x([0-9a-f]+);/gi, (_, n) => { const c = parseInt(n, 16); return c > 0 && c < 0x110000 ? String.fromCodePoint(c) : '' })
+  .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&amp;/g, '&')
+const htmlText = (s: string) => decodeEntities(s
+  .replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, ' ')
+  .replace(/<br\s*\/?>|<\/(?:p|li|div|blockquote|tr|figcaption)>/gi, ' ')
+  .replace(/<[^>]*>/g, ''))
+  .replace(/\[\d+(?:\s*[,–-]\s*\d+)*\]/g, '') // 각주 번호 [1] [2-3]
+  .replace(/\s+/g, ' ').trim()
+const clip = (s: string, n: number) => {
+  if (s.length <= n) return s
+  const cut = s.slice(0, n), end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('다. '), cut.lastIndexOf('요. '))
+  return (end > n * 0.5 ? cut.slice(0, end + 1) : cut.trimEnd()) + '…'
+}
+/** 칼럼 본문 HTML에서 질문형 h3 + 답변을 추출. 질문형 h3이 없으면 빈 배열. */
+export function faqsFromArticleHtml(html: string, opts: { maxItems?: number; maxAnswer?: number } = {}): FAQ[] {
+  const { maxItems = 20, maxAnswer = 1000 } = opts
+  const src = String(html || '')
+  const heads = Array.from(src.matchAll(/<h3\b[^>]*>([\s\S]*?)<\/h3>/gi))
+  const out: FAQ[] = [], seen = new Set<string>()
+  for (const m of heads) {
+    if (out.length >= maxItems) break
+    const q = htmlText(m[1]).replace(/^(?:Q\s*\d*\s*[.:)]|질문\s*\d*\s*[.:)])\s*/i, '').trim()
+    if (!q || q.length > 200 || !QUESTION_END.test(q) || seen.has(q)) continue
+    let seg = src.slice(m.index! + m[0].length)
+    const next = seg.search(/<h[1-3][\s>]/i)
+    if (next >= 0) seg = seg.slice(0, next)
+    // 답변이 아닌 꼬리 블록에서 멈춤: 굵은 글씨만 있는 소제목 문단(예: <p><strong>참고문헌</strong></p>), 구분선, ※ 안내문
+    const stop = seg.search(/<p\b[^>]*>\s*<(strong|b)\b[^>]*>[^<]{1,40}<\/\1>\s*<\/p>|<hr\b|<p\b[^>]*>\s*※/i)
+    if (stop >= 0) seg = seg.slice(0, stop)
+    const a = htmlText(seg).replace(/^(?:A\s*\d*\s*[.:)]|답변\s*[.:)])\s*/i, '').trim()
+    if (a.length < 10) continue
+    seen.add(q)
+    out.push({ q, a: clip(a, maxAnswer) })
+  }
+  return out
+}
+/** jsonld 목록에 FAQPage를 붙인다. 이미 FAQPage가 있으면 새 질문만 그 노드에 병합(중복 FAQPage 금지). */
+export function withFaqLd(jsonld: object[], faqs: FAQ[], url?: string): object[] {
+  if (!faqs.length) return jsonld
+  const existing = jsonld.find(n => (n as Record<string, unknown>)['@type'] === 'FAQPage') as { mainEntity?: { name?: string }[] } | undefined
+  if (!existing) return [...jsonld, faqLd(faqs, url)]
+  const names = new Set((existing.mainEntity || []).map(e => e.name))
+  existing.mainEntity = [...(existing.mainEntity || []), ...faqLd(faqs.filter(f => !names.has(f.q))).mainEntity]
+  return jsonld
+}
 export function breadcrumbLd(crumbs: Crumb[], siteUrl: string, path?: string) {
   return {
     '@context': 'https://schema.org', '@type': 'BreadcrumbList', ...(path ? { '@id': absUrl(siteUrl, path + '#breadcrumb') } : {}),

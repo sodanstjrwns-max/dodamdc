@@ -7,7 +7,7 @@ import { conversionScope, conversionStatement, cleanupConversions } from '../lib
 import { html, raw } from 'hono/html'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
-import { articleLd, truncate, physicianLd, isoDate, paginationPage, pressListLd } from '../lib/seo'
+import { articleLd, truncate, physicianLd, isoDate, paginationPage, pressListLd, faqsFromArticleHtml, withFaqLd, absUrl } from '../lib/seo'
 import { treatments, getTreatment } from '../data/treatments'
 import { doctors, getDoctor } from '../data/doctors'
 import { autoLink } from '../data/encyclopedia'
@@ -193,6 +193,9 @@ content.get('/column/:slug', async (c) => {
   const d = getDoctor(p.author_slug) || doctors[0], t = p.treatment_slug ? getTreatment(p.treatment_slug) : undefined
   const more = (await c.env.DB.prepare('SELECT slug,title,published_at FROM columns WHERE published=1 AND id<>? ORDER BY published_at DESC LIMIT 4').bind(p.id).all<any>()).results || []
   const tags = String(p.tags || '').split(',').map((s: string) => s.trim()).filter(Boolean)
+  // 화면에 보이는 정제 본문 하나로 렌더와 FAQPage 추출을 같이 한다(내용 일치).
+  const articleBody = String(articleHtml(p.content_html))
+  const faqs = faqsFromArticleHtml(articleBody)
   const body = html`<article class="container container-narrow article">
   <header class="article-head">
     <nav class="crumbs" aria-label="현재 위치"><ol><li><a href="/">홈</a></li><li><a href="/column">원장 칼럼</a></li><li aria-current="page">${p.title}</li></ol></nav>
@@ -202,7 +205,7 @@ content.get('/column/:slug', async (c) => {
     <div class="article-author"><img src="${d.photoAvatar}" alt="${d.photoAlt}" ${imageAttrs(d.photoAvatar, '48px', 48, 48)}><div><strong><a href="/doctors/${d.slug}">${d.name} ${d.title}</a></strong><br><small>${d.specialty} · <time datetime="${isoDate(p.published_at)}">${fmtDate(p.published_at)}</time>${p.updated_at && p.updated_at.slice(0, 10) !== p.published_at.slice(0, 10) ? ` (수정 ${fmtDate(p.updated_at)})` : ''}</small></div><button type="button" class="btn btn-outline btn-sm" data-share>공유</button></div>
   </header>
   ${p.thumbnail ? html`<figure class="article-hero-img"><img src="/files/${p.thumbnail}" alt="" width="1200" height="700" fetchpriority="high" decoding="async"></figure>` : ''}
-  <div class="article-body prose">${raw(autoLink(String(articleHtml(p.content_html)), { exclude: t ? [t.slug] : [], max: 10 }))}</div>
+  <div class="article-body prose">${raw(autoLink(articleBody, { exclude: t ? [t.slug] : [], max: 10 }))}</div>
   <footer class="article-foot">
     ${tags.length ? html`<ul class="pill-list">${tags.map((s: string) => html`<li>#${s}</li>`)}</ul>` : ''}
     ${t ? html`<div class="summary-box"><h2 class="h3">이 글과 관련된 진료</h2><p>${t.short}</p><a href="/treatments/${t.slug}" class="link-arrow">${t.name} 안내 보기</a></div>` : ''}
@@ -211,7 +214,7 @@ content.get('/column/:slug', async (c) => {
   </footer>
 </article>
 ${ctaStrip(clinic)}`
-  return c.html(Layout(c, { title: p.meta_title || p.title, description: p.meta_description || truncate(p.excerpt || stripTags(p.content_html)), path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, type: 'article', author: d, publishedAt: p.published_at, modifiedAt: p.updated_at, jsonld: [physicianLd(d, clinic, siteUrl), articleLd({ title: p.title, description: p.meta_description || p.excerpt || '', path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, author: `${d.name}`, authorPath: `/doctors/${d.slug}`, publishedAt: p.published_at, modifiedAt: p.updated_at }, clinic, siteUrl)], crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }, { name: p.title, href: `/column/${p.slug}` }] }, body))
+  return c.html(Layout(c, { title: p.meta_title || p.title, description: p.meta_description || truncate(p.excerpt || stripTags(p.content_html)), path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, type: 'article', author: d, publishedAt: p.published_at, modifiedAt: p.updated_at, jsonld: withFaqLd([physicianLd(d, clinic, siteUrl), articleLd({ title: p.title, description: p.meta_description || p.excerpt || '', path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, author: `${d.name}`, authorPath: `/doctors/${d.slug}`, publishedAt: p.published_at, modifiedAt: p.updated_at }, clinic, siteUrl)], faqs, absUrl(siteUrl, `/column/${p.slug}`)), crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }, { name: p.title, href: `/column/${p.slug}` }] }, body))
 })
 
 // ── 언론보도 ─────────────────────────────────────────────

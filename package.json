@@ -27,7 +27,8 @@
     "clean-port": "fuser -k 3000/tcp 2>/dev/null || true",
     "test:encyclopedia": "node scripts/encyclopedia-smoke.mjs",
     "test:hours-meta": "node scripts/hours-meta-smoke.mjs",
-    "test:wednesday": "node scripts/wednesday-smoke.mjs"
+    "test:wednesday": "node scripts/wednesday-smoke.mjs",
+    "test:column-faq": "node scripts/column-faq-smoke.mjs"
   },
   "dependencies": {
     "@block65/webcrypto-web-push": "^2.0.0",
