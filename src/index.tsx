@@ -32,6 +32,7 @@ import { pricing, pricingUpdatedAt, won } from './data/pricing'
 
 import { treatments, getTreatment } from './data/treatments'
 import { doctors, getDoctor } from './data/doctors'
+import { columnDoctor, CLINIC_GENERAL_INFO_NOTE } from './lib/authorship'
 import { terms, getTerm, termAliases } from './data/encyclopedia'
 import { termUpdated } from './pages/encyclopedia'
 import { PAGE_LASTMOD, DOCTOR_LASTMOD, TREATMENT_LASTMOD, AREA_LASTMOD } from './data/lastmod'
@@ -239,13 +240,16 @@ async function llmsContentList(c: any, full: boolean) {
   const site = c.get('siteUrl')
   try {
     const [cols, cases] = await Promise.all([
-      c.env.DB.prepare('SELECT slug,title,excerpt,meta_description FROM columns WHERE published=1 ORDER BY published_at DESC').all(),
+      c.env.DB.prepare('SELECT id,slug,title,excerpt,author_slug,meta_description FROM columns WHERE published=1 ORDER BY published_at DESC').all(),
       c.env.DB.prepare('SELECT slug,title,treatment_slug,duration FROM cases WHERE published=1 ORDER BY created_at DESC').all(),
     ])
     const one = (v: any) => String(v || '').replace(/\s+/g, ' ').trim()
-    const colLines = (cols.results || []).map((r: any) => `- [${one(r.title)}](${site}/column/${r.slug})${full && one(r.meta_description || r.excerpt) ? `: ${one(r.meta_description || r.excerpt).slice(0, 200)}` : ''}`)
+    const colLine = (r: any) => `- [${one(r.title)}](${site}/column/${r.slug})${full && one(r.meta_description || r.excerpt) ? `: ${one(r.meta_description || r.excerpt).slice(0, 200)}` : ''}`
+    // 원장 글과 병원 발행 글(대행사 투입·원장 미지정, lib/authorship.ts)을 나눠 저자 주장을 화면과 맞춘다
+    const drCols = (cols.results || []).filter((r: any) => columnDoctor(r)), clinicCols = (cols.results || []).filter((r: any) => !columnDoctor(r))
+    const colLines = drCols.map(colLine), clinicLines = clinicCols.map(colLine)
     const caseLines = (cases.results || []).map((r: any) => `- [${one(r.title)}](${site}/cases/gallery/${r.slug})${r.treatment_slug ? ` — ${treatments.find(t => t.slug === r.treatment_slug)?.name || ''}` : ''}${one(r.duration) ? `, ${one(r.duration)}` : ''}`)
-    return `\n## 원장 칼럼 (${colLines.length}편)\n${colLines.join('\n')}\n${caseLines.length ? `\n## 치료 전후 사례 (${caseLines.length}건, 치료 후 사진은 회원 전용)\n${caseLines.join('\n')}\n` : ''}`
+    return `\n## 원장 칼럼 (${colLines.length}편)\n${colLines.join('\n')}\n${clinicLines.length ? `\n## 병원 발행 건강정보 (${clinicLines.length}편 — 원장 작성·감수 아님. ${CLINIC_GENERAL_INFO_NOTE})\n${clinicLines.join('\n')}\n` : ''}${caseLines.length ? `\n## 치료 전후 사례 (${caseLines.length}건, 치료 후 사진은 회원 전용)\n${caseLines.join('\n')}\n` : ''}`
   } catch { return '' }
 }
 

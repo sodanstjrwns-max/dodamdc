@@ -150,7 +150,8 @@ try {
     check(data.robots[0]?.startsWith(indexed ? 'index,' : 'noindex,'), path + ': production robots policy')
   }
   // Isolated CMS fixture: never saved to D1 or exposed on the preview.
-  const article = { id: 1, slug: 'qa-only', title: '검증용 칼럼 & 안내', excerpt: '테스트 전용 설명', content_html: '<h1>본문 소제목</h1><p>검증을 위한 문장</p>', author_slug: 'han-hwirim', published_at: '2026-09-01 09:00:00', updated_at: '2026-09-03 10:00:00' }
+  // id 1~3 은 대행사 시드 글(병원 발행, src/lib/authorship.ts) — 원장 직접 입력 글 fixture 는 그 밖의 id
+  const article = { id: 101, slug: 'qa-only', title: '검증용 칼럼 & 안내', excerpt: '테스트 전용 설명', content_html: '<h1>본문 소제목</h1><p>검증을 위한 문장</p>', author_slug: 'han-hwirim', published_at: '2026-09-01 09:00:00', updated_at: '2026-09-03 10:00:00' }
   const fixtureDB = { prepare(sql) { return { bind() { return this }, all: async () => ({ results: sql.includes('FROM columns') ? [article] : [] }), first: async () => sql.includes('SELECT * FROM columns') ? article : { n: 25 }, run: async () => ({ success: true }) } } }
   const articleResponse = await app.request(site + '/column/qa-only', {}, { ...env, DB: fixtureDB })
   const articlePage = await inspect(await articleResponse.text())
@@ -158,6 +159,11 @@ try {
   const articleNode = articlePage.schemas.find(s => ['Article', 'BlogPosting'].includes(s['@type']))
   check(articleNode?.datePublished === '2026-09-01T09:00:00.000Z' && articleNode?.dateModified === '2026-09-03T10:00:00.000Z', 'CMS Article timestamps must be valid ISO dates')
   check(articleNode?.author?.['@id'] === site + '/doctors/han-hwirim#person', 'CMS article author identity')
+  const seedArticle = { ...article, id: 1 }
+  const seedDB = { prepare(sql) { return { bind() { return this }, all: async () => ({ results: sql.includes('FROM columns') ? [seedArticle] : [] }), first: async () => sql.includes('SELECT * FROM columns') ? seedArticle : { n: 25 }, run: async () => ({ success: true }) } } }
+  const seedPage = await inspect(await (await app.request(site + '/column/qa-only', {}, { ...env, DB: seedDB })).text())
+  const seedNode = seedPage.schemas.find(s => s['@type'] === 'BlogPosting')
+  check(seedNode?.author?.['@id'] === site + '/#clinic' && !seedNode?.reviewedBy && !seedPage.schemas.some(s => s.reviewedBy || s.lastReviewed), 'Agency seed column is clinic-published without doctor review')
   const notice = { id: 1, title: '병원 일정 안내', content_html: '<h1>일정 안내</h1><p>진료 일정을 확인해 주세요.</p>', created_at: '2026-09-01 09:00:00', updated_at: '2026-09-03 10:00:00' }
   const noticeDB = { prepare(sql) { return { bind() { return this }, all: async () => ({ results: [] }), first: async () => sql.includes('SELECT * FROM notices') ? notice : null, run: async () => ({ success: true }) } } }
   const noticePage = await inspect(await (await app.request(site + '/notice/1', {}, { ...env, DB: noticeDB })).text())

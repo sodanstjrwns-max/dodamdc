@@ -7,6 +7,7 @@ import { doctors, getDoctor, type Doctor } from '../data/doctors'
 import { getTreatment } from '../data/treatments'
 import { imageAttrs, pageHero, ctaStrip, reviewLine } from '../lib/ui'
 import { PRESS_SELECT, pressItem } from '../lib/press'
+import { NOT_AGENCY_SQL } from '../lib/authorship'
 
 // ── 의료진 ───────────────────────────────────────────────
 export function doctorsIndex(c: Context<Env>) {
@@ -38,7 +39,7 @@ export async function doctorDetail(c: Context<Env>, d: Doctor) {
   let cases: any[] = [], columns: any[] = [], press: any[] = []
   try {
     cases = (await c.env.DB.prepare('SELECT slug, title, treatment_slug, age_group, gender, intra_before, pano_before FROM cases WHERE published=1 AND doctor_slug=? ORDER BY created_at DESC LIMIT 3').bind(d.slug).all()).results || []
-    columns = (await c.env.DB.prepare('SELECT slug, title, excerpt FROM columns WHERE published=1 AND author_slug=? ORDER BY published_at DESC LIMIT 3').bind(d.slug).all()).results || []
+    columns = (await c.env.DB.prepare(`SELECT slug, title, excerpt FROM columns WHERE published=1 AND author_slug=? AND ${NOT_AGENCY_SQL} ORDER BY published_at DESC LIMIT 3`).bind(d.slug).all()).results || []
   } catch { /* */ }
   // 언론 활동은 대표원장(첫 번째 의료진) 기준. 항목이 없으면 섹션 자체를 숨긴다.
   try { if (d.slug === doctors[0].slug) press = (await c.env.DB.prepare(PRESS_SELECT).all()).results || [] } catch { /* */ }

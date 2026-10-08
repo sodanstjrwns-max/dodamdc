@@ -11,6 +11,7 @@ import { articleLd, truncate, physicianLd, isoDate, paginationPage, pressListLd,
 import { pingIndexNow } from '../lib/indexnow'
 import { treatments, getTreatment } from '../data/treatments'
 import { doctors, getDoctor } from '../data/doctors'
+import { columnDoctor, CLINIC_GENERAL_INFO_NOTE } from '../lib/authorship'
 import { autoLink } from '../data/encyclopedia'
 import { pageHero, ctaStrip, articleHtml, imageAttrs, paginate, alertBox, naverBookingLink } from '../lib/ui'
 import { getNaverBookingUrl } from '../data/clinic'
@@ -174,14 +175,16 @@ content.get('/column', async (c) => {
   const page = paginationPage(c.req.query('page'))
   const w = tx ? 'published=1 AND treatment_slug=?' : 'published=1'; const args = tx ? [tx] : []
   const total = (await c.env.DB.prepare(`SELECT COUNT(*) n FROM columns WHERE ${w}`).bind(...args).first<any>())?.n || 0
-  const rows = (await c.env.DB.prepare(`SELECT slug,title,excerpt,thumbnail,author_slug,treatment_slug,published_at,views FROM columns WHERE ${w} ORDER BY published_at DESC LIMIT ? OFFSET ?`).bind(...args, PER, (page - 1) * PER).all<any>()).results || []
+  const rows = (await c.env.DB.prepare(`SELECT id,slug,title,excerpt,thumbnail,author_slug,treatment_slug,published_at,views FROM columns WHERE ${w} ORDER BY published_at DESC LIMIT ? OFFSET ?`).bind(...args, PER, (page - 1) * PER).all<any>()).results || []
   const [first, ...rest] = page === 1 ? rows : [null, ...rows]
-  const card = (p: any) => html`<a href="/column/${p.slug}" class="post-card reveal">${p.thumbnail ? html`<div class="post-thumb"><img src="/files/${p.thumbnail}" alt="${p.title}" width="640" height="400" loading="lazy" decoding="async"></div>` : ''}<div class="post-body"><p class="post-meta">${fmtDate(p.published_at)} · ${getDoctor(p.author_slug)?.name || ''} 원장${p.treatment_slug ? ` · ${getTreatment(p.treatment_slug)?.name || ''}` : ''}</p><h3>${p.title}</h3><p>${p.excerpt || ''}</p></div></a>`
+  // 작성 주체 — 대행사 투입 글·원장 미지정 글은 병원 발행 (lib/authorship.ts)
+  const byline = (p: any) => { const dr = columnDoctor(p); return dr ? `${dr.name} 원장` : `${clinic.shortName} 발행` }
+  const card = (p: any) => html`<a href="/column/${p.slug}" class="post-card reveal">${p.thumbnail ? html`<div class="post-thumb"><img src="/files/${p.thumbnail}" alt="${p.title}" width="640" height="400" loading="lazy" decoding="async"></div>` : ''}<div class="post-body"><p class="post-meta">${fmtDate(p.published_at)} · ${byline(p)}${p.treatment_slug ? ` · ${getTreatment(p.treatment_slug)?.name || ''}` : ''}</p><h3>${p.title}</h3><p>${p.excerpt || ''}</p></div></a>`
   const body = html`${pageHero({ eyebrow: '원장 칼럼', title: html`진료실에서<br>못 다한 이야기`, lead: '상담 시간에 다 설명하지 못한 것들을 글로 남깁니다. 광고가 아니라 설명입니다.', crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }] })}
 <section class="section"><div class="container">
   <h2 class="sr-only">진료별 게시물 목록</h2>
   <nav class="faq-filter reveal in" aria-label="진료별 보기"><a href="/column" class="${!tx ? 'active' : ''}">전체</a>${treatments.map((t) => html`<a href="/column?treatment=${t.slug}" class="${tx === t.slug ? 'active' : ''}">${t.name}</a>`)}</nav>
-  ${first ? html`<a href="/column/${first.slug}" class="post-featured reveal">${first.thumbnail ? html`<div class="post-thumb"><img src="/files/${first.thumbnail}" alt="${first.title}" width="960" height="600" decoding="async"></div>` : ''}<div class="post-body"><p class="post-meta">${fmtDate(first.published_at)} · ${getDoctor(first.author_slug)?.name || ''} 원장</p><h2 class="h2">${first.title}</h2><p class="lead">${first.excerpt || ''}</p><span class="link-arrow">읽기</span></div></a>` : ''}
+  ${first ? html`<a href="/column/${first.slug}" class="post-featured reveal">${first.thumbnail ? html`<div class="post-thumb"><img src="/files/${first.thumbnail}" alt="${first.title}" width="960" height="600" decoding="async"></div>` : ''}<div class="post-body"><p class="post-meta">${fmtDate(first.published_at)} · ${byline(first)}</p><h2 class="h2">${first.title}</h2><p class="lead">${first.excerpt || ''}</p><span class="link-arrow">읽기</span></div></a>` : ''}
   ${rest.length ? html`<div class="post-grid">${rest.map(card)}</div>` : ''}
   ${!rows.length ? html`<section class="empty-content"><p class="edition-label">DODAM JOURNAL</p><h2>차근차근, 진료 이야기를 채워갑니다.</h2><p>이 분류에 아직 게시된 칼럼이 없습니다.<br>먼저 진료 안내에서 치아 건강에 필요한 정보를 살펴보세요.</p><a href="/treatments" class="editorial-link">진료 이야기 읽기 <span aria-hidden="true">↗</span></a></section>` : ''}
   ${paginate(`/column${tx ? `?treatment=${encodeURIComponent(tx)}` : ''}`, page, total, PER)}
@@ -191,9 +194,9 @@ content.get('/column', async (c) => {
 
 content.get('/column/rss.xml', async (c) => {
   const clinic = c.get('clinic') as any, siteUrl = c.get('siteUrl')
-  const rows = (await c.env.DB.prepare('SELECT slug,title,excerpt,published_at FROM columns WHERE published=1 ORDER BY published_at DESC LIMIT 30').all<any>()).results || []
+  const rows = (await c.env.DB.prepare('SELECT id,slug,title,excerpt,author_slug,published_at FROM columns WHERE published=1 ORDER BY published_at DESC LIMIT 30').all<any>()).results || []
   const x = (s: string) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  const xml = `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>${x(clinic.shortName)} 원장 칼럼</title><link>${siteUrl}/column</link><description>${x(clinic.mission)}</description><language>ko</language>${rows.map((r: any) => `<item><title>${x(r.title)}</title><link>${siteUrl}/column/${r.slug}</link><guid>${siteUrl}/column/${r.slug}</guid>${isoDate(r.published_at) ? `<pubDate>${new Date(isoDate(r.published_at)!).toUTCString()}</pubDate>` : ''}<description>${x(r.excerpt)}</description></item>`).join('')}</channel></rss>`
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>${x(clinic.shortName)} 원장 칼럼</title><link>${siteUrl}/column</link><description>${x(clinic.mission)}</description><language>ko</language>${rows.map((r: any) => `<item><title>${x(r.title)}</title><link>${siteUrl}/column/${r.slug}</link><guid>${siteUrl}/column/${r.slug}</guid>${isoDate(r.published_at) ? `<pubDate>${new Date(isoDate(r.published_at)!).toUTCString()}</pubDate>` : ''}<description>${x(r.excerpt)}</description><dc:creator>${x(columnDoctor(r) ? `${columnDoctor(r)!.name} ${columnDoctor(r)!.title}` : clinic.name)}</dc:creator></item>`).join('')}</channel></rss>`
   return c.body(xml, 200, { 'content-type': 'application/rss+xml; charset=utf-8', 'cache-control': 'public, max-age=3600' })
 })
 
@@ -202,7 +205,8 @@ content.get('/column/:slug', async (c) => {
   const p = await c.env.DB.prepare('SELECT * FROM columns WHERE slug=? AND published=1').bind(c.req.param('slug')).first<any>()
   if (!p) return c.notFound()
   await trackView(c, 'column', p.id, 'columns')
-  const d = getDoctor(p.author_slug) || doctors[0], t = p.treatment_slug ? getTreatment(p.treatment_slug) : undefined
+  // 작성 주체: 대행사 투입 글·원장 미지정 글은 병원 발행 — 원장 저자·감수 표시 없음 (lib/authorship.ts)
+  const dr = columnDoctor(p), d = dr || doctors[0], t = p.treatment_slug ? getTreatment(p.treatment_slug) : undefined
   // 관련 칼럼: 같은 진료 최신 3편(부족하면 최신 글로 채움) + 같은 진료 치료 사례 3건
   const sameTx = t ? ((await c.env.DB.prepare('SELECT slug,title,published_at FROM columns WHERE published=1 AND id<>? AND treatment_slug=? ORDER BY published_at DESC LIMIT 3').bind(p.id, t.slug).all<any>()).results || []) : []
   const fill = sameTx.length < 3 ? ((await c.env.DB.prepare('SELECT slug,title,published_at FROM columns WHERE published=1 AND id<>? ORDER BY published_at DESC LIMIT 6').bind(p.id).all<any>()).results || []) : []
@@ -226,7 +230,7 @@ content.get('/column/:slug', async (c) => {
     ${t ? html`<a href="/treatments/${t.slug}" class="tag green">${t.name}</a>` : ''}
     <h1 class="h1">${p.title}</h1>
     ${p.excerpt ? html`<p class="lead">${p.excerpt}</p>` : ''}
-    <div class="article-author"><img src="${d.photoAvatar}" alt="${d.photoAlt}" ${imageAttrs(d.photoAvatar, '48px', 48, 48)}><div><strong><a href="/doctors/${d.slug}">${d.name} ${d.title}</a></strong><br><small>${d.specialty} · <time datetime="${isoDate(p.published_at)}">${fmtDate(p.published_at)}</time>${p.updated_at && p.updated_at.slice(0, 10) !== p.published_at.slice(0, 10) ? ` (수정 ${fmtDate(p.updated_at)})` : ''}</small></div><button type="button" class="btn btn-outline btn-sm" data-share>공유</button></div>
+    ${dr ? html`<div class="article-author"><img src="${d.photoAvatar}" alt="${d.photoAlt}" ${imageAttrs(d.photoAvatar, '48px', 48, 48)}><div><strong><a href="/doctors/${d.slug}">${d.name} ${d.title}</a></strong><br><small>${d.specialty} · <time datetime="${isoDate(p.published_at)}">${fmtDate(p.published_at)}</time>${p.updated_at && p.updated_at.slice(0, 10) !== p.published_at.slice(0, 10) ? ` (수정 ${fmtDate(p.updated_at)})` : ''}</small></div><button type="button" class="btn btn-outline btn-sm" data-share>공유</button></div>` : html`<div class="article-author"><div><strong>${clinic.shortName} 발행</strong><br><small><time datetime="${isoDate(p.published_at)}">${fmtDate(p.published_at)}</time>${p.updated_at && p.updated_at.slice(0, 10) !== p.published_at.slice(0, 10) ? ` (수정 ${fmtDate(p.updated_at)})` : ''}</small></div><button type="button" class="btn btn-outline btn-sm" data-share>공유</button></div>`}
   </header>
   ${p.thumbnail ? html`<figure class="article-hero-img"><img src="/files/${p.thumbnail}" alt="${p.title} 대표 이미지" width="1200" height="700" fetchpriority="high" decoding="async"></figure>` : ''}
   ${answer ? html`<aside class="summary-box answer-summary" aria-label="핵심 요약"><h2 class="h3">핵심 요약</h2><p>${answer}</p></aside>` : ''}
@@ -235,13 +239,13 @@ content.get('/column/:slug', async (c) => {
     ${tags.length ? html`<ul class="pill-list">${tags.map((s: string) => html`<li>#${s}</li>`)}</ul>` : ''}
     ${t ? html`<div class="summary-box"><h2 class="h3">이 글과 관련된 진료</h2><p>${t.short}</p><a href="/treatments/${t.slug}" class="link-arrow">${t.name} 안내 보기</a></div>` : ''}
     <p class="reviewed">이 글은 일반적인 정보 제공을 위한 것으로 개인의 상태에 따라 다를 수 있습니다. 치료 효과를 보장하거나 다른 의료기관과 비교하는 내용은 포함하지 않습니다.</p>
-    <div class="article-author author-box"><img src="${d.photoAvatar}" alt="${d.photoAlt}" ${imageAttrs(d.photoAvatar, '48px', 48, 48)} loading="lazy"><div><small>글쓴이</small><br><strong><a href="/doctors/${d.slug}">${d.name} ${d.title}</a></strong><br><small>${d.specialty}${d.career.find((x) => !/^現/.test(x)) ? ` · 前 ${d.career.find((x) => !/^現/.test(x))}` : ''}${reviewedYmd ? html` · 최종 검토일 <time datetime="${reviewedYmd}">${fmtDate(p.updated_at || p.published_at)}</time>` : ''}</small></div></div>
+    ${dr ? html`<div class="article-author author-box"><img src="${d.photoAvatar}" alt="${d.photoAlt}" ${imageAttrs(d.photoAvatar, '48px', 48, 48)} loading="lazy"><div><small>글쓴이</small><br><strong><a href="/doctors/${d.slug}">${d.name} ${d.title}</a></strong><br><small>${d.specialty}${d.career.find((x) => !/^現/.test(x)) ? ` · 前 ${d.career.find((x) => !/^現/.test(x))}` : ''}${reviewedYmd ? html` · 최종 검토일 <time datetime="${reviewedYmd}">${fmtDate(p.updated_at || p.published_at)}</time>` : ''}</small></div></div>` : html`<div class="article-author author-box"><div><small>작성·발행</small><br><strong>${clinic.shortName}</strong><br><small>${CLINIC_GENERAL_INFO_NOTE}${reviewedYmd ? html` · 최종 수정 <time datetime="${reviewedYmd}">${fmtDate(p.updated_at || p.published_at)}</time>` : ''}</small></div></div>`}
     ${relCases.length ? html`<h2 class="h3">${t!.name} 치료 사례</h2><ul class="notice-list">${relCases.map((k: any) => html`<li class="notice-row"><a href="/cases/gallery/${k.slug}">${k.title}</a><span class="date">${k.duration || ''}</span></li>`)}</ul>` : ''}
     ${more.length ? html`<h2 class="h3">${sameTx.length ? `${t!.name} 관련 칼럼` : '다른 글'}</h2><ul class="notice-list">${more.map((m: any) => html`<li class="notice-row"><a href="/column/${m.slug}">${m.title}</a><span class="date">${fmtDate(m.published_at)}</span></li>`)}</ul>` : ''}
   </footer>
 </article>
 ${ctaStrip(clinic)}`
-  return c.html(Layout(c, { title: p.meta_title || p.title, description, path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, imageAlt: p.title, type: 'article', author: d, reviewer: d, reviewedAt: p.updated_at || p.published_at, publishedAt: p.published_at, modifiedAt: p.updated_at, aboutPath: t ? `/treatments/${t.slug}` : undefined, speakable: ['.article-head h1', ...(answer ? ['.answer-summary'] : [])], jsonld: withFaqLd([physicianLd(d, clinic, siteUrl), articleLd({ type: 'BlogPosting', title: p.title, description, path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, author: `${d.name}`, authorPath: `/doctors/${d.slug}`, publishedAt: p.published_at, modifiedAt: p.updated_at, aboutPath: t ? `/treatments/${t.slug}` : undefined, keywords: p.tags || undefined }, clinic, siteUrl)], faqs, absUrl(siteUrl, `/column/${p.slug}`)), crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }, ...(t ? [{ name: t.name, href: `/column?treatment=${t.slug}` }] : []), { name: p.title, href: `/column/${p.slug}` }] }, body))
+  return c.html(Layout(c, { title: p.meta_title || p.title, description, path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, imageAlt: p.title, type: 'article', author: dr, reviewer: dr, reviewedAt: dr ? p.updated_at || p.published_at : undefined, publishedAt: p.published_at, modifiedAt: p.updated_at, aboutPath: t ? `/treatments/${t.slug}` : undefined, speakable: ['.article-head h1', ...(answer ? ['.answer-summary'] : [])], jsonld: withFaqLd([...(dr ? [physicianLd(dr, clinic, siteUrl)] : []), articleLd({ type: 'BlogPosting', title: p.title, description, path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, author: dr ? `${dr.name}` : undefined, authorPath: dr ? `/doctors/${dr.slug}` : undefined, publishedAt: p.published_at, modifiedAt: p.updated_at, aboutPath: t ? `/treatments/${t.slug}` : undefined, keywords: p.tags || undefined }, clinic, siteUrl)], faqs, absUrl(siteUrl, `/column/${p.slug}`)), crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }, ...(t ? [{ name: t.name, href: `/column?treatment=${t.slug}` }] : []), { name: p.title, href: `/column/${p.slug}` }] }, body))
 })
 
 // ── 언론보도 ─────────────────────────────────────────────

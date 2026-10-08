@@ -235,7 +235,7 @@ const editorialImageNotice = html`<aside class="ops-panel" aria-label="이미지
 function columnForm(c: any, p: any = {}, err?: string) {
   const body = html`${alertBox(err)}${editorialImageNotice}<form method="post" enctype="multipart/form-data" class="admin-form cms-form" data-cms-form="column" data-once id="column-form">
   <div class="field"><label>제목 (H1) *</label><input name="title" required value="${p.title || ''}" maxlength="80" data-count></div>
-  <div class="form-row"><div class="field"><label>슬러그 (URL)</label><input name="slug" value="${p.slug || ''}" placeholder="비우면 제목에서 자동 생성"></div><div class="field"><label>작성자</label><select name="author_slug">${doctors.map((d) => html`<option value="${d.slug}" ${(p.author_slug || 'han-hwirim') === d.slug ? 'selected' : ''}>${d.name} ${d.title}</option>`)}</select></div><div class="field"><label>관련 진료 (인링크)</label><select name="treatment_slug"><option value="">없음</option>${treatments.map((t) => html`<option value="${t.slug}" ${p.treatment_slug === t.slug ? 'selected' : ''}>${t.name}</option>`)}</select></div></div>
+  <div class="form-row"><div class="field"><label>슬러그 (URL)</label><input name="slug" value="${p.slug || ''}" placeholder="비우면 제목에서 자동 생성"></div><div class="field"><label>작성자</label><select name="author_slug"><option value="clinic" ${!doctors.some((d) => d.slug === p.author_slug) ? 'selected' : ''}>병원 발행 (원장 작성·검토 아님)</option>${doctors.map((d) => html`<option value="${d.slug}" ${p.author_slug === d.slug ? 'selected' : ''}>${d.name} ${d.title} (직접 작성·검토)</option>`)}</select></div><div class="field"><label>관련 진료 (인링크)</label><select name="treatment_slug"><option value="">없음</option>${treatments.map((t) => html`<option value="${t.slug}" ${p.treatment_slug === t.slug ? 'selected' : ''}>${t.name}</option>`)}</select></div></div>
   <div class="field"><label>요약 (excerpt · 목록·OG에 사용)</label><textarea name="excerpt" rows="2" maxlength="200" data-count>${p.excerpt || ''}</textarea></div>
   <div class="field"><label>본문 *</label>
     ${editorToolbar()}
@@ -279,7 +279,7 @@ async function saveColumn(c: Context<Env>, id?: number) {
   if (enteredDate && !parsedDate) throw new Error('게시일 형식을 확인해 주세요.')
   const pub = parsedDate ? parsedDate.slice(0,19).replace('T',' ') : cur?.published_at || new Date().toISOString().slice(0,19).replace('T',' ')
   const excerpt = g('excerpt') || stripTags(content).slice(0, 150)
-  const vals = [slug, title, excerpt, content, thumb, g('author_slug') || 'han-hwirim', g('treatment_slug') || null, g('meta_title') || null, g('meta_description') || null, g('tags') || null, fd.get('published') ? 1 : 0, pub]
+  const vals = [slug, title, excerpt, content, thumb, g('author_slug') || 'clinic' /* 원장 자동 부여 금지 — 미지정은 병원 발행 (lib/authorship.ts) */, g('treatment_slug') || null, g('meta_title') || null, g('meta_description') || null, g('tags') || null, fd.get('published') ? 1 : 0, pub]
   if (id) await c.env.DB.prepare('UPDATE columns SET slug=?,title=?,excerpt=?,content_html=?,thumbnail=?,author_slug=?,treatment_slug=?,meta_title=?,meta_description=?,tags=?,published=?,published_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(...vals, id).run()
   else await c.env.DB.prepare('INSERT INTO columns (slug,title,excerpt,content_html,thumbnail,author_slug,treatment_slug,meta_title,meta_description,tags,published,published_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(...vals).run()
   if (fd.get('published')) pingLater(c, [`/column/${slug}`, '/column', g('treatment_slug') ? `/treatments/${g('treatment_slug')}` : '', '/sitemap.xml'])
