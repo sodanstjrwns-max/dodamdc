@@ -25,15 +25,16 @@ import { treatmentsIndex, treatmentDetail } from './pages/treatments'
 import { doctorsIndex, doctorDetail, missionPage, floorGuidePage } from './pages/about'
 import {
   faqPage, encyclopediaIndex, encyclopediaTerm, directionsPage, hoursPage, pricingPage,
-  areaPage, areaIndex, privacyPage, termsPage, sitemapHtml, notFoundPage, generalFaqsFor
+  areaPage, areaIndex, hwaseoStationHub, privacyPage, termsPage, sitemapHtml, notFoundPage, generalFaqsFor
 } from './pages/info'
 import { loadPricingGroups } from './lib/fees'
 import { pricing, pricingUpdatedAt, won } from './data/pricing'
 
 import { treatments, getTreatment } from './data/treatments'
 import { doctors, getDoctor } from './data/doctors'
-import { terms, getTerm } from './data/encyclopedia'
-import { EDITORIAL_UPDATED } from './data/encyclopedia/editorial-types'
+import { terms, getTerm, termAliases } from './data/encyclopedia'
+import { termUpdated } from './pages/encyclopedia'
+import { PAGE_LASTMOD, DOCTOR_LASTMOD, TREATMENT_LASTMOD, AREA_LASTMOD } from './data/lastmod'
 import { areaPages, getAreaPage } from './data/areas'
 
 const app = new Hono<Env>()
@@ -125,6 +126,8 @@ app.get('/treatments/:slug', (c) => {
 app.get('/faq', (c) => faqPage(c))
 app.get('/encyclopedia', (c) => encyclopediaIndex(c))
 app.get('/encyclopedia/:slug', (c) => {
+  const alias = termAliases[c.req.param('slug')]
+  if (alias) return c.redirect(`/encyclopedia/${alias}`, 301)
   const t = getTerm(c.req.param('slug'))
   return t ? encyclopediaTerm(c, t) : notFoundPage(c)
 })
@@ -134,6 +137,7 @@ app.get('/hours', (c) => hoursPage(c))
 app.get('/pricing', (c) => pricingPage(c))
 
 app.get('/area', (c) => areaIndex(c))
+app.get('/area/hwaseo-station', (c) => hwaseoStationHub(c))
 app.get('/area/:slug', (c) => {
   const p = getAreaPage(c.req.param('slug'))
   return p ? areaPage(c, p) : notFoundPage(c)
@@ -156,20 +160,29 @@ app.get('/sitemap.xml', async (c) => {
   const urls: { loc: string; lastmod?: string; pri: string; freq: string }[] = []
   const add = (path: string, pri = '0.6', freq = 'monthly', lastmod?: string) => urls.push({ loc: site + path, pri, freq, lastmod: isoDate(lastmod) })
 
-  add('/', '1.0', 'weekly')
-  for (const p of ['/first-visit', '/symptom-check', '/mission', '/doctors', '/treatments', '/floor-guide', '/directions', '/hours', '/pricing', '/faq', '/encyclopedia', '/cases/gallery', '/column', '/press', '/notice', '/reservation']) add(p, '0.8', 'weekly')
-  for (const d of doctors) add(`/doctors/${d.slug}`, '0.8')
-  for (const t of treatments) add(`/treatments/${t.slug}`, '0.9', 'monthly')
-  add('/area', '0.7', 'monthly')
-  for (const a of areaPages) add(`/area/${a.slug}`, '0.6')
-  for (const t of terms) add(`/encyclopedia/${t.slug}`, '0.4', 'monthly', EDITORIAL_UPDATED)
+  add('/', '1.0', 'weekly', PAGE_LASTMOD['/'])
+  for (const p of ['/first-visit', '/symptom-check', '/mission', '/doctors', '/treatments', '/floor-guide', '/directions', '/hours', '/pricing', '/faq', '/reservation']) add(p, '0.8', 'weekly', PAGE_LASTMOD[p])
+  for (const d of doctors) add(`/doctors/${d.slug}`, '0.8', 'monthly', DOCTOR_LASTMOD)
+  for (const t of treatments) add(`/treatments/${t.slug}`, '0.9', 'monthly', TREATMENT_LASTMOD[t.slug])
+  add('/area', '0.7', 'monthly', PAGE_LASTMOD['/area'])
+  add('/area/hwaseo-station', '0.9', 'monthly', PAGE_LASTMOD['/area/hwaseo-station'])
+  for (const a of areaPages) add(`/area/${a.slug}`, '0.6', 'monthly', AREA_LASTMOD)
+  add('/encyclopedia', '0.8', 'weekly', terms.map(t => termUpdated(t.slug)).sort().at(-1))
+  for (const t of terms) add(`/encyclopedia/${t.slug}`, '0.4', 'monthly', termUpdated(t.slug))
   try {
     const db = c.env.DB
-    const [cases, cols, notes] = await Promise.all([
+    const [cases, cols, notes, press] = await Promise.all([
       db.prepare('SELECT slug, updated_at FROM cases WHERE published=1').all<any>(),
       db.prepare('SELECT slug, updated_at FROM columns WHERE published=1').all<any>(),
-      db.prepare('SELECT id, updated_at FROM notices WHERE published=1').all<any>()
+      db.prepare('SELECT id, updated_at FROM notices WHERE published=1').all<any>(),
+      db.prepare('SELECT MAX(updated_at) AS updated_at FROM press WHERE published=1').first<any>()
     ])
+    // 목록 페이지는 그 안의 가장 최근 수정일
+    const newest = (rows: any[]) => rows.map(r => String(r.updated_at || '')).filter(Boolean).sort().at(-1)
+    add('/cases/gallery', '0.8', 'weekly', newest(cases.results || []))
+    add('/column', '0.8', 'weekly', newest(cols.results || []))
+    add('/notice', '0.8', 'weekly', newest(notes.results || []))
+    add('/press', '0.8', 'weekly', press?.updated_at ? String(press.updated_at) : undefined)
     for (const r of cases.results || []) add(`/cases/gallery/${r.slug}`, '0.6', 'monthly', String(r.updated_at || ''))
     for (const r of cols.results || []) add(`/column/${r.slug}`, '0.7', 'monthly', String(r.updated_at || ''))
     for (const r of notes.results || []) add(`/notice/${r.id}`, '0.4', 'monthly', String(r.updated_at || ''))

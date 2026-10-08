@@ -82,9 +82,9 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="preload" href="/static/fonts/WantedSansCore-v2.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/fonts/wanted-subsets.css?v=2">
 <link rel="stylesheet" href="/static/style.css?v=10">
-<link rel="stylesheet" href="/static/kinetic.css?v=24">
+<link rel="stylesheet" href="/static/kinetic.css?v=25">
 ${meta.path === '/symptom-check' ? html`<link rel="stylesheet" href="/static/symptom-check.css?v=1">` : ''}
-${meta.path === '/encyclopedia' || meta.path.startsWith('/encyclopedia/') ? html`<link rel="stylesheet" href="/static/encyclopedia.css?v=20260914">` : ''}
+${meta.path === '/encyclopedia' || meta.path.startsWith('/encyclopedia/') ? html`<link rel="stylesheet" href="/static/encyclopedia.css?v=20261008">` : ''}
 ${meta.path === '/handover' ? html`<link rel="stylesheet" href="/static/handover.css?v=2">` : ''}
 <link rel="alternate" type="application/rss+xml" title="${clinic.shortName} 원장 칼럼" href="/column/rss.xml">
 ${lds.map((l) => raw(`<script type="application/ld+json">${JSON.stringify(l).replace(/</g, '\\u003c')}</script>`))}
@@ -235,6 +235,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
         <li><a href="/column">원장 칼럼</a></li>
         <li><a href="/press">언론보도</a></li>
         <li><a href="/encyclopedia">치과 백과사전</a></li>
+        <li><a href="/area/hwaseo-station">화서역 치과 안내</a></li>
         <li><a href="/notice">공지사항</a></li>
       </ul>
     </div>

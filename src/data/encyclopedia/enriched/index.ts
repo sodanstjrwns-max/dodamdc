@@ -1,0 +1,15 @@
+import type { EnrichedTerm } from '../enriched-types'
+import { enriched01 } from './batch-01'
+import { enriched02 } from './batch-02'
+import { enriched03 } from './batch-03'
+import { enriched04 } from './batch-04'
+import { enriched05 } from './batch-05'
+import { enriched06 } from './batch-06'
+import { enriched07 } from './batch-07'
+import { enriched08 } from './batch-08'
+import { enriched09 } from './batch-09'
+import { enriched10 } from './batch-10'
+import { enriched11 } from './batch-11'
+import { enriched12 } from './batch-12'
+
+export const enriched: Record<string, EnrichedTerm> = Object.assign({}, enriched01, enriched02, enriched03, enriched04, enriched05, enriched06, enriched07, enriched08, enriched09, enriched10, enriched11, enriched12)

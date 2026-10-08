@@ -105,3 +105,12 @@
 @media(prefers-reduced-motion:reduce){.ency-page *{scroll-behavior:auto!important;transition:none!important}}
 @media print{.ency-page :is(.site-header,.mobile-action-bar,.floating-cta,.ency-article-side,.ency-toc,.ency-copy,.site-footer,.progress-bar){display:none!important}.ency-page .page-hero{padding:20px 0;background:none}.ency-article-layout{display:block;padding:0}.ency-page .container{width:auto;max-width:none;padding-inline:0}.ency-prose-section,.ency-question,.ency-references{break-inside:avoid}.ency-page{color:black}.ency-references a[href]::after{content:' (' attr(href) ')';font-size:9px;overflow-wrap:anywhere}}
 .ency-comparison{margin:0 0 34px}.ency-comparison h2{font-size:24px;line-height:1.4;font-weight:750;margin:0 0 20px;color:var(--ency-ink)}.ency-table-scroll{max-width:100%;overflow-x:auto;border:1px solid var(--ency-line);border-radius:12px}.ency-comparison table{border-collapse:collapse;width:100%;min-width:530px;font-size:13px;line-height:1.8}.ency-comparison th,.ency-comparison td{padding:16px;text-align:left;vertical-align:top;border-bottom:1px solid var(--ency-line);border-right:1px solid var(--ency-line)}.ency-comparison thead th{background:var(--ency-blue);color:white;font-weight:650}.ency-comparison tbody th{background:var(--ency-paper);font-weight:650;width:20%}.ency-comparison td{width:40%;color:var(--ency-muted)}.ency-comparison tr:last-child>*{border-bottom:0}.ency-comparison tr>:last-child{border-right:0}.ency-comparison>p{font-size:12px;line-height:1.8;color:var(--ency-muted);margin:12px 0 0}.ency-detail{padding:0 0 34px}
+/* 2026-10-08 용어별 보강 해설·FAQ */
+.ency-prose-section>p+p{margin-top:14px}
+.ency-steps{margin:16px 0 0;padding-left:1.4em;display:grid;gap:10px;font-size:16px;line-height:1.85;color:#304c5b;word-break:keep-all;overflow-wrap:anywhere}
+.ency-steps li::marker{color:var(--ency-blue);font-weight:750}
+.ency-steps+p{margin-top:14px}
+.ency-prose-section .ency-link{color:var(--ency-blue);text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.ency-faq{padding:40px 0 36px;scroll-margin-top:calc(var(--header-h) + 22px)}
+.ency-page .ency-faq h2{font-size:clamp(21px,2.2vw,25px);line-height:1.45;font-weight:760;letter-spacing:-.04em;color:var(--ency-ink);margin:0 0 16px}
+@media(max-width:760px){.ency-steps{font-size:15px}.ency-faq{padding:30px 0 28px}}

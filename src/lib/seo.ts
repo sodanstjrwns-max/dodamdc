@@ -25,6 +25,10 @@ export type PageMeta = {
   speakable?: string[]
   /** 페이지 주제 MedicalProcedure 경로(예: /treatments/root-canal) → about @id */
   aboutPath?: string
+  /** 페이지 주제가 노드 자체일 때(예: 지역 허브 → '/#clinic') */
+  aboutId?: string
+  /** 지역 안내 페이지가 다루는 장소(WebPage.spatialCoverage) */
+  spatialCoverage?: object[]
 }
 
 // 공유 미리보기 기본 이미지: 1200×630 가로형 JPG(scripts/build-og-image.mjs로 실사 사진·로고 합성)
@@ -118,7 +122,7 @@ export function dentistLd(clinic: Clinic, siteUrl: string) {
     geo: { '@type': 'GeoCoordinates', latitude: clinic.geo.lat, longitude: clinic.geo.lng },
     hasMap: clinic.channels.naverPlace, openingHoursSpecification: openingHours(clinic), specialOpeningHoursSpecification: specialOpeningHours(clinic),
     sameAs: Object.values(clinic.channels).filter(url => /^https?:\/\//.test(url)),
-    areaServed: { '@type': 'City', name: clinic.city },
+    areaServed: [{ '@type': 'City', name: `${clinic.city}시` }, { '@type': 'AdministrativeArea', name: `${clinic.city}시 ${clinic.district} ${clinic.dong}` }],
     medicalSpecialty: 'https://schema.org/Dentistry', slogan: clinic.slogan,
     // No invented ratings, price range, acceptance status or founding date.
   }
@@ -155,7 +159,8 @@ export function webpageLd(meta: PageMeta, siteUrl: string, path: string) {
     citation: meta.citations,
     lastReviewed: isoDate(meta.reviewedAt), datePublished: isoDate(meta.publishedAt), dateModified: isoDate(meta.modifiedAt),
     speakable: meta.speakable?.length ? { '@type': 'SpeakableSpecification', cssSelector: meta.speakable } : undefined,
-    about: meta.aboutPath ? { '@id': absUrl(siteUrl, meta.aboutPath + '#procedure') } : undefined,
+    about: meta.aboutId ? { '@id': absUrl(siteUrl, meta.aboutId) } : meta.aboutPath ? { '@id': absUrl(siteUrl, meta.aboutPath + '#procedure') } : undefined,
+    spatialCoverage: meta.spatialCoverage,
   }
 }
 export function procedureLd(t: Treatment, clinic: Clinic, siteUrl: string) {

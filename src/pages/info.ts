@@ -2,7 +2,7 @@ import { html, raw } from 'hono/html'
 import type { Context } from 'hono'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
-import { faqLd, truncate } from '../lib/seo'
+import { faqLd, truncate, absUrl } from '../lib/seo'
 import { treatments, getTreatment } from '../data/treatments'
 import { pricing, insuredItems, pricingUpdatedAt, won } from '../data/pricing'
 import { loadPricingGroups } from '../lib/fees'
@@ -10,7 +10,8 @@ import { areaPages, areaAccess, type AreaPage } from '../data/areas'
 import { nearbyAreas, type Clinic } from '../data/clinic'
 import { hoursNotices, dayHoursText, lunchHoursText } from '../lib/clinic-hours'
 import { upcomingSpecialDays, specialDaysText, dayOf } from '../lib/clinic-status'
-import { pageHero, faqList, ctaStrip, reviewLine, substituteWednesdayNotice } from '../lib/ui'
+import { pageHero, faqList, ctaStrip, reviewLine, substituteWednesdayNotice, naverBookingLink } from '../lib/ui'
+import { doctors } from '../data/doctors'
 
 // ── 통합 FAQ ─────────────────────────────────────────────
 export const generalFaqsFor = (clinic: Clinic) => [
@@ -178,9 +179,93 @@ export function areaIndex(c: Context<Env>) {
   const body = html`
 ${pageHero({ eyebrow: '지역 안내', title: html`수원 어디에서 오시든<br>같은 기준으로 진료합니다`, crumbs: [{ name: '홈', href: '/' }, { name: '지역 안내', href: '/area' }] })}
 <section class="section"><div class="container">
+  <p class="reveal" style="margin-bottom:32px"><a href="/area/hwaseo-station" class="link-arrow"><strong>화서역 치과</strong> — 위치·진료시간·의료진 한눈에 보기</a></p>
   ${nearbyAreas.map((a) => html`<div class="reveal" style="margin-bottom:32px"><h2 class="h3">${a.full}</h2><ul class="pill-list">${areaPages.filter((p) => p.areaSlug === a.slug).map((p) => html`<li><a href="/area/${p.slug}">${p.treatmentName}</a></li>`)}</ul></div>`)}
 </div></section>`
   return c.html(Layout(c, { title: '지역별 진료 안내', description: `화서동·화서역·정자동·율전동·천천동·서둔동·수원역 등 수원 인근 지역에서 서울도담치과로 오시는 길과 진료 안내.`, path: '/area' }, body))
+}
+
+// ── 대표 지역 허브: 화서역 치과 (2026-10-08) ─────────────────
+// 다른 지역 페이지와 문장을 공유하지 않는다. 병원 사실(주소·시간·의료진·장비)은 clinic·doctors 데이터에서만 가져온다.
+export function hwaseoStationHub(c: Context<Env>) {
+  const clinic = c.get('clinic') as any
+  const siteUrl = c.get('siteUrl')
+  const dr = doctors[0]
+  const path = '/area/hwaseo-station'
+  const day = (d: string) => clinic.hours.find((h: any) => h.day === d)
+  const tue = day('화'), sat = day('토'), wed = day('수')
+  const lateDay = clinic.hours.find((h: any) => h.open && h.close > '18:00')
+  const lateText = lateDay ? `${lateDay.day}요일은 ${lateDay.open}부터 ${lateDay.close}까지 진료합니다` : '평일 저녁 진료 여부는 전화로 확인해 주세요'
+  const crumbs = [{ name: '홈', href: '/' }, { name: '지역 안내', href: '/area' }, { name: '화서역 치과', href: path }]
+  const nearby = (slug: string) => areaPages.filter((p) => p.areaSlug === slug)
+  const faqs = [
+    { q: '화서역에서 서울도담치과까지 걸어갈 수 있나요?', a: `네. ${clinic.directions.subway} 거리입니다. 역에서 화양로를 따라 오시면 신우상가가 나오고, 1층 입구의 파란 간판을 확인한 뒤 2층으로 올라오시면 됩니다.` },
+    { q: '차를 가지고 가도 주차할 수 있나요?', a: `${clinic.directions.parking} 차량으로 오셔야 한다면 출발 전에 가까운 공영주차장 위치를 확인해 두시면 덜 헤매십니다.` },
+    { q: '퇴근하고 화서동에서 치과 진료를 받을 수 있는 날이 있나요?', a: `${lateText}. ${clinic.hoursNote} 늦은 시간대는 예약이 먼저 차는 편이니 미리 일정을 잡아 두시길 권합니다.` },
+    { q: '수요일에도 문을 여나요?', a: `${wed?.open ? `수요일은 ${wed.open}부터 ${wed.close}까지 진료합니다.` : '수요일은 기본적으로 쉬는 날입니다.'} ${clinic.hoursException} 임시 진료일과 휴진일은 공지사항에도 올려 둡니다.` },
+    { q: '정자동이나 서둔동에서도 다니기 편한가요?', a: '장안구 정자동·율전동·천천동에서는 화서역 방면 버스를, 권선구 서둔동·구운동에서는 수원역이나 화서역 방향으로 이동하시면 됩니다. 수원역에서는 1호선으로 한 정거장이라 지하철로 오시는 분도 많습니다.' },
+    { q: '예약하지 않고 바로 가도 진료받을 수 있나요?', a: '방문하셔도 접수는 가능하지만 예약하신 분이 먼저 진료를 받으셔서 기다리는 시간이 길어질 수 있습니다. 네이버 예약이나 홈페이지 예약 신청, 전화로 시간을 정하고 오시는 편이 편합니다.' },
+  ]
+  const body = html`
+${pageHero({ eyebrow: `${clinic.region} · 1호선 화서역 인근`, title: '화서역 치과 · 화서동 치과', lead: `${clinic.shortName}는 화서역에서 걸어서 오실 수 있는 화서동의 치과의원입니다. 위치와 진료시간, 의료진과 진료 항목을 한 페이지에 정리했습니다.`, crumbs, actions: html`${naverBookingLink(clinic, 'btn btn-primary', '네이버 예약')}<a href="/reservation" class="btn btn-outline">홈페이지 예약 신청</a><a href="tel:${clinic.phoneTel}" class="btn btn-outline">${clinic.phone}</a>` })}
+<div class="container tx-layout">
+  <article class="tx-body">
+    <section class="summary-box reveal in" id="quick-answer"><h2>화서역 치과를 찾고 계신다면</h2><p>${clinic.shortName}는 ${clinic.directions.subway}, ${clinic.address}에 있습니다. ${dr.specialty} ${dr.name} ${dr.title}이 직접 진료하며, 신경을 제거하기 전에 살릴 수 있는지부터 확인하는 자연치아 보존 진료를 중심에 둡니다. ${lateText}.</p>
+      <dl class="hub-facts"><div><dt>주소</dt><dd>${clinic.address}</dd></div><div><dt>지하철</dt><dd>${clinic.directions.subway}</dd></div><div><dt>버스</dt><dd>${clinic.directions.bus}</dd></div><div><dt>주차</dt><dd>${clinic.directions.parking}</dd></div><div><dt>전화</dt><dd><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></dd></div><div><dt>대표원장</dt><dd><a href="/doctors/${dr.slug}">${dr.name} ${dr.title}</a> (${dr.specialty})</dd></div></dl>
+    </section>
+    <div class="prose">
+      <section class="reveal in" id="way"><h2>화서역에서 서울도담치과까지 어떻게 가나요?</h2>
+        <p>화서역에서 내려 화양로 쪽으로 걸으면 신우상가가 보입니다. 상가 1층 입구에 걸린 파란색 ${clinic.shortName} 간판을 확인한 뒤 2층 206·207호로 올라오시면 접수대가 바로 보입니다. 버스로 오신다면 ${clinic.directions.bus}입니다.</p>
+        <p>건물 여건상 병원 전용 주차를 안내해 드리기 어려워 지하철이나 버스를 권해 드립니다. 처음 오시는 길이 헷갈리면 출발 전에 지도 앱으로 경로를 확인하시거나 <a href="tel:${clinic.phoneTel}">${clinic.phone}</a>로 전화 주세요.</p>
+        <p class="hub-links"><a href="${clinic.channels.naverPlace}" target="_blank" rel="noopener" class="link-arrow">네이버 지도에서 위치 보기</a> <a href="/directions" class="link-arrow">오시는 길·지도 자세히</a></p>
+      </section>
+      <section class="reveal in" id="hours"><h2>화서동 서울도담치과는 언제 진료하나요?</h2>
+        ${hoursTable(clinic)}
+        <p>${tue?.open ? `화요일은 오전 대신 ${tue.open}에 문을 열어 ${tue.close}까지 이어서 진료하므로 퇴근 뒤에 들르기 좋습니다.` : ''} ${sat?.open ? `토요일은 ${sat.open}부터 ${sat.close}까지${sat.lunch ? '' : ' 점심시간 없이'} 진료합니다.` : ''} ${hoursNotices(clinic)}</p>
+        <p><a href="/hours" class="link-arrow">요일별 진료시간·휴진 안내</a></p>
+      </section>
+      <section class="reveal in" id="doctor"><h2>화서역 서울도담치과에서는 누가 진료하나요?</h2>
+        <p>${dr.specialty}인 ${dr.name} ${dr.title}이 검사 결과 설명부터 치료, 이후 경과 확인까지 맡습니다. “${dr.quote}”라는 생각으로, 처음부터 크게 깎거나 뽑는 쪽보다 남길 수 있는 치아 조직을 먼저 따져 봅니다.</p>
+        <p>치과가 무서운 분께는 치료 순서를 먼저 말씀드리고, 마취크림과 마취액 워머, 전동 마취기를 상황에 맞춰 사용합니다. 아픔을 느끼는 정도는 사람마다 다르므로 불편하면 진료 중에도 바로 손을 들어 알려 주세요.</p>
+        <p><a href="/doctors/${dr.slug}" class="link-arrow">${dr.name} ${dr.title} 소개</a> <a href="/mission" class="link-arrow">진료 원칙</a></p>
+      </section>
+      <section class="reveal in" id="treatments"><h2>화서역 근처에서 어떤 치과 진료를 받을 수 있나요?</h2>
+        <p>자연치아를 오래 쓰도록 돕는 진료를 중심으로, 충치·잇몸·사랑니·보철·어린이 진료까지 동네 치과에서 필요한 진료를 함께 봅니다.</p>
+        <ul class="hub-treatments">${treatments.map((t) => html`<li><a href="/treatments/${t.slug}"><strong>${t.name}</strong></a> — ${t.short}</li>`)}</ul>
+        <p>진단에는 Vatech Green16 저선량 CT와 큐레이(Q-ray) 검사를 활용하고, 사용한 기구는 Class B 멸균기로 소독한 뒤 하나씩 밀봉해 보관합니다. 치아교정, 수면(진정) 진료, 보톡스·필러는 시행하지 않습니다.</p>
+        <p><a href="/floor-guide" class="link-arrow">진료실·장비·감염관리 보기</a> <a href="/pricing" class="link-arrow">비급여 진료비</a></p>
+      </section>
+      <section class="reveal in" id="first-visit"><h2>처음 방문 전에 무엇을 챙기면 좋을까요?</h2>
+        <p>신분증과 복용 중인 약의 목록을 챙겨 주세요. 다른 치과에서 받은 X-ray나 진료 기록이 있다면 함께 가져오시면 지난 치료와 비교해 설명드리기 수월합니다. 아프거나 불편한 곳이 있으면 언제부터, 어떤 때 아픈지 메모해 오셔도 좋습니다.</p>
+        <p>홈페이지 예약 신청은 병원에서 확인 연락을 드린 뒤 일정이 확정되고, 네이버 예약은 네이버 화면에 표시되는 안내를 따릅니다.</p>
+        <p><a href="/first-visit" class="link-arrow">첫 방문 안내 자세히</a></p>
+      </section>
+    </div>
+    <section class="reveal in" id="faq"><h2 class="h3">화서역·화서동 주민분들이 자주 묻는 질문</h2>${faqList(faqs, { open: 1 })}</section>
+    <section class="reveal in" id="nearby"><h2 class="h3">화서역·화서동 진료별 안내</h2>
+      <p class="hint">진료마다 화서역·화서동에서 오시는 분을 위한 안내를 따로 정리했습니다.</p>
+      <ul class="pill-list">${nearby('hwaseo-station').map((p) => html`<li><a href="/area/${p.slug}">화서역 ${p.treatmentName}</a></li>`)}</ul>
+      <ul class="pill-list">${nearby('hwaseo').map((p) => html`<li><a href="/area/${p.slug}">화서동 ${p.treatmentName}</a></li>`)}</ul>
+      <p><a href="/area" class="link-arrow">다른 지역에서 오시는 길</a></p>
+    </section>
+    <p class="reviewed">이 페이지의 주소·진료시간·의료진 정보는 병원 기본 정보와 같은 자료에서 불러옵니다. 진료시간은 공휴일·임시 휴진에 따라 달라질 수 있으니 방문 전 확인해 주세요.</p>
+  </article>
+  <aside class="tx-side">
+    <div class="side-card side-cta"><p class="side-title">화서역에서 예약</p><p class="side-phone"><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></p>${naverBookingLink(clinic, 'btn btn-primary btn-block', '네이버 예약')}<a href="/reservation" class="btn btn-outline btn-block">홈페이지 예약 신청</a><a href="/directions" class="link-arrow">오시는 길</a></div>
+    <div class="side-card"><p class="side-title">이 페이지에서</p><ul class="side-links"><li><a href="#way">찾아오는 길</a></li><li><a href="#hours">진료시간</a></li><li><a href="#doctor">의료진</a></li><li><a href="#treatments">진료 항목</a></li><li><a href="#faq">자주 묻는 질문</a></li></ul></div>
+  </aside>
+</div>
+${ctaStrip(clinic, { title: '화서역에서 가까운 치과 상담', sub: '불편한 곳을 말씀해 주시면 검사 후 현재 상태와 선택지를 설명드립니다.' })}`
+  return c.html(Layout(c, {
+    title: `화서역 치과 · 화서동 치과 | ${clinic.shortName}`,
+    description: truncate(`화서역 치과를 찾으신다면 ${clinic.shortName}. ${clinic.directions.subway}, ${clinic.addressShort}(화서동). ${dr.specialty} ${dr.name} 원장 진료, ${lateText}. 위치·진료시간·주차·진료 항목 안내. ${clinic.phone}`),
+    path, crumbs, aboutId: '/#clinic', speakable: ['h1', '#quick-answer'],
+    spatialCoverage: [
+      { '@type': 'Place', name: '수원 화서역(수도권 전철 1호선)' },
+      { '@type': 'AdministrativeArea', name: `${clinic.city}시 ${clinic.district} ${clinic.dong}` },
+    ],
+    jsonld: [faqLd(faqs, absUrl(siteUrl, path))],
+  }, body))
 }
 
 // ── 법적 고지 / 404 / HTML 사이트맵 ─────────────────────

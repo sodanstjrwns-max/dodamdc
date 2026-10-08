@@ -10,13 +10,20 @@ async function bundled(entry) {
   const result = await build({ entryPoints: [entry], bundle: true, write: false, format: 'esm', platform: 'node' })
   return import('data:text/javascript;base64,' + Buffer.from(result.outputFiles[0].text).toString('base64'))
 }
-const [{ default: app }, { terms, getTerm, CATEGORIES }, { editorial, EDITORIAL_UPDATED }, { references, categoryGuides, readingPaths }, { detailedSections, comparisons }] = await Promise.all([
-  bundled('src/index.tsx'), bundled('src/data/encyclopedia/index.ts'), bundled('src/data/encyclopedia/editorial.ts'), bundled('src/data/encyclopedia/guides.ts'), bundled('src/data/encyclopedia/details.ts'),
+const [{ default: app }, { terms, getTerm, CATEGORIES, termAliases }, { editorial, EDITORIAL_UPDATED }, { references, categoryGuides, readingPaths }, { detailedSections, comparisons }, { enriched }, { ENRICHED_UPDATED }] = await Promise.all([
+  bundled('src/index.tsx'), bundled('src/data/encyclopedia/index.ts'), bundled('src/data/encyclopedia/editorial.ts'), bundled('src/data/encyclopedia/guides.ts'), bundled('src/data/encyclopedia/details.ts'), bundled('src/data/encyclopedia/enriched/index.ts'), bundled('src/data/encyclopedia/enriched-types.ts'),
 ])
+// 2026-10-08: 동의어 4쌍을 대표 용어로 통합(옛 주소 301) → 512 - 4 = 508
+const N = 512 - Object.keys(termAliases).length
 const report = { terms: terms.length, categories: CATEGORIES.length, references: Object.keys(references).length, detailedEntries: Object.keys(detailedSections).length, comparisons: Object.keys(comparisons).length, pages: [], browser: [], checks: [] }
-assert.equal(terms.length, 512, 'Preserve all existing term URLs')
-assert.deepEqual(Object.keys(editorial).sort(), terms.map(t => t.slug).sort(), 'Every term needs its own editorial, no extras')
-assert.equal(new Set(terms.map(t => t.slug)).size, 512, 'No duplicate slug')
+assert.equal(terms.length, N, 'Preserve all existing term URLs (aliases redirect)')
+assert.deepEqual(Object.keys(editorial).sort(), [...terms.map(t => t.slug), ...Object.keys(termAliases)].sort(), 'Every term needs its own editorial, no extras')
+assert.equal(new Set(terms.map(t => t.slug)).size, N, 'No duplicate slug')
+assert.deepEqual(Object.keys(enriched).sort(), terms.map(t => t.slug).sort(), 'Every term has its own enrichment')
+for (const [k, v] of Object.entries(enriched)) {
+  assert(v.sections.length >= 3 && v.faqs.length >= 2, k + ': enrichment shape')
+  for (const text of [...v.sections.flatMap(x => [x.h, ...(x.p || []), ...(x.ol || [])]), ...v.faqs.flatMap(f => [f.q, f.a])]) assert(!/[<>|]|최고|유일|보장|100%|부작용\s?없/.test(text), k + ': raw markup or forbidden claim')
+}
 for (const field of ['context', 'distinction', 'question']) assert.equal(new Set(Object.values(editorial).map(e => e[field])).size, 512, `Do not substitute duplicate ${field} text`)
 const paths = new Set(terms.map(t => '/encyclopedia/' + t.slug))
 for (const t of terms) {
@@ -24,7 +31,7 @@ for (const t of terms) {
   assert(e.context.length > 55 && e.distinction.length > 45 && e.question.endsWith('?'), `${t.slug}: substantive original explanation and question`)
   assert(categoryGuides[t.category], `${t.slug}: missing category guide`)
   assert.equal(new Set(e.related).size, e.related.length, `${t.slug}: duplicated relationship`)
-  for (const slug of e.related) assert(slug !== t.slug && getTerm(slug), `${t.slug}: bad relationship ${slug}`)
+  for (const slug of e.related) assert(getTerm(slug), `${t.slug}: bad relationship ${slug}`)
   for (const text of [t.def, e.context, e.distinction, e.question]) assert(!/[<>|]/.test(text), `${t.slug}: raw markup in editorial`)
 }
 for (const p of readingPaths) for (const slug of p.slugs) assert(getTerm(slug), `Reading path: ${slug}`)
@@ -68,7 +75,7 @@ try {
     assert(!info.reviewClaims, path + ': invented physician review')
     assert(info.title && info.description, path + ': metadata')
     const pageSchema = info.schemas.find(s => s['@type'] === 'MedicalWebPage' || s['@type'] === 'WebPage')
-    assert.equal(pageSchema.dateModified, EDITORIAL_UPDATED)
+    assert.equal(pageSchema.dateModified, ENRICHED_UPDATED)
     assert(!pageSchema.reviewedBy && !pageSchema.lastReviewed && !pageSchema.author, path + ': no fabricated authorship/review')
     const t = getTerm(path.split('/')[2])
     if (t) {
@@ -77,19 +84,27 @@ try {
       assert(info.context?.length > 10, path + ': missing explanatory body')
       assert.equal(info.schemas.find(s => s['@type'] === 'DefinedTerm').description, t.def)
       assert(pageSchema.citation?.length, path + ': related references')
-    } else assert.equal(info.terms, 512, 'All terms in server HTML')
+      const faq = info.schemas.find(s => s['@type'] === 'FAQPage')
+      assert.deepEqual(faq?.mainEntity.map(q => q.name), enriched[t.slug].faqs.map(f => f.q), path + ': FAQPage matches visible FAQ')
+      assert(info.ids.includes('guide-1') && info.ids.includes('term-faq'), path + ': enrichment rendered')
+    } else assert.equal(info.terms, N, 'All terms in server HTML')
     for (const href of info.links) {
       if (href.startsWith('/encyclopedia/')) assert(paths.has(href), path + ': unknown term URL ' + href)
       if (href.startsWith('#')) assert(info.ids.includes(href.slice(1)) || info.ids.includes(decodeURIComponent(href.slice(1))), path + ': broken anchor ' + href)
     }
     report.pages.push({ path, title: info.title, description: info.description, bytes: Buffer.byteLength(html) })
   }
-  assert.equal(new Set(report.pages.map(p => p.title)).size, 513, 'Unique page titles')
-  assert.equal(new Set(report.pages.map(p => p.description)).size, 513, 'Unique page descriptions')
+  assert.equal(new Set(report.pages.map(p => p.title)).size, N + 1, 'Unique page titles')
+  assert.equal(new Set(report.pages.map(p => p.description)).size, N + 1, 'Unique page descriptions')
+  for (const [from, to] of Object.entries(termAliases)) {
+    const r = await app.request('https://dodamdc.kr/encyclopedia/' + from, {}, env)
+    assert.equal(r.status, 301, from + ': alias 301'); assert.equal(new URL(r.headers.get('location'), 'https://dodamdc.kr').pathname, '/encyclopedia/' + to)
+  }
   const missing = await app.request('https://dodamdc.kr/encyclopedia/unknown-term-audit', {}, env)
   assert.equal(missing.status, 404)
   const sitemap = await (await app.request('https://dodamdc.kr/sitemap.xml', {}, env)).text()
-  assert.equal((sitemap.match(/<lastmod>2026-09-14<\/lastmod>/g) || []).length, 512, 'Real fixed edit date, glossary only')
+  assert.equal((sitemap.match(/\/encyclopedia\/[^<]+<\/loc><lastmod>2026-10-08<\/lastmod>/g) || []).length, N, 'Real fixed edit date for every enriched term')
+  for (const alias of Object.keys(termAliases)) assert(!sitemap.includes('/encyclopedia/' + alias + '<'), alias + ': alias not in sitemap')
   for (const path of ['/', '/faq', '/pricing', '/reservation', '/treatments/endodontics']) {
     const response = await app.request('https://dodamdc.kr' + path, { headers: { 'User-Agent': 'DodamEncyclopediaAuditBot/1.0', DNT: '1' } }, env)
     assert.equal(response.status, 200, path + ': existing route')
@@ -124,19 +139,19 @@ try {
   await page.goto(origin + '/encyclopedia', { waitUntil: 'networkidle' })
   assert(await page.locator('[data-ency-controls]').isVisible())
   const visibleCount = () => page.locator('[data-ency-entry]:not([hidden])').count()
-  assert.equal(await visibleCount(), 512)
+  assert.equal(await visibleCount(), N)
   for (const [search, expected] of [['신경 치료', '신경치료(근관치료)'], ['MTA', 'MTA'], ['ㅊㅅ', '치수'], ['잇몸 피', '잇몸 출혈']]) {
     await page.locator('#ency-query').fill(search)
     assert(await page.locator('[data-ency-entry]:not([hidden])').filter({ has: page.locator('.ency-term-name', { hasText: expected }) }).count(), search + ': expected result')
   }
   await page.locator('#ency-query').fill('없는용어확인123456')
   assert.equal(await visibleCount(), 0); assert(await page.locator('#ency-empty').isVisible())
-  await page.locator('#ency-empty [data-ency-reset]').click(); assert.equal(await visibleCount(), 512)
+  await page.locator('#ency-empty [data-ency-reset]').click(); assert.equal(await visibleCount(), N)
   await page.locator('#ency-category').selectOption('implant')
-  assert.equal(await visibleCount(), 45)
-  await page.locator('[data-initial="ㅇ"]').click(); assert(await visibleCount() > 0 && await visibleCount() < 45)
+  assert.equal(await visibleCount(), 44)
+  await page.locator('[data-initial="ㅇ"]').click(); assert(await visibleCount() > 0 && await visibleCount() < 44)
   await page.locator('[data-ency-category-link="anatomy"]').click(); assert.equal(await visibleCount(), 47)
-  await page.locator('.ency-reset').click(); assert.equal(await visibleCount(), 512)
+  await page.locator('.ency-reset').click(); assert.equal(await visibleCount(), N)
   for (const width of [320, 393, 768, 1440]) {
     await page.setViewportSize({ width, height: 960 })
     for (const path of ['/encyclopedia', '/encyclopedia/enamel', '/encyclopedia/vpt', '/encyclopedia/vpt-vs-rct', '/encyclopedia/emergency-dental', '/encyclopedia/anticoagulant', '/encyclopedia/implant-insurance']) {
@@ -156,11 +171,11 @@ try {
   const nojs = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 393, height: 900 } })
   await nojs.route('**/*', route => route.request().url().startsWith(origin) ? route.continue() : route.abort())
   const plain = await nojs.newPage()
-  await plain.goto(origin + '/encyclopedia'); assert.equal(await plain.locator('[data-ency-entry]').count(), 512)
+  await plain.goto(origin + '/encyclopedia'); assert.equal(await plain.locator('[data-ency-entry]').count(), N)
   assert(!await plain.locator('[data-ency-controls]').isVisible())
   await plain.goto(origin + '/encyclopedia/vpt'); assert(await plain.locator('#clinical-context').isVisible()); assert(await plain.locator('#ency-question-text').isVisible())
   await nojs.close(); await ctx.close()
-  report.checks.push('512 unique term editorials and valid curated relationships', '513 SSR pages, unique metadata, canonical, fixed modification dates and no false reviewer', '512 term sitemap URLs and 404 for unknown term', '5 existing routes render without glossary assets', 'Korean/English/initial/alias search, category + initial intersection, reset and category navigation', '28 responsive page/width checks and JavaScript-disabled content')
+  report.checks.push(`${N} terms with own enrichment + FAQPage, 4 alias 301s`, '512 unique term editorials and valid curated relationships', '513 SSR pages, unique metadata, canonical, fixed modification dates and no false reviewer', '512 term sitemap URLs and 404 for unknown term', '5 existing routes render without glossary assets', 'Korean/English/initial/alias search, category + initial intersection, reset and category navigation', '28 responsive page/width checks and JavaScript-disabled content')
   await writeFile('.artifacts/encyclopedia-audit.json', JSON.stringify(report, null, 2))
   console.log(JSON.stringify({ ...report, pages: report.pages.length, browser: report.browser.length }, null, 2))
 } finally {

@@ -11,16 +11,30 @@ export { CATEGORIES }
 
 const all = [part1, part2, part3, part4, part5, part6].flatMap(parse)
 
-// slug 중복 제거 (앞에 있는 것 우선)
+/**
+ * 동의어·중복 용어 → 대표 용어 (2026-10-08 보강 때 통합, 옛 주소는 301).
+ * 원본 줄은 기록용으로 남기되 목록·사이트맵에서는 빠지고, getTerm은 대표 용어를 돌려준다.
+ */
+export const termAliases: Record<string, string> = {
+  emax: 'lithium-disilicate',
+  'treatment-consent': 'informed-consent',
+  'implant-guide': 'guided-surgery',
+  recall: 'regular-checkup',
+}
+
+// slug 중복 제거 (앞에 있는 것 우선), 통합된 별칭 제외
 const seen = new Set<string>()
 export const terms: Term[] = all.filter((t) => {
-  if (seen.has(t.slug)) return false
+  if (seen.has(t.slug) || termAliases[t.slug]) return false
   seen.add(t.slug)
   return true
-})
+}).map((t) => (t.slug === 'lithium-disilicate' ? { ...t, term: '리튬 디실리케이트(이맥스)' } : t))
 
 const bySlug = new Map(terms.map((t) => [t.slug, t]))
-export const getTerm = (slug: string) => bySlug.get(slug)
+export const getTerm = (slug: string) => bySlug.get(termAliases[slug] || slug)
+/** 관련 용어 목록: 별칭을 대표 용어로 바꾸고 자기 자신·중복을 뺀다. */
+export const resolveTermSlugs = (slugs: string[], self?: string) =>
+  [...new Set(slugs.map((s) => termAliases[s] || s))].filter((s) => s !== self && bySlug.has(s))
 
 export const termsByCategory: Record<string, Term[]> = {}
 for (const t of terms) (termsByCategory[t.category] ||= []).push(t)

@@ -3,6 +3,7 @@
 import { chromium } from '@playwright/test'
 import { build } from 'esbuild'
 import { mkdir, writeFile } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
 import assert from 'node:assert/strict'
 const base = process.env.SEO_BASE_URL || 'http://localhost:3000'
 const live = base === 'https://dodamdc.kr'
@@ -42,7 +43,9 @@ try {
   check(site === 'https://dodamdc.kr', 'Production canonical origin must not be localhost/sandbox')
   check(locs.length === new Set(locs).size, 'Duplicate sitemap URLs')
   const rootEntry = sitemapText.match(/<url><loc>[^<]+\/<\/loc>(.*?)<\/url>/)?.[1] || ''
-  check(!rootEntry.includes('<lastmod>'), 'Static sitemap must not fabricate daily modification dates')
+  // 2026-10-08: 정적 페이지 lastmod는 src/data/lastmod.ts의 고정 실제 수정일만 허용(빌드·요청 시각 금지)
+  const rootMod = rootEntry.match(/<lastmod>([^<]+)<\/lastmod>/)?.[1]
+  check(!rootMod || readFileSync('src/data/lastmod.ts', 'utf8').includes(`'/': '${rootMod}'`), 'Static sitemap lastmod must come from the fixed PAGE_LASTMOD record')
   const paths = [...new Set([...locs.map(url => new URL(url).pathname), '/privacy', '/terms', '/sitemap', '/area', ...(process.env.SEO_BASELINE ? [] : ['/handover'])])]
   const seenTitles = new Map(), seenDescriptions = new Map()
   const images = new Set(), documents = new Map()

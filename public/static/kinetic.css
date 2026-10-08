@@ -666,3 +666,12 @@
   body.ai-chat-open .floating-cta,body.ai-chat-open .mobile-action-bar,body.ai-chat-open .ai-chat-tip{visibility:hidden}
 }
 @media(prefers-reduced-motion:reduce){.ai-chat.is-entering,.ai-chat-tip,.experience-theme .fab.fab-ai.is-nudge,.experience-theme .fab.fab-ai.is-nudge .ai-mark{animation:none}.ai-msg-typing i{animation:none;opacity:.7}}
+/* 2026-10-08 화서역 치과 허브 */
+.hub-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 22px;margin:20px 0 0;padding:18px 0 0;border-top:1px solid var(--line)}
+.hub-facts>div{min-width:0}.hub-facts dt{font-size:12px;font-weight:700;color:var(--brand);margin:0 0 3px}.hub-facts dd{margin:0;font-size:14px;line-height:1.7;word-break:keep-all;overflow-wrap:anywhere}
+.hub-treatments{display:grid;gap:10px;padding-left:1.1em;margin:14px 0 18px}.hub-treatments li{line-height:1.75;word-break:keep-all}
+.hub-links{display:flex;flex-wrap:wrap;gap:8px 20px}
+#nearby .pill-list{margin:10px 0}
+@media(max-width:760px){.hub-facts{grid-template-columns:1fr}}
+.hero-area-link{color:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+.visit-address .hero-links{display:flex;flex-wrap:wrap;gap:4px 24px}
