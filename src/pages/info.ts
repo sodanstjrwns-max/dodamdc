@@ -11,6 +11,7 @@ import { nearbyAreas, type Clinic } from '../data/clinic'
 import { hoursNotices, dayHoursText, lunchHoursText } from '../lib/clinic-hours'
 import { upcomingSpecialDays, specialDaysText, dayOf } from '../lib/clinic-status'
 import { pageHero, faqList, ctaStrip, reviewLine, substituteWednesdayNotice, naverBookingLink } from '../lib/ui'
+import { hubA } from '../lib/hub-link'
 import { doctors } from '../data/doctors'
 
 // ── 통합 FAQ ─────────────────────────────────────────────
@@ -155,6 +156,7 @@ export function areaPage(c: Context<Env>, p: AreaPage) {
 ${pageHero({ eyebrow: `${p.areaFull} · ${t.category}`, title: html`${p.areaName}에서 ${t.name},<br>서울도담치과`, lead: `${p.areaFull}에서 ${t.name}을(를) 알아보고 계신다면, 수원 화서동 서울도담치과의 진료 원칙을 먼저 확인해 보세요. ${t.short}`, image: t.heroImage, imageAlt: t.name, crumbs: [{ name: '홈', href: '/' }, { name: '진료 안내', href: '/treatments' }, { name: t.name, href: `/treatments/${t.slug}` }, { name: p.areaName, href: `/area/${p.slug}` }], actions: html`<a href="/reservation?treatment=${t.slug}" class="btn btn-primary">진료 예약</a><a href="/treatments/${t.slug}" class="btn btn-outline">${t.name} 자세히</a>` })}
 <div class="container tx-layout">
   <article class="tx-body">
+    <p class="hint hub-local-line">병원 위치·진료시간·의료진 종합 안내: ${hubA()}</p>
     <section class="summary-box reveal"><h2>${p.areaName} 분들께 먼저 드리는 말씀</h2><ul>${t.summary.slice(0, 3).map((s) => html`<li>${s}</li>`)}</ul></section>
     <div class="prose">
       <section class="reveal"><h2>${p.areaFull}에서 오시는 길</h2><p>${access}</p><p>${clinic.address}. ${clinic.directions.subway}, ${clinic.directions.bus}. ${clinic.directions.parking}</p><p>${hoursNotices(clinic)} <a href="/hours">요일별 진료시간을 확인해 주세요.</a></p></section>
@@ -179,7 +181,7 @@ export function areaIndex(c: Context<Env>) {
   const body = html`
 ${pageHero({ eyebrow: '지역 안내', title: html`수원 어디에서 오시든<br>같은 기준으로 진료합니다`, crumbs: [{ name: '홈', href: '/' }, { name: '지역 안내', href: '/area' }] })}
 <section class="section"><div class="container">
-  <p class="reveal" style="margin-bottom:32px"><a href="/area/hwaseo-station" class="link-arrow"><strong>화서역 치과</strong> — 위치·진료시간·의료진 한눈에 보기</a></p>
+  <p class="reveal" style="margin-bottom:32px"><a href="/area/hwaseo-station" class="link-arrow"><strong>화서역 치과</strong></a> — 위치·진료시간·의료진 한눈에 보기</p>
   ${nearbyAreas.map((a) => html`<div class="reveal" style="margin-bottom:32px"><h2 class="h3">${a.full}</h2><ul class="pill-list">${areaPages.filter((p) => p.areaSlug === a.slug).map((p) => html`<li><a href="/area/${p.slug}">${p.treatmentName}</a></li>`)}</ul></div>`)}
 </div></section>`
   return c.html(Layout(c, { title: '지역별 진료 안내', description: `화서동·화서역·정자동·율전동·천천동·서둔동·수원역 등 수원 인근 지역에서 서울도담치과로 오시는 길과 진료 안내.`, path: '/area' }, body))

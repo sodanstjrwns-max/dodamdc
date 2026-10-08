@@ -235,7 +235,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
         <li><a href="/column">원장 칼럼</a></li>
         <li><a href="/press">언론보도</a></li>
         <li><a href="/encyclopedia">치과 백과사전</a></li>
-        <li><a href="/area/hwaseo-station">화서역 치과 안내</a></li>
+        ${meta.path === '/area/hwaseo-station' ? '' : html`<li><a href="/area/hwaseo-station">화서역 치과</a></li>`}
         <li><a href="/notice">공지사항</a></li>
       </ul>
     </div>

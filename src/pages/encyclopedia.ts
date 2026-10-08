@@ -3,6 +3,7 @@ import type { Context } from 'hono'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
 import { pageHero } from '../lib/ui'
+import { hubA } from '../lib/hub-link'
 import { definedTermLd, faqLd, truncate, absUrl } from '../lib/seo'
 import { getTreatment } from '../data/treatments'
 import { terms, getTerm, termsByCategory, CATEGORIES, initial, autoLink, resolveTermSlugs, type Term } from '../data/encyclopedia'
@@ -100,7 +101,7 @@ ${pageHero({ eyebrow: `치과 백과사전 · ${t.category}`, title: t.term, cru
     <section class="ency-references" id="references"><h2>참고자료와 작성 기준</h2><p>아래 자료는 표시된 관련 주제의 일반 원칙을 더 읽기 위한 공식 자료입니다. 개별 제품의 성능이나 본원의 치료 결과를 보증하는 자료는 아닙니다.</p><ul>${refs.map(ref => html`<li><a href="${ref.url}" target="_blank" rel="noopener noreferrer"><span>${ref.publisher}</span><strong>${ref.title} <span aria-hidden="true">↗</span><span class="sr-only"> (새 창)</span></strong></a></li>`)}</ul><div class="ency-editorial-note">${editorialPolicy}<a href="/encyclopedia#editorial-policy">백과사전 작성 기준 보기</a></div></section>
     <a class="ency-back" href="${categoryHref(t.category)}">← ${t.category} 전체 용어로 돌아가기</a>
   </article>
-  <aside class="ency-article-side" aria-label="백과사전 탐색"><div class="ency-side-card"><p class="ency-kicker">지금 읽는 주제</p><h2>${t.category}</h2><p>${categoryGuides[t.category].introduction}</p><a href="${categoryHref(t.category)}">이 주제 전체 보기 <span aria-hidden="true">↗</span></a><a href="/encyclopedia#dictionary">다른 용어 검색 <span aria-hidden="true">↗</span></a></div><div class="ency-side-card ency-side-contact"><h2>내 치아에 맞는 설명이 필요하다면</h2><p>일반 해설과 내 검사 결과를 함께 확인해 보세요.</p><a href="/reservation" class="btn btn-primary btn-block">진료 상담 예약</a><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></div></aside>
+  <aside class="ency-article-side" aria-label="백과사전 탐색"><div class="ency-side-card"><p class="ency-kicker">지금 읽는 주제</p><h2>${t.category}</h2><p>${categoryGuides[t.category].introduction}</p><a href="${categoryHref(t.category)}">이 주제 전체 보기 <span aria-hidden="true">↗</span></a><a href="/encyclopedia#dictionary">다른 용어 검색 <span aria-hidden="true">↗</span></a></div><div class="ency-side-card ency-side-contact"><h2>내 치아에 맞는 설명이 필요하다면</h2><p>일반 해설과 내 검사 결과를 함께 확인해 보세요.</p><a href="/reservation" class="btn btn-primary btn-block">진료 상담 예약</a><a href="tel:${clinic.phoneTel}">${clinic.phone}</a><p class="hub-local-line">위치·진료시간 안내: ${hubA()}</p></div></aside>
 </div>`
   return c.html(Layout(c, { title: `${t.term} 뜻과 진료에서 확인할 점 — 치과 백과사전`, description: truncate(`${t.term}(${t.en}): ${t.def} ${e.distinction}`), path, type: 'article', bodyClass: 'ency-page ency-term-page', modifiedAt: updated, citations: refs.map(ref => ref.url), jsonld: [definedTermLd(t, c.get('siteUrl')), ...(en ? [faqLd(en.faqs, absUrl(c.get('siteUrl'), path))] : [])], crumbs }, body))
 }

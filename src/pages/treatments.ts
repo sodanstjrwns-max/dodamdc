@@ -8,6 +8,7 @@ import { doctors } from '../data/doctors'
 import { treatmentPricingUrl } from '../data/pricing'
 import { autoLink, termsForTreatment } from '../data/encyclopedia'
 import { imageAttrs, pageHero, faqList, ctaStrip } from '../lib/ui'
+import { hubA } from '../lib/hub-link'
 import { esc, fmtDate } from '../lib/util'
 
 import { consultationGuide, patientSituations } from './journey'
@@ -182,6 +183,7 @@ ${pageHero({
       <p class="side-phone"><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></p>
       <a href="/reservation?treatment=${t.slug}" class="btn btn-primary btn-block">온라인 예약</a>
       <a href="${treatmentPricingUrl(t.slug)}" class="link-arrow">진료비·보험 안내 확인</a>
+      <p class="hint hub-local-line">위치·진료시간은 ${hubA()} 안내에서 확인하세요.</p>
     </div>
   </aside>
 </div>

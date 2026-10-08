@@ -7,6 +7,7 @@ import { conversionScope, conversionStatement, cleanupConversions } from '../lib
 import { html, raw } from 'hono/html'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
+import { columnHubLine, htmlHasHubLink } from '../lib/hub-link'
 import { articleLd, truncate, physicianLd, isoDate, paginationPage, pressListLd, faqsFromArticleHtml, withFaqLd, absUrl, itemListLd, answerSummaryFromHtml, metaDescription } from '../lib/seo'
 import { pingIndexNow } from '../lib/indexnow'
 import { treatments, getTreatment } from '../data/treatments'
@@ -235,6 +236,7 @@ content.get('/column/:slug', async (c) => {
   ${p.thumbnail ? html`<figure class="article-hero-img"><img src="/files/${p.thumbnail}" alt="${p.title} 대표 이미지" width="1200" height="700" fetchpriority="high" decoding="async"></figure>` : ''}
   ${answer ? html`<aside class="summary-box answer-summary" aria-label="핵심 요약"><h2 class="h3">핵심 요약</h2><p>${answer}</p></aside>` : ''}
   <div class="article-body prose">${raw(autoLink(articleBody, { exclude: t ? [t.slug] : [], max: 10 }))}</div>
+  ${htmlHasHubLink(articleBody) ? '' : columnHubLine(p.slug)}
   <footer class="article-foot">
     ${tags.length ? html`<ul class="pill-list">${tags.map((s: string) => html`<li>#${s}</li>`)}</ul>` : ''}
     ${t ? html`<div class="summary-box"><h2 class="h3">이 글과 관련된 진료</h2><p>${t.short}</p><a href="/treatments/${t.slug}" class="link-arrow">${t.name} 안내 보기</a></div>` : ''}
