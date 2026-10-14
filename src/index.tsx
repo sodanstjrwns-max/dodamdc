@@ -65,7 +65,7 @@ app.use('*', requestSecurity)
 app.use('*', async (c, next) => {
   const url = new URL(c.req.url)
   // static assets skip DB work
-  if (url.pathname.startsWith('/static/') || /^\/(favicon|apple-touch)[^/]*\.png$/.test(url.pathname)) {
+  if (url.pathname.startsWith('/static/') || /^\/(favicon|apple-touch)[^/]*\.(png|ico)$/.test(url.pathname)) {
     return next()
   }
   const clinic = await loadClinic(c.env?.DB)
@@ -388,8 +388,8 @@ app.get('/site.webmanifest', (c) => {
     background_color: '#ffffff',
     theme_color: '#006AB5',
     icons: [
-      { src: '/favicon-192.png', sizes: '192x192', type: 'image/png' },
-      { src: '/favicon-512.png', sizes: '512x512', type: 'image/png' }
+      { src: '/favicon-192.png?v=fav20261014', sizes: '192x192', type: 'image/png' },
+      { src: '/favicon-512.png?v=fav20261014', sizes: '512x512', type: 'image/png' }
     ]
   }, 200, { 'Cache-Control': 'public, max-age=86400' })
 })

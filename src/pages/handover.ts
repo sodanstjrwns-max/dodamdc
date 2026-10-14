@@ -23,7 +23,7 @@ export function handoverPage(c: Context<Env>) {
 <meta name="robots" content="noindex, nofollow, noarchive, nosnippet"><meta name="referrer" content="no-referrer">
 <title>서울도담치과의원 홈페이지 납품 안내서</title>
 <meta name="description" content="서울도담치과 홈페이지의 가치와 구성, 콘텐츠 운영 방법, 관리자 사용법, 수정 지원과 결제 안내.">
-<link rel="canonical" href="https://dodamdc.kr/handover"><link rel="icon" href="/favicon.png">
+<link rel="canonical" href="https://dodamdc.kr/handover"><link rel="icon" href="/favicon.ico?v=fav20261014" sizes="any"><link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=fav20261014">
 <link rel="preload" href="/static/fonts/WantedSansCore-v2.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/fonts/wanted-subsets.css?v=2">
 <link rel="stylesheet" href="/static/handover.css?v=5">
