@@ -9,6 +9,8 @@ export type PageMeta = {
   description: string
   path: string
   image?: string
+  /** 공유 미리보기 전용 1200×630 파생본(같은 사진). 없으면 image를 og로 쓴다. */
+  ogImage?: string
   imageAlt?: string
   type?: 'website' | 'article' | 'profile'
   noindex?: boolean
@@ -34,6 +36,17 @@ export type PageMeta = {
 // 공유 미리보기 기본 이미지: 1200×630 가로형 JPG(scripts/build-og-image.mjs로 실사 사진·로고 합성)
 export const OG_IMAGE = '/static/img/og-dodam-1200x630.jpg'
 export const OG_IMAGE_SIZE = { width: 1200, height: 630 }
+// 진료 대표 사진(/static/img/<name>-v2.webp) → 같은 사진의 1200×630 og 파생본(/static/img/og/<name>-1200x630.jpg).
+// 파생본이 없는 사진이면 원본을 그대로 쓴다. 파일 목록은 public/static/img/og/ 와 일치해야 한다.
+const OG_DERIVED = new Set(['dodam-implant', 'dodam-endodontic-retreat', 'dodam-wisdom-tooth', 'dodam-qray-caries-scan', 'dodam-crown-prosthetic', 'dodam-pediatric-explain', 'dodam-oral-surgery-extraction', 'dodam-tmj-treatment', 'dodam-checkup', 'dodam-whitening-2', 'dodam-periodontal-care', 'dodam-mta-pulpotomy'])
+export function ogImageFor(src?: string) {
+  const name = src?.match(/^\/static\/img\/(.+)-v\d+\.webp$/)?.[1]
+  return name && OG_DERIVED.has(name) ? `/static/img/og/${name}-1200x630.jpg` : src
+}
+/** 알려진 이미지의 실제 픽셀 크기(og 파생본은 고정 1200×630) */
+export function knownImageSize(src: string, manifest: Record<string, { width: number; height: number }>) {
+  return manifest[src] || (src === OG_IMAGE || /^\/static\/img\/og\/.+-1200x630\.jpg$/.test(src) ? OG_IMAGE_SIZE : undefined)
+}
 
 // Verified custom domain attached to the existing Cloudflare Pages project.
 export const DEFAULT_SITE_URL = 'https://dodamdc.kr'
@@ -143,7 +156,7 @@ export function physicianLd(d: Doctor, clinic: Clinic, siteUrl: string, press: P
 export function websiteLd(clinic: Clinic, siteUrl: string) {
   return { '@context': 'https://schema.org', '@type': 'WebSite', '@id': siteUrl + '/#website', url: siteUrl + '/', name: clinic.name, alternateName: clinic.shortName, inLanguage: 'ko-KR', publisher: { '@id': siteUrl + '/#clinic' } }
 }
-export function webpageLd(meta: PageMeta, siteUrl: string, path: string) {
+export function webpageLd(meta: PageMeta, siteUrl: string, path: string, imageSize?: { width: number; height: number }) {
   const medical = /^\/(treatments|encyclopedia|column|cases\/gallery)\/.+/.test(meta.path)
   const collection = ['/column', '/cases/gallery'].includes(meta.path)
   const article = meta.jsonld?.find(node => ['Article', 'BlogPosting'].includes(String((node as Record<string, unknown>)['@type']))) as Record<string, unknown> | undefined
@@ -161,6 +174,9 @@ export function webpageLd(meta: PageMeta, siteUrl: string, path: string) {
     speakable: meta.speakable?.length ? { '@type': 'SpeakableSpecification', cssSelector: meta.speakable } : undefined,
     about: meta.aboutId ? { '@id': absUrl(siteUrl, meta.aboutId) } : meta.aboutPath ? { '@id': absUrl(siteUrl, meta.aboutPath + '#procedure') } : undefined,
     spatialCoverage: meta.spatialCoverage,
+    // 페이지 대표 사진(og·본문 첫 사진과 같은 사진). 기본 로고 og는 넣지 않는다.
+    image: meta.image ? { '@type': 'ImageObject', url: absUrl(siteUrl, meta.image), ...(imageSize ? { width: imageSize.width, height: imageSize.height } : {}) } : undefined,
+    primaryImageOfPage: meta.image ? { '@type': 'ImageObject', url: absUrl(siteUrl, meta.image) } : undefined,
   }
 }
 export function procedureLd(t: Treatment, clinic: Clinic, siteUrl: string) {

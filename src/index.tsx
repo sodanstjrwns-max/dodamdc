@@ -158,16 +158,20 @@ app.get('/cases', (c) => c.redirect('/cases/gallery', 301))
 // ---------- SEO files ----------
 app.get('/sitemap.xml', async (c) => {
   const site = c.get('siteUrl')
-  const urls: { loc: string; lastmod?: string; pri: string; freq: string }[] = []
-  const add = (path: string, pri = '0.6', freq = 'monthly', lastmod?: string) => urls.push({ loc: site + path, pri, freq, lastmod: isoDate(lastmod) })
+  const urls: { loc: string; lastmod?: string; pri: string; freq: string; image?: { loc: string; title: string } }[] = []
+  const add = (path: string, pri = '0.6', freq = 'monthly', lastmod?: string, image?: { src: string; title: string }) => urls.push({ loc: site + path, pri, freq, lastmod: isoDate(lastmod), image: image ? { loc: site + image.src, title: image.title } : undefined })
 
   add('/', '1.0', 'weekly', PAGE_LASTMOD['/'])
   for (const p of ['/first-visit', '/symptom-check', '/mission', '/doctors', '/treatments', '/floor-guide', '/directions', '/hours', '/pricing', '/faq', '/reservation']) add(p, '0.8', 'weekly', PAGE_LASTMOD[p])
   for (const d of doctors) add(`/doctors/${d.slug}`, '0.8', 'monthly', DOCTOR_LASTMOD)
-  for (const t of treatments) add(`/treatments/${t.slug}`, '0.9', 'monthly', TREATMENT_LASTMOD[t.slug])
+  // 이미지 사이트맵: 진료 페이지와 화서역×진료 페이지의 대표 사진(본문 첫 사진·og와 같은 사진)
+  for (const t of treatments) add(`/treatments/${t.slug}`, '0.9', 'monthly', TREATMENT_LASTMOD[t.slug], t.heroImage ? { src: t.heroImage, title: `${t.name} — 서울도담치과` } : undefined)
   add('/area', '0.7', 'monthly', PAGE_LASTMOD['/area'])
   add('/area/hwaseo-station', '0.9', 'monthly', PAGE_LASTMOD['/area/hwaseo-station'])
-  for (const a of areaPages) add(`/area/${a.slug}`, '0.6', 'monthly', AREA_LASTMOD)
+  for (const a of areaPages) {
+    const hero = a.areaSlug === 'hwaseo-station' ? treatments.find((t) => t.slug === a.treatmentSlug)?.heroImage : undefined
+    add(`/area/${a.slug}`, '0.6', 'monthly', AREA_LASTMOD, hero ? { src: hero, title: `${a.areaName} ${a.treatmentName} — 서울도담치과` } : undefined)
+  }
   add('/encyclopedia', '0.8', 'weekly', terms.map(t => termUpdated(t.slug)).sort().at(-1))
   for (const t of terms) add(`/encyclopedia/${t.slug}`, '0.4', 'monthly', termUpdated(t.slug))
   try {
@@ -194,8 +198,8 @@ app.get('/sitemap.xml', async (c) => {
   }
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${urls.map((u) => `  <url><loc>${xmlEscape(u.loc)}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ''}</url>`).join('\n')}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+${urls.map((u) => `  <url><loc>${xmlEscape(u.loc)}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ''}${u.image ? `<image:image><image:loc>${xmlEscape(u.image.loc)}</image:loc><image:title>${xmlEscape(u.image.title)}</image:title></image:image>` : ''}</url>`).join('\n')}
 </urlset>`
   return c.body(xml, 200, { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' })
 })

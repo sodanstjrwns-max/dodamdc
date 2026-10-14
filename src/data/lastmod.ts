@@ -4,7 +4,7 @@
  * DB 콘텐츠(칼럼·사례·공지·언론보도)는 각 행의 updated_at을 쓴다.
  */
 export const PAGE_LASTMOD: Record<string, string> = {
-  '/': '2026-10-08', // 화서역 치과 안내 링크
+  '/': '2026-10-14', // 화서역 진료 안내 사진 카드
   '/first-visit': '2026-09-15',
   '/symptom-check': '2026-09-15',
   '/mission': '2026-10-01',
@@ -17,7 +17,7 @@ export const PAGE_LASTMOD: Record<string, string> = {
   '/faq': '2026-10-01',
   '/reservation': '2026-10-01',
   '/area': '2026-10-08', // 화서역 치과 안내 연결
-  '/area/hwaseo-station': '2026-10-08', // 화서역 치과 허브 신설
+  '/area/hwaseo-station': '2026-10-14', // 진료별 사진 카드 추가 (허브 신설 10-08)
 }
 export const DOCTOR_LASTMOD = '2026-10-01'
 /** 진료 상세: 진료 데이터 파일과 상세 템플릿(2026-09-29 제목 변경) 중 늦은 날짜 */

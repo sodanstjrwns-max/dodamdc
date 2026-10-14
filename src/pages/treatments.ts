@@ -2,7 +2,7 @@ import { html, raw } from 'hono/html'
 import type { Context } from 'hono'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
-import { procedureLd, faqLd, physicianLd } from '../lib/seo'
+import { procedureLd, faqLd, physicianLd, ogImageFor } from '../lib/seo'
 import { treatments, coreTreatments, otherTreatments, getTreatment, type Treatment } from '../data/treatments'
 import { doctors } from '../data/doctors'
 import { treatmentPricingUrl } from '../data/pricing'
@@ -193,7 +193,7 @@ ${ctaStrip(clinic, { title: `${t.name}, 필요한지부터 함께 확인해 드�
     title: `${t.name} | 과정·주의사항·FAQ — 수원 화서동`,
     description: t.metaDescription,
     path: `/treatments/${t.slug}`,
-    image: t.heroImage,
+    image: t.heroImage, ogImage: ogImageFor(t.heroImage),
     type: 'article', reviewer: t.core ? undefined : dr, reviewedAt: t.core ? undefined : t.reviewedAt,
     imageAlt: treatmentPhotoAlts[t.slug],
     speakable: ['h1', '.treatment-answer'],

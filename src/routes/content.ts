@@ -221,6 +221,9 @@ content.get('/column/:slug', async (c) => {
     imgN++
     return /\salt="[^"]+"/i.test(tag) ? tag : tag.replace(/\salt="[^"]*"/i, '').replace(/^<img\b/i, `<img alt="${String(p.title).replace(/[&"<>]/g, (ch) => ({ '&': '&amp;', '"': '&quot;', '<': '&lt;', '>': '&gt;' } as any)[ch])} 이미지 ${imgN}"`)
   })
+  // 대표 이미지: 썸네일이 없으면 본문 첫 사이트 내 이미지(/files/·/static/)를 og·Article.image로 승격(기본 로고 og 대체)
+  const firstBodyImg = String(articleBody).match(/<img\b[^>]*\ssrc="(\/(?:files|static)\/[^"?#]+)"/i)?.[1]
+  const leadImage = p.thumbnail ? `/files/${p.thumbnail}` : firstBodyImg
   const faqs = faqsFromArticleHtml(articleBody)
   const answer = answerSummaryFromHtml(articleBody)
   const description = metaDescription(p.meta_description || p.excerpt, answer || stripTags(p.content_html))
@@ -247,7 +250,7 @@ content.get('/column/:slug', async (c) => {
   </footer>
 </article>
 ${ctaStrip(clinic)}`
-  return c.html(Layout(c, { title: p.meta_title || p.title, description, path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, imageAlt: p.title, type: 'article', author: dr, reviewer: dr, reviewedAt: dr ? p.updated_at || p.published_at : undefined, publishedAt: p.published_at, modifiedAt: p.updated_at, aboutPath: t ? `/treatments/${t.slug}` : undefined, speakable: ['.article-head h1', ...(answer ? ['.answer-summary'] : [])], jsonld: withFaqLd([...(dr ? [physicianLd(dr, clinic, siteUrl)] : []), articleLd({ type: 'BlogPosting', title: p.title, description, path: `/column/${p.slug}`, image: p.thumbnail ? `/files/${p.thumbnail}` : undefined, author: dr ? `${dr.name}` : undefined, authorPath: dr ? `/doctors/${dr.slug}` : undefined, publishedAt: p.published_at, modifiedAt: p.updated_at, aboutPath: t ? `/treatments/${t.slug}` : undefined, keywords: p.tags || undefined }, clinic, siteUrl)], faqs, absUrl(siteUrl, `/column/${p.slug}`)), crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }, ...(t ? [{ name: t.name, href: `/column?treatment=${t.slug}` }] : []), { name: p.title, href: `/column/${p.slug}` }] }, body))
+  return c.html(Layout(c, { title: p.meta_title || p.title, description, path: `/column/${p.slug}`, image: leadImage, imageAlt: p.title, type: 'article', author: dr, reviewer: dr, reviewedAt: dr ? p.updated_at || p.published_at : undefined, publishedAt: p.published_at, modifiedAt: p.updated_at, aboutPath: t ? `/treatments/${t.slug}` : undefined, speakable: ['.article-head h1', ...(answer ? ['.answer-summary'] : [])], jsonld: withFaqLd([...(dr ? [physicianLd(dr, clinic, siteUrl)] : []), articleLd({ type: 'BlogPosting', title: p.title, description, path: `/column/${p.slug}`, image: leadImage, author: dr ? `${dr.name}` : undefined, authorPath: dr ? `/doctors/${dr.slug}` : undefined, publishedAt: p.published_at, modifiedAt: p.updated_at, aboutPath: t ? `/treatments/${t.slug}` : undefined, keywords: p.tags || undefined }, clinic, siteUrl)], faqs, absUrl(siteUrl, `/column/${p.slug}`)), crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }, ...(t ? [{ name: t.name, href: `/column?treatment=${t.slug}` }] : []), { name: p.title, href: `/column/${p.slug}` }] }, body))
 })
 
 // ── 언론보도 ─────────────────────────────────────────────

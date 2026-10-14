@@ -2,7 +2,7 @@ import { hoursNotices } from './clinic-hours'
 import { html, raw } from 'hono/html'
 import type { Context } from 'hono'
 import type { Env } from './types'
-import { fullTitle, absUrl, breadcrumbLd, canonicalPath, dentistLd, websiteLd, webpageLd, isoDate, OG_IMAGE, OG_IMAGE_SIZE, type PageMeta } from './seo'
+import { fullTitle, absUrl, breadcrumbLd, canonicalPath, dentistLd, websiteLd, webpageLd, isoDate, knownImageSize, OG_IMAGE, type PageMeta } from './seo'
 import { coreTreatments, otherTreatments } from '../data/treatments'
 import { doctors } from '../data/doctors'
 import { imageManifest } from '../data/image-manifest'
@@ -23,16 +23,16 @@ export function Layout(c: Context<Env>, meta: PageMeta, body: any) {
   const title = fullTitle(meta.title, clinic) + (pageNumber ? ` · ${pageNumber}페이지` : '')
   const description = meta.description + (pageNumber ? ` (${pageNumber}페이지)` : '')
   const url = absUrl(siteUrl, path)
-  const imagePath = meta.image || OG_IMAGE
+  const imagePath = meta.ogImage || meta.image || OG_IMAGE
   const image = absUrl(siteUrl, imagePath)
-  const imageSize = imageManifest[imagePath] || (imagePath === OG_IMAGE ? OG_IMAGE_SIZE : undefined)
+  const imageSize = knownImageSize(imagePath, imageManifest)
   const preview = new URL(c.req.url).origin !== siteUrl
   const noindex = preview || meta.noindex || !['GET', 'HEAD'].includes(c.req.method) || (meta.path === '/reservation' && c.req.query('ok') === '1')
   const publicAnalytics = !preview && !noindex && !user && conversionScope(c) === 'production' && !/^\/(auth|admin|reservation|handover|symptom-check|cases|files)(\/|$)/.test(meta.path)
   c.header('X-Robots-Tag', noindex ? 'noindex, follow' : 'index, follow')
   // Personalized headers/forms must never enter a shared HTML cache.
   c.header('Cache-Control', 'private, no-store')
-  const lds = [dentistLd(clinic, siteUrl), websiteLd(clinic, siteUrl), webpageLd({ ...meta, title, description }, siteUrl, path), ...(meta.jsonld || [])]
+  const lds = [dentistLd(clinic, siteUrl), websiteLd(clinic, siteUrl), webpageLd({ ...meta, title, description }, siteUrl, path, meta.image ? knownImageSize(meta.image, imageManifest) : undefined), ...(meta.jsonld || [])]
   if (meta.crumbs && meta.crumbs.length > 1) lds.push(breadcrumbLd(meta.crumbs, siteUrl, path))
   const hoursToday = (() => {
     const kst = kstNow(), ymd = toYmd(kst)
@@ -82,7 +82,7 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="preload" href="/static/fonts/WantedSansCore-v2.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/fonts/wanted-subsets.css?v=2">
 <link rel="stylesheet" href="/static/style.css?v=10">
-<link rel="stylesheet" href="/static/kinetic.css?v=25">
+<link rel="stylesheet" href="/static/kinetic.css?v=26">
 ${meta.path === '/symptom-check' ? html`<link rel="stylesheet" href="/static/symptom-check.css?v=1">` : ''}
 ${meta.path === '/encyclopedia' || meta.path.startsWith('/encyclopedia/') ? html`<link rel="stylesheet" href="/static/encyclopedia.css?v=20261008">` : ''}
 ${meta.path === '/handover' ? html`<link rel="stylesheet" href="/static/handover.css?v=2">` : ''}

@@ -9,6 +9,7 @@ import { doctors } from '../data/doctors'
 import { faqList, imageAttrs, naverBookingLink, substituteWednesdayNotice } from '../lib/ui'
 import { fmtDate } from '../lib/util'
 import { patientSituations } from './journey'
+import { HWASEO_CORE_CARDS, areaCardGrid, areaCardItemListLd } from '../lib/area-cards'
 
 type Post = { slug: string; title: string; excerpt: string; thumbnail: string | null; published_at: string }
 type Notice = { id: number; title: string; created_at: string }
@@ -67,6 +68,14 @@ export async function homePage(c: Context<Env>) {
 
 
 ${patientSituations(true)}
+
+<section class="section area-cards-section" id="hwaseo-care" aria-labelledby="hwaseo-care-title">
+  <div class="container">
+    <div class="section-kicker"><span>HWASEO STATION CARE</span><span>화서역 진료 안내</span></div>
+    <div class="section-heading-row"><h2 id="hwaseo-care-title" class="display-heading">화서역 치과,<br>진료별로 먼저 읽어보세요.</h2><p>화서역·화서동에서 오시는 분들을 위해<br>진료마다 확인할 내용과 오시는 길을 따로 정리했습니다.</p></div>
+    ${areaCardGrid(HWASEO_CORE_CARDS, 'home-card')}
+  </div>
+</section>
 
 <section class="philosophy-kinetic" id="dodam-philosophy" aria-labelledby="philosophy-title">
   <div class="philosophy-sticky">
@@ -133,6 +142,6 @@ ${patientSituations(true)}
     description: `수원 화서동 서울도담치과. 통합치의학과 전문의 한휘림 대표원장이 충분히 설명하고 필요한 만큼 치료합니다. MTA 생활치수치료·잇몸치료·임플란트. 화요일 야간진료 20:30. ${clinic.phone}`,
     path: '/', bodyClass: 'home-page kinetic-home', image: OG_IMAGE, imageAlt: `${clinic.name} 로고와 ${dr.name} ${dr.title} 사진`,
     speakable: ['#hero-title', '.hero-slogan'],
-    jsonld: [faqLd(faqs)],
+    jsonld: [faqLd(faqs), areaCardItemListLd(HWASEO_CORE_CARDS, siteUrl, '/#hwaseo-care', '화서역 진료 안내')],
   }, body))
 }

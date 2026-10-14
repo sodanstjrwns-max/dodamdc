@@ -2,7 +2,8 @@ import { html, raw } from 'hono/html'
 import type { Context } from 'hono'
 import type { Env } from '../lib/types'
 import { Layout } from '../lib/layout'
-import { faqLd, truncate, absUrl } from '../lib/seo'
+import { faqLd, truncate, absUrl, ogImageFor } from '../lib/seo'
+import { HWASEO_CORE_CARDS, areaCardGrid } from '../lib/area-cards'
 import { treatments, getTreatment } from '../data/treatments'
 import { pricing, insuredItems, pricingUpdatedAt, won } from '../data/pricing'
 import { loadPricingGroups } from '../lib/fees'
@@ -153,7 +154,7 @@ export function areaPage(c: Context<Env>, p: AreaPage) {
   const others = areaPages.filter((x) => x.areaSlug === p.areaSlug && x.slug !== p.slug)
   const sameTx = areaPages.filter((x) => x.treatmentSlug === p.treatmentSlug && x.slug !== p.slug).slice(0, 8)
   const body = html`
-${pageHero({ eyebrow: `${p.areaFull} · ${t.category}`, title: html`${p.areaName}에서 ${t.name},<br>서울도담치과`, lead: `${p.areaFull}에서 ${t.name}을(를) 알아보고 계신다면, 수원 화서동 서울도담치과의 진료 원칙을 먼저 확인해 보세요. ${t.short}`, image: t.heroImage, imageAlt: t.name, crumbs: [{ name: '홈', href: '/' }, { name: '진료 안내', href: '/treatments' }, { name: t.name, href: `/treatments/${t.slug}` }, { name: p.areaName, href: `/area/${p.slug}` }], actions: html`<a href="/reservation?treatment=${t.slug}" class="btn btn-primary">진료 예약</a><a href="/treatments/${t.slug}" class="btn btn-outline">${t.name} 자세히</a>` })}
+${pageHero({ eyebrow: `${p.areaFull} · ${t.category}`, title: html`${p.areaName}에서 ${t.name},<br>서울도담치과`, lead: `${p.areaFull}에서 ${t.name}을(를) 알아보고 계신다면, 수원 화서동 서울도담치과의 진료 원칙을 먼저 확인해 보세요. ${t.short}`, image: t.heroImage, imageAlt: `${p.areaName} ${t.name} 안내 사진`, crumbs: [{ name: '홈', href: '/' }, { name: '진료 안내', href: '/treatments' }, { name: t.name, href: `/treatments/${t.slug}` }, { name: p.areaName, href: `/area/${p.slug}` }], actions: html`<a href="/reservation?treatment=${t.slug}" class="btn btn-primary">진료 예약</a><a href="/treatments/${t.slug}" class="btn btn-outline">${t.name} 자세히</a>` })}
 <div class="container tx-layout">
   <article class="tx-body">
     <p class="hint hub-local-line">병원 위치·진료시간·의료진 종합 안내: ${hubA()}</p>
@@ -173,7 +174,7 @@ ${pageHero({ eyebrow: `${p.areaFull} · ${t.category}`, title: html`${p.areaName
   </aside>
 </div>
 ${ctaStrip(clinic, { title: `${p.areaName}에서 가까운 ${t.name} 상담` })}`
-  return c.html(Layout(c, { title: `${p.areaName} ${t.name} — ${p.areaFull} 인근 치과`, description: truncate(`${p.areaFull}에서 ${t.name}을 찾으신다면 수원 화서동 서울도담치과. ${t.short} 통합치의학과 전문의 진료, 화요일 야간진료. ${clinic.phone}`), path: `/area/${p.slug}`, image: t.heroImage, jsonld: [], crumbs: [{ name: '홈', href: '/' }, { name: t.name, href: `/treatments/${t.slug}` }, { name: p.areaName, href: `/area/${p.slug}` }] }, body))
+  return c.html(Layout(c, { title: `${p.areaName} ${t.name} — ${p.areaFull} 인근 치과`, description: truncate(`${p.areaFull}에서 ${t.name}을 찾으신다면 수원 화서동 서울도담치과. ${t.short} 통합치의학과 전문의 진료, 화요일 야간진료. ${clinic.phone}`), path: `/area/${p.slug}`, image: t.heroImage, ogImage: ogImageFor(t.heroImage), imageAlt: `${p.areaName} ${t.name} 안내 사진`, jsonld: [], crumbs: [{ name: '홈', href: '/' }, { name: t.name, href: `/treatments/${t.slug}` }, { name: p.areaName, href: `/area/${p.slug}` }] }, body))
 }
 
 export function areaIndex(c: Context<Env>) {
@@ -246,6 +247,7 @@ ${pageHero({ eyebrow: `${clinic.region} · 1호선 화서역 인근`, title: '�
     <section class="reveal in" id="faq"><h2 class="h3">화서역·화서동 주민분들이 자주 묻는 질문</h2>${faqList(faqs, { open: 1 })}</section>
     <section class="reveal in" id="nearby"><h2 class="h3">화서역·화서동 진료별 안내</h2>
       <p class="hint">진료마다 화서역·화서동에서 오시는 분을 위한 안내를 따로 정리했습니다.</p>
+      ${areaCardGrid(HWASEO_CORE_CARDS, 'hub-card')}
       <ul class="pill-list">${nearby('hwaseo-station').map((p) => html`<li><a href="/area/${p.slug}">화서역 ${p.treatmentName}</a></li>`)}</ul>
       <ul class="pill-list">${nearby('hwaseo').map((p) => html`<li><a href="/area/${p.slug}">화서동 ${p.treatmentName}</a></li>`)}</ul>
       <p><a href="/area" class="link-arrow">다른 지역에서 오시는 길</a></p>

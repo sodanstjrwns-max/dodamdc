@@ -675,3 +675,28 @@
 @media(max-width:760px){.hub-facts{grid-template-columns:1fr}}
 .hero-area-link{color:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
 .visit-address .hero-links{display:flex;flex-wrap:wrap;gap:4px 24px}
+/* 2026-10-14 화서역 진료 안내 사진 카드(홈 #hwaseo-care · 허브 #nearby) */
+.area-card-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+.area-card-grid>li{min-width:0;margin:0;padding:0}
+.area-card-grid>li::before{content:none}
+.area-card{position:relative;display:flex;flex-direction:column;height:100%;border:1px solid var(--line);border-radius:var(--radius-lg);background:#fff;overflow:hidden;color:var(--ink);text-decoration:none;transition:transform .4s,border-color .3s,box-shadow .3s}
+.area-card:hover{transform:translateY(-6px);border-color:var(--nature);box-shadow:0 14px 34px #0069b31c}
+.area-card:focus-visible{outline:3px solid var(--brand);outline-offset:3px}
+.area-card-img{display:block;aspect-ratio:1/1;overflow:hidden;background:var(--bg-2)}
+.area-card-img img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .6s}
+.area-card:hover .area-card-img img{transform:scale(1.04)}
+.area-card-body{display:flex;flex-direction:column;gap:8px;padding:20px 52px 24px 22px;flex:1}
+.area-card-tag{font-size:10px;font-weight:720;letter-spacing:.13em;color:var(--brand)}
+.area-card-title{font-size:21px;font-weight:780;letter-spacing:-.045em;line-height:1.3;color:var(--ink);word-break:keep-all}
+.area-card-line{font-size:14px;line-height:1.65;color:var(--ink-2);word-break:keep-all}
+.area-card-arrow{position:absolute;right:20px;bottom:20px;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:var(--nature);color:var(--brand);font-size:15px;transition:background .3s,color .3s}
+.area-card:hover .area-card-arrow{background:var(--brand);color:#fff}
+.area-cards-section .section-heading-row{margin-bottom:34px}
+#nearby .area-card-grid{margin:16px 0 22px;gap:14px}
+#nearby .area-card-body{padding:16px 44px 18px 16px;gap:6px}
+#nearby .area-card-title{font-size:17px}
+#nearby .area-card-line{font-size:13px}
+#nearby .area-card-arrow{right:14px;bottom:14px;width:26px;height:26px;font-size:13px}
+@media(max-width:1000px){.area-card-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}}
+@media(max-width:560px){.area-card-grid,#nearby .area-card-grid{gap:10px}.area-card{border-radius:var(--radius)}.area-card-body,#nearby .area-card-body{padding:13px 12px 40px;gap:5px}.area-card-tag{font-size:9px;letter-spacing:.08em}.area-card-title,#nearby .area-card-title{font-size:16px}.area-card-line,#nearby .area-card-line{font-size:12.5px;line-height:1.55}.area-card-arrow,#nearby .area-card-arrow{right:10px;bottom:10px;width:24px;height:24px;font-size:12px}}
+@media(prefers-reduced-motion:reduce){.area-card,.area-card-img img{transition:none}.area-card:hover{transform:none}.area-card:hover .area-card-img img{transform:none}}
