@@ -1,6 +1,7 @@
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type { ToothScene } from './tooth-scene'
+import { setupImmersive } from './immersive'
 
 gsap.registerPlugin(ScrollTrigger)
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)')
@@ -130,6 +131,8 @@ function setupMotion() {
     if (photo) gsap.fromTo(photo, { scale: 1.035, yPercent: 1 }, { scale: 1, yPercent: 0, ease: 'none', scrollTrigger: { trigger: '#doctor-story', start: 'top bottom', end: 'bottom top', scrub: 1 } })
     const footer = document.querySelector('.footer-wordmark')
     if (footer) gsap.fromTo(footer, { yPercent: 35, letterSpacing: '0.035em' }, { yPercent: 0, letterSpacing: '-0.07em', ease: 'none', scrollTrigger: { trigger: '.site-footer', start: 'top bottom', end: 'bottom bottom', scrub: 1 } })
+    // 메인 스크롤 몰입 연출(미리보기) — 기존 키네틱이 없는 구간만
+    setupImmersive(gsap, ScrollTrigger, desktop.matches)
   })
   ScrollTrigger.refresh()
 }

@@ -282,7 +282,7 @@ ${aiChatEnabled(meta.path) ? aiChatWidget(clinic) : ''}
 <script src="/static/app.js?v=18" defer></script>
 ${aiChatEnabled(meta.path) ? html`<script src="/static/ai-chat.js?v=2" defer></script>` : ''}
 ${meta.path === '/encyclopedia' || meta.path.startsWith('/encyclopedia/') ? html`<script src="/static/encyclopedia.js?v=20260914" defer></script>` : ''}
-${meta.path === '/symptom-check' ? html`<script src="/static/symptom-check.js?v=1" defer></script>` : html`<script type="module" src="/static/experience/main.js?v=12"></script>`}
+${meta.path === '/symptom-check' ? html`<script src="/static/symptom-check.js?v=1" defer></script>` : html`<script type="module" src="/static/experience/main.js?v=${__EXPERIENCE_V__}"></script>`}
 </body>
 </html>`
 }
