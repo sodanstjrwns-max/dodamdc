@@ -266,7 +266,7 @@ app.get('/llms.txt', async (c) => {
   const clinic = c.get('clinic')
   const body = `# ${clinic.name}
 
-> ${clinic.region}의 치과의원. ${doctors[0].name} 대표원장(${doctors[0].specialty})이 직접 진료합니다. ${clinic.slogan}
+> ${clinic.region}의 치과의원. ${doctors[0].name} 대표원장(${doctors[0].specialty})이 직접 상담하고 진료합니다. ${clinic.slogan}
 
 ## 진료 원칙
 - MTA 생활치수치료(VPT)·크라운으로 자연치아 보존 가능성을 먼저 살핍니다.

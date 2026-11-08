@@ -213,7 +213,7 @@ export function hwaseoStationHub(c: Context<Env>) {
 ${pageHero({ eyebrow: `${clinic.region} · 1호선 화서역 인근`, title: '화서역 치과 · 화서동 치과', lead: `${clinic.shortName}는 화서역에서 걸어서 오실 수 있는 화서동의 치과의원입니다. 위치와 진료시간, 의료진과 진료 항목을 한 페이지에 정리했습니다.`, crumbs, actions: html`${naverBookingLink(clinic, 'btn btn-primary', '네이버 예약')}<a href="/reservation" class="btn btn-outline">홈페이지 예약 신청</a><a href="tel:${clinic.phoneTel}" class="btn btn-outline">${clinic.phone}</a>` })}
 <div class="container tx-layout">
   <article class="tx-body">
-    <section class="summary-box reveal in" id="quick-answer"><h2>화서역 치과를 찾고 계신다면</h2><p>${clinic.shortName}는 ${clinic.directions.subway}, ${clinic.address}에 있습니다. ${dr.specialty} ${dr.name} ${dr.title}이 직접 진료하며, 신경을 제거하기 전에 살릴 수 있는지부터 확인하는 자연치아 보존 진료를 중심에 둡니다. ${lateText}.</p>
+    <section class="summary-box reveal in" id="quick-answer"><h2>화서역 치과를 찾고 계신다면</h2><p>${clinic.shortName}는 ${clinic.directions.subway}, ${clinic.address}에 있습니다. ${dr.specialty} ${dr.name} ${dr.title}이 직접 상담하고 진료하며, 신경을 제거하기 전에 살릴 수 있는지부터 확인하는 자연치아 보존 진료를 중심에 둡니다. ${lateText}.</p>
       <dl class="hub-facts"><div><dt>주소</dt><dd>${clinic.address}</dd></div><div><dt>지하철</dt><dd>${clinic.directions.subway}</dd></div><div><dt>버스</dt><dd>${clinic.directions.bus}</dd></div><div><dt>주차</dt><dd>${clinic.directions.parking}</dd></div><div><dt>전화</dt><dd><a href="tel:${clinic.phoneTel}">${clinic.phone}</a></dd></div><div><dt>대표원장</dt><dd><a href="/doctors/${dr.slug}">${dr.name} ${dr.title}</a> (${dr.specialty})</dd></div></dl>
     </section>
     <div class="prose">

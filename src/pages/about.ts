@@ -97,7 +97,7 @@ ${press.length ? html`<section class="section section-bg doctor-press" id="press
 
 <section class="section section-bg" id="doctor-treatments">
   <div class="container">
-    <div class="section-head reveal"><p class="eyebrow">담당 진료</p><h2 class="h2">${d.name} 원장이 직접 진료합니다</h2></div>
+    <div class="section-head reveal"><p class="eyebrow">담당 진료</p><h2 class="h2">${d.name} 원장이 직접 상담하고 진료합니다</h2></div>
     <div class="tx-grid stagger">${txs.map((t) => html`<a href="/treatments/${t.slug}" class="tx-item"><span class="tag ${t.core ? 'green' : 'gray'}">${t.core ? '핵심 진료' : t.category}</span><h3>${t.name}</h3><p>${t.short}</p></a>`)}</div>
   </div>
 </section>
@@ -108,7 +108,7 @@ ${cases.length || columns.length ? html`<section class="section" id="doctor-cont
     ${columns.length ? html`<div class="reveal"><h2 class="h3">원장 칼럼</h2><ul class="notice-list">${columns.map((p) => html`<li class="notice-row"><a href="/column/${p.slug}">${p.title}</a></li>`)}</ul><p><a href="/column" class="link-arrow">칼럼 전체</a></p></div>` : ''}
   </div>
 </section>` : ''}
-${ctaStrip(clinic, { title: `${d.name} 원장에게 직접 진료받기`, sub: `${reviewLine(clinic)} · ${clinic.phone}` })}`
+${ctaStrip(clinic, { title: `${d.name} 원장에게 직접 상담받기`, sub: `${reviewLine(clinic)} · ${clinic.phone}` })}`
 
   return c.html(Layout(c, {
     title: `${d.name} ${d.title} — ${d.specialty}`,

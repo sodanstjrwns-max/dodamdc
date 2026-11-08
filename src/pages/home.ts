@@ -58,11 +58,11 @@ export async function homePage(c: Context<Env>) {
     <div class="hero-portrait-stage">
       <div class="hero-portrait-backdrop" aria-hidden="true"></div>
       <figure class="hero-portrait"><img src="/static/img/dr-han-hwirim-standing-v2.webp" srcset="/static/img/dr-han-hwirim-standing-v2-sm.webp 640w, /static/img/dr-han-hwirim-standing-v2.webp 1200w" sizes="(max-width: 1000px) 88vw, 40vw" width="1200" height="1500" alt="진료복을 입고 미소 짓는 한휘림 대표원장" fetchpriority="high" decoding="async"></figure>
-      <div class="hero-portrait-chip"><img src="${dr.photo}" alt="" width="40" height="40"><span><small>통합치의학과 전문의</small><strong>한휘림 대표원장 직접 상담·진료</strong></span></div>
+      <div class="hero-portrait-chip"><img src="${dr.photo}" alt="" width="40" height="40"><span><small>통합치의학과 전문의</small><strong>한휘림 대표원장 직접 상담</strong></span></div>
       <p class="hero-portrait-quote">"이해될 때까지 충분히 설명하고,<br>필요한 만큼만 치료합니다."</p>
     </div>
   </div>
-  <div class="kinetic-hero-bottom"><a href="#dodam-philosophy" class="kinetic-scroll"><span class="scroll-disc">↓</span><span>SCROLL INTO DODAM</span></a><a href="/doctors/${dr.slug}" class="hero-doctor-chip"><img src="${dr.photoAvatar}" alt="" ${imageAttrs(`${dr.photoAvatar}`, '52px', 52, 52)}><span><small>통합치의학과 전문의</small>${dr.name} 대표원장 직접 상담·진료</span>${arrow}</a><button type="button" class="motion-toggle" id="motion-toggle" aria-pressed="false" aria-label="애니메이션 일시정지" hidden><span class="motion-icon" aria-hidden="true">Ⅱ</span><span class="motion-toggle-label">모션 켜짐</span></button></div>
+  <div class="kinetic-hero-bottom"><a href="#dodam-philosophy" class="kinetic-scroll"><span class="scroll-disc">↓</span><span>SCROLL INTO DODAM</span></a><a href="/doctors/${dr.slug}" class="hero-doctor-chip"><img src="${dr.photoAvatar}" alt="" ${imageAttrs(`${dr.photoAvatar}`, '52px', 52, 52)}><span><small>통합치의학과 전문의</small>${dr.name} 대표원장 직접 상담</span>${arrow}</a><button type="button" class="motion-toggle" id="motion-toggle" aria-pressed="false" aria-label="애니메이션 일시정지" hidden><span class="motion-icon" aria-hidden="true">Ⅱ</span><span class="motion-toggle-label">모션 켜짐</span></button></div>
 </section>
 <div class="brand-ticker" aria-hidden="true"><div class="brand-ticker-track">${Array.from({length:4},()=>html`<span>KEEP YOUR OWN</span><i>+</i><span>자연치아를 지키는 다른 생각</span><i>+</i>`)}</div></div>
 
