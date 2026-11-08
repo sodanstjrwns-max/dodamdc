@@ -15,6 +15,7 @@ import auth from './routes/auth'
 import admin from './routes/admin'
 import content from './routes/content'
 import aiChat from './routes/ai-chat'
+import columnApi, { publishDueColumns } from './routes/column-api'
 import conversions from './lib/conversions'
 
 import { firstVisitPage } from './pages/journey'
@@ -22,7 +23,7 @@ import { symptomCheckPage } from './pages/symptom-check'
 import { homePage } from './pages/home'
 import { handoverPage } from './pages/handover'
 import { treatmentsIndex, treatmentDetail } from './pages/treatments'
-import { doctorsIndex, doctorDetail, missionPage, floorGuidePage } from './pages/about'
+import { doctorsIndex, doctorDetail, missionPage, floorGuidePage, specialPage } from './pages/about'
 import {
   faqPage, encyclopediaIndex, encyclopediaTerm, directionsPage, hoursPage, pricingPage,
   areaPage, areaIndex, hwaseoStationHub, privacyPage, termsPage, sitemapHtml, notFoundPage, generalFaqsFor
@@ -84,6 +85,7 @@ app.use('*', async (c, next) => {
   if ((c.req.method === 'GET' || c.req.method === 'HEAD') && url.pathname.length > 1 && url.pathname.endsWith('/') && !/^\/(files|api|auth|admin)(\/|$)/.test(url.pathname)) {
     return c.redirect(url.pathname.replace(/\/+$/, '') + url.search, 301)
   }
+  if (c.req.method === 'GET' && !/^\/(admin|api|auth|files)(\/|$)/.test(url.pathname)) await publishDueColumns(c)
   c.set('nonce', crypto.randomUUID().replace(/-/g, ''))
   c.set('user', c.env?.SESSION_SECRET ? await readMemberSession(c) : null)
   const staff = c.env?.SESSION_SECRET ? await readAdminSession(c) : null
@@ -98,6 +100,7 @@ app.use('*', async (c, next) => {
 })
 
 // ---------- Sub apps ----------
+app.route('/api/v1', columnApi)
 app.route('/auth', auth)
 app.route('/admin', admin)
 app.route('/', conversions)
@@ -110,6 +113,7 @@ app.get('/first-visit', (c) => firstVisitPage(c))
 app.get('/symptom-check', (c) => symptomCheckPage(c))
 app.get('/handover', (c) => handoverPage(c))
 app.get('/mission', (c) => missionPage(c))
+app.get('/special', (c) => specialPage(c))
 app.get('/floor-guide', (c) => floorGuidePage(c))
 
 app.get('/doctors', (c) => doctorsIndex(c))
@@ -162,7 +166,7 @@ app.get('/sitemap.xml', async (c) => {
   const add = (path: string, pri = '0.6', freq = 'monthly', lastmod?: string, image?: { src: string; title: string }) => urls.push({ loc: site + path, pri, freq, lastmod: isoDate(lastmod), image: image ? { loc: site + image.src, title: image.title } : undefined })
 
   add('/', '1.0', 'weekly', PAGE_LASTMOD['/'])
-  for (const p of ['/first-visit', '/symptom-check', '/mission', '/doctors', '/treatments', '/floor-guide', '/directions', '/hours', '/pricing', '/faq', '/reservation']) add(p, '0.8', 'weekly', PAGE_LASTMOD[p])
+  for (const p of ['/first-visit', '/symptom-check', '/mission', '/special', '/doctors', '/treatments', '/floor-guide', '/directions', '/hours', '/pricing', '/faq', '/reservation']) add(p, '0.8', 'weekly', PAGE_LASTMOD[p])
   for (const d of doctors) add(`/doctors/${d.slug}`, '0.8', 'monthly', DOCTOR_LASTMOD)
   // 이미지 사이트맵: 진료 페이지와 화서역×진료 페이지의 대표 사진(본문 첫 사진·og와 같은 사진)
   for (const t of treatments) add(`/treatments/${t.slug}`, '0.9', 'monthly', TREATMENT_LASTMOD[t.slug], t.heroImage ? { src: t.heroImage, title: `${t.name} — 서울도담치과` } : undefined)

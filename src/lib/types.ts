@@ -4,6 +4,7 @@ export type Bindings = {
   DB: D1Database
   R2: R2Bucket
   ADMIN_PASSWORD: string
+  COLUMN_API_KEY?: string  // 칼럼 자동 등록 API 전용 키 (Authorization: Bearer)
   SESSION_SECRET: string
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string

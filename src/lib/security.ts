@@ -10,8 +10,9 @@ export async function keyedHash(secret: string, value: string) {
   return Array.from(new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode(value))), x => x.toString(16).padStart(2, '0')).join('')
 }
 export const requestLimit: MiddlewareHandler<Env> = async (c, next) => {
-  const upload = /^\/admin\/(api\/upload|cases|columns|notices)(\/|$)/.test(c.req.path)
-  return bodyLimit({ maxSize: upload ? 34 * 1024 * 1024 : 64 * 1024, onError: ctx => ctx.text('요청 크기가 너무 큽니다.', 413) })(c, next)
+  const upload = /^\/admin\/(api\/upload|cases|columns|notices)(\/|$)/.test(c.req.path) || c.req.path === '/api/v1/images'
+  const columnApi = c.req.path === '/api/v1/columns'
+  return bodyLimit({ maxSize: upload ? 34 * 1024 * 1024 : columnApi ? 2 * 1024 * 1024 : 64 * 1024, onError: ctx => ctx.text('요청 크기가 너무 큽니다.', 413) })(c, next)
 }
 export const requestSecurity: MiddlewareHandler<Env> = async (c, next) => {
   const path = c.req.path
@@ -25,7 +26,8 @@ export const requestSecurity: MiddlewareHandler<Env> = async (c, next) => {
   const origin = new URL(c.req.url).origin
   // Conversion API has its own origin-bound signed ticket and 2 KB limit.
   // AI chat API is stateless (no session/cookie effect), checks same-origin itself and is IP rate-limited.
-  if (unsafe && path !== '/api/conversions' && path !== '/api/ai-chat') {
+  // Column API (/api/v1) uses a Bearer key only — no cookie/session, so CSRF does not apply.
+  if (unsafe && path !== '/api/conversions' && path !== '/api/ai-chat' && !path.startsWith('/api/v1/')) {
     if (c.req.header('origin') !== origin || (c.req.header('sec-fetch-site') && c.req.header('sec-fetch-site') !== 'same-origin')) return c.text('요청 출처를 확인할 수 없습니다. 같은 사이트에서 다시 시도해 주세요.', 403)
     if (!c.env?.SESSION_SECRET) return c.text('보안 설정을 확인해 주세요.', 503)
     let token = c.req.header('x-csrf-token') || ''

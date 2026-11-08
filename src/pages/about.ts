@@ -244,3 +244,27 @@ ${cats.map((cat) => html`<section class="section ${cat === '무통' || cat === '
 ${ctaStrip(clinic, { title: '직접 보시면 더 잘 아실 수 있습니다' })}`
   return c.html(Layout(c, { title: '장비·감염관리 — 겉은 소박해도 안은 다릅니다', description: '서울도담치과의 진단·무통·신경치료·감염관리 장비. Vatech 저선량 CT, 큐레이, 무통마취기, Class B 고압멸균기, 플라즈마 소독기, 기구별 밀봉 포장. 병원 공간 둘러보기.', path: '/floor-guide', image: '/static/img/dodam-sterilization-v2.webp', crumbs: [{ name: '홈', href: '/' }, { name: '장비·감염관리', href: '/floor-guide' }] }, body))
 }
+
+// ── 서울도담치과의 특별함 (/special) ─────────────────────
+// 2026-11-08 한휘림 원장 요청: 실장 퇴사 후 원장이 직접 상담 → 홈 첫 화면 문구 + 별도 페이지.
+// 문구는 원장이 보낸 검토안(dodam-special-page-review-2026-11-08.html) 본문 그대로. 결과 보장·비용·장비 문구는 넣지 않는다.
+export function specialPage(c: Context<Env>) {
+  const clinic = c.get('clinic') as any
+  const dr = doctors[0]
+  const principles = [
+    { n: '01', t: '원장이 직접 상담하고 설명합니다.', d: '현재 치아 상태와 필요한 치료에 대해 원장이 직접 상담하고 설명합니다. 궁금한 점과 걱정되는 부분도 함께 이야기해 주세요.' },
+    { n: '02', t: '자연치아를 보존할 수 있는지 먼저 살펴봅니다.', d: '치료를 결정하기 전에, 내 치아를 살릴 수 있는 방법이 있는지부터 살펴봅니다. 치아 상태에 맞춰 보존 가능성과 필요한 치료를 설명합니다.' },
+    { n: '03', t: '치료를 이해하고 선택할 수 있도록 설명합니다.', d: '왜 치료가 필요한지, 어떤 방법을 고려할 수 있는지, 치료는 어떻게 진행되는지 설명합니다. 이해하기 어려운 부분은 다시 질문해 주세요. 충분히 이해한 뒤 치료 계획을 함께 이야기합니다.' },
+  ]
+  const crumbsList = [{ name: '홈', href: '/' }, { name: '서울도담치과의 특별함', href: '/special' }]
+  const body = html`
+${pageHero({ eyebrow: 'WHY DODAM', title: '서울도담치과의 특별함', lead: '이해될 때까지 설명하고, 필요한 만큼만 치료합니다. 서울도담치과가 진료에서 중요하게 생각하는 세 가지입니다.', crumbs: crumbsList, image: '/static/img/suwon-dodam-dental-treatment-explanation-v2.webp', imageAlt: '진료실에서 모니터를 보며 환자에게 설명하는 한휘림 원장' })}
+<section class="section">
+  <div class="container container-narrow">
+    <ol class="special-principles">${principles.map(p => html`<li class="special-principle reveal"><span class="special-number">${p.n}</span><div><h2>${p.t}</h2><p>${p.d}</p></div></li>`)}</ol>
+    <p class="special-doctor"><a href="/doctors/${dr.slug}">${dr.name} 대표원장 소개 보기 <span aria-hidden="true">→</span></a></p>
+  </div>
+</section>
+${ctaStrip(clinic, { title: '궁금한 점부터 이야기해 주세요.', sub: '불편한 곳이 있거나 치료 선택이 고민된다면, 진료 시 궁금한 점을 말씀해 주세요. 현재 상태를 확인하고 가능한 치료 방향을 설명합니다.' })}`
+  return c.html(Layout(c, { title: '서울도담치과의 특별함 — 원장이 직접 상담하고 설명합니다', description: '서울도담치과는 원장이 직접 상담하고 설명합니다. 자연치아를 보존할 수 있는지 먼저 살펴보고, 치료를 이해하고 선택할 수 있도록 설명합니다.', path: '/special', bodyClass: 'special-page', image: '/static/img/suwon-dodam-dental-treatment-explanation-v2.webp', imageAlt: '진료실에서 환자에게 설명하는 한휘림 원장', crumbs: crumbsList }, body))
+}

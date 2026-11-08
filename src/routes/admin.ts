@@ -201,7 +201,7 @@ function caseForm(c: any, k: any = {}, err?: string) {
 admin.get('/cases', async (c) => {
   const rows = (await c.env.DB.prepare('SELECT id,slug,title,treatment_slug,published,views,created_at,intra_before,pano_before FROM cases ORDER BY created_at DESC').all<any>()).results || []
   return shell(c, '치료 전후', html`<div class="admin-toolbar"><a href="/admin/cases/new" class="btn btn-primary">+ 새 사례</a></div>
-  <table class="admin-table"><thead><tr><th></th><th>제목</th><th>진료</th><th>공개</th><th>조회</th><th>등록</th></tr></thead><tbody>${rows.map((r: any) => html`<tr><td>${r.intra_before || r.pano_before ? html`<img src="/files/${r.intra_before || r.pano_before}" width="56" height="40" alt="" style="object-fit:cover;border-radius:6px">` : ''}</td><td><a href="/admin/cases/${r.id}">${r.title}</a> <a href="/cases/gallery/${r.slug}" target="_blank" class="hint">↗</a></td><td>${getTreatment(r.treatment_slug)?.name || r.treatment_slug}</td><td>${r.published ? html`<span class="badge-on">공개</span>` : html`<span class="badge-off">비공개</span>`}</td><td>${r.views}</td><td>${fmtDate(r.created_at)}</td></tr>`)}</tbody></table>${!rows.length ? html`<p class="hint">등록된 사례가 없습니다.</p>` : ''}`, 'cases')
+  <table class="admin-table"><thead><tr><th></th><th>제목</th><th>진료</th><th>공개</th><th>조회</th><th>등록</th></tr></thead><tbody>${rows.map((r: any) => html`<tr><td>${r.intra_before || r.pano_before ? html`<img src="/files/${r.intra_before || r.pano_before}" width="56" height="40" alt="" style="object-fit:cover;border-radius:6px">` : ''}</td><td><a href="/admin/cases/${r.id}">${r.title}</a> <a href="/cases/gallery/${r.slug}" target="_blank" class="hint">↗</a></td><td>${getTreatment(r.treatment_slug)?.name || r.treatment_slug}</td><td>${r.published ? html`<span class="badge-on">공개</span>` : r.scheduled_at ? html`<span class="badge-on" title="자동 등록 API 예약 발행">예약 ${fmtDate(r.scheduled_at)}</span>` : html`<span class="badge-off">비공개</span>`}</td><td>${r.views}</td><td>${fmtDate(r.created_at)}</td></tr>`)}</tbody></table>${!rows.length ? html`<p class="hint">등록된 사례가 없습니다.</p>` : ''}`, 'cases')
 })
 admin.get('/cases/new', (c) => caseForm(c))
 admin.get('/cases/:id', async (c) => { const k = await c.env.DB.prepare('SELECT * FROM cases WHERE id=?').bind(c.req.param('id')).first(); return k ? caseForm(c, k) : c.notFound() })
@@ -258,9 +258,72 @@ function columnForm(c: any, p: any = {}, err?: string) {
   return shell(c, p.id ? '칼럼 수정' : '칼럼 작성', body, 'columns')
 }
 admin.get('/columns', async (c) => {
-  const rows = (await c.env.DB.prepare('SELECT id,slug,title,author_slug,treatment_slug,published,views,published_at FROM columns ORDER BY published_at DESC').all<any>()).results || []
+  const rows = (await c.env.DB.prepare('SELECT id,slug,title,author_slug,treatment_slug,published,views,published_at,scheduled_at FROM columns ORDER BY COALESCE(scheduled_at,published_at) DESC').all<any>()).results || []
   return shell(c, '원장 칼럼', html`<div class="admin-toolbar"><a href="/admin/columns/new" class="btn btn-primary">+ 새 칼럼</a></div>
   <table class="admin-table"><thead><tr><th>제목</th><th>진료</th><th>공개</th><th>조회</th><th>게시일</th></tr></thead><tbody>${rows.map((r: any) => html`<tr><td><a href="/admin/columns/${r.id}">${r.title}</a> <a href="/column/${r.slug}" target="_blank" class="hint">↗</a></td><td>${r.treatment_slug ? getTreatment(r.treatment_slug)?.name : '-'}</td><td>${r.published ? html`<span class="badge-on">공개</span>` : html`<span class="badge-off">비공개</span>`}</td><td>${r.views}</td><td>${fmtDate(r.published_at)}</td></tr>`)}</tbody></table>`, 'columns')
+})
+// 칼럼 자동 등록 API 안내 (대표원장 계정만 — 편집자·접수 권한에는 메뉴·경로 모두 없음)
+admin.get('/column-api', (c) => {
+  const key = c.env.COLUMN_API_KEY || ''
+  const site = c.get('siteUrl')
+  const ex1 = `curl -X POST ${site}/api/v1/images \\
+  -H "Authorization: Bearer 인증키" \\
+  -F "file=@사진.jpg"`
+  const ex2 = `curl -X POST ${site}/api/v1/columns \\
+  -H "Authorization: Bearer 인증키" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "title": "칼럼 제목 (80자 이하)",
+    "content_html": "<h2>소제목</h2><p>본문…</p><img src=\\"/files/columns/….jpg\\" alt=\\"설명\\">",
+    "thumbnail": "/files/columns/….jpg",
+    "author_slug": "han-hwirim",
+    "treatment_slug": "restorative",
+    "tags": ["충치", "레진"],
+    "publish_at": "2026-11-10 09:00"
+  }'`
+  const ex3 = `import requests
+API = "${site}/api/v1"
+H = {"Authorization": "Bearer 인증키"}
+
+img = requests.post(f"{API}/images", headers=H, files={"file": open("사진.jpg", "rb")}).json()
+res = requests.post(f"{API}/columns", headers=H, json={
+    "title": "칼럼 제목",
+    "content_html": f"<p>본문…</p><img src=\\"{img['url']}\\" alt=\\"설명\\">",
+    "thumbnail": img["url"],
+    "author_slug": "han-hwirim",
+    "publish_at": "2026-11-10 09:00",   # 생략하면 바로 공개
+})
+print(res.status_code, res.json())`
+  return shell(c, '칼럼 자동 등록 API', html`
+  <style>.api-doc .admin-panel{background:#fff;border:1px solid #dfe3e0;border-radius:12px;padding:22px 24px;margin:0 0 18px}.api-doc h2{font-size:18px;margin:0 0 12px}.api-doc ol{padding-left:20px;line-height:1.8}.api-doc li{margin-bottom:6px}.api-doc code{background:#f1f3f2;padding:1px 5px;border-radius:4px;font-size:13px}.api-doc pre{background:#16231c;color:#e8efe9;padding:16px;border-radius:10px;font-size:13px;line-height:1.6}.api-doc #column-api-key{display:block;background:#f1f6f2;border:1px dashed #8aa597;padding:12px 14px;font-size:15px}</style>
+  <div class="api-doc">
+  <div class="admin-panel"><h2>인증키</h2>
+    ${key ? html`<p>이 키가 있으면 로그인 없이 칼럼을 올릴 수 있습니다. 프로그램 설정에만 넣고 다른 곳에 공유하지 마세요. 키가 새어 나갔다면 제작사에 교체를 요청해 주세요.</p>
+    <p><code id="column-api-key" style="user-select:all;word-break:break-all;font-size:15px">${key}</code></p>` : html`<p class="hint">아직 인증키가 설정되지 않았습니다. 제작사에 요청해 주세요.</p>`}
+  </div>
+  <div class="admin-panel"><h2>쓰는 방법</h2>
+    <ol>
+      <li>사진이 있으면 먼저 <code>POST /api/v1/images</code> 로 한 장씩 올립니다. 돌려받은 <code>url</code>(<code>/files/columns/…</code>)을 본문 <code>&lt;img src&gt;</code>나 대표 이미지(<code>thumbnail</code>)에 넣습니다. 다른 사이트의 이미지 주소는 본문에서 지워집니다.</li>
+      <li><code>POST /api/v1/columns</code> 로 칼럼을 보냅니다. 모든 요청 머리글에 <code>Authorization: Bearer 인증키</code>가 필요합니다.</li>
+      <li>응답의 <code>status</code>가 <code>published</code>(공개), <code>scheduled</code>(예약), <code>draft</code>(임시 저장) 중 하나로 옵니다. 올라간 글은 이 관리자 화면의 '원장 칼럼'에서 그대로 고칠 수 있습니다.</li>
+    </ol>
+    <table class="admin-table"><thead><tr><th>항목</th><th>필수</th><th>설명</th></tr></thead><tbody>
+      <tr><td><code>title</code></td><td>예</td><td>제목, 80자 이하</td></tr>
+      <tr><td><code>content_html</code></td><td>예</td><td>본문 HTML(글자 20자 이상). 관리자 편집기와 같은 규칙으로 정리됩니다(스크립트·외부 이미지 제거).</td></tr>
+      <tr><td><code>publish_at</code></td><td></td><td>게시 시각. 시간대를 안 쓰면 한국시간(예: <code>2026-11-10 09:00</code>). 미래면 그 시각에 자동 공개, 생략하거나 지난 시각이면 바로 공개</td></tr>
+      <tr><td><code>status</code></td><td></td><td><code>"draft"</code>면 공개하지 않고 임시 저장</td></tr>
+      <tr><td><code>thumbnail</code></td><td></td><td>대표 이미지(위 1번에서 받은 url)</td></tr>
+      <tr><td><code>author_slug</code></td><td></td><td><code>han-hwirim</code>이면 원장 이름으로 표시, 생략하면 병원 발행</td></tr>
+      <tr><td><code>treatment_slug</code></td><td></td><td>관련 진료. 그 진료 페이지에 칼럼이 함께 걸립니다. 쓸 수 있는 값: ${treatments.map((t: any) => html`<code>${t.slug}</code>(${t.name}) `)}</td></tr>
+      <tr><td><code>excerpt</code> · <code>tags</code> · <code>slug</code> · <code>meta_title</code> · <code>meta_description</code></td><td></td><td>요약·태그(배열 또는 쉼표)·주소·검색 제목·검색 설명. 생략하면 자동</td></tr>
+    </tbody></table>
+    <p class="hint">같은 제목을 7일 안에 다시 보내면 중복으로 막습니다(409). 하루 20편까지 올릴 수 있습니다. 최근 상태 확인: <code>GET /api/v1/columns</code></p>
+  </div>
+  <div class="admin-panel"><h2>예시 — 터미널(curl)</h2><pre style="white-space:pre-wrap;overflow-x:auto">${ex1}
+
+${ex2}</pre></div>
+  <div class="admin-panel"><h2>예시 — 파이썬</h2><pre style="white-space:pre-wrap;overflow-x:auto">${ex3}</pre></div>
+  </div>`, 'column-api')
 })
 admin.get('/columns/new', (c) => columnForm(c))
 admin.get('/columns/:id', async (c) => { const p = await c.env.DB.prepare('SELECT * FROM columns WHERE id=?').bind(c.req.param('id')).first(); return p ? columnForm(c, p) : c.notFound() })
@@ -280,7 +343,7 @@ async function saveColumn(c: Context<Env>, id?: number) {
   const pub = parsedDate ? parsedDate.slice(0,19).replace('T',' ') : cur?.published_at || new Date().toISOString().slice(0,19).replace('T',' ')
   const excerpt = g('excerpt') || stripTags(content).slice(0, 150)
   const vals = [slug, title, excerpt, content, thumb, g('author_slug') || 'clinic' /* 원장 자동 부여 금지 — 미지정은 병원 발행 (lib/authorship.ts) */, g('treatment_slug') || null, g('meta_title') || null, g('meta_description') || null, g('tags') || null, fd.get('published') ? 1 : 0, pub]
-  if (id) await c.env.DB.prepare('UPDATE columns SET slug=?,title=?,excerpt=?,content_html=?,thumbnail=?,author_slug=?,treatment_slug=?,meta_title=?,meta_description=?,tags=?,published=?,published_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(...vals, id).run()
+  if (id) await c.env.DB.prepare('UPDATE columns SET slug=?,title=?,excerpt=?,content_html=?,thumbnail=?,author_slug=?,treatment_slug=?,meta_title=?,meta_description=?,tags=?,published=?,published_at=?,scheduled_at=CASE WHEN ?=1 THEN NULL ELSE scheduled_at END,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(...vals, fd.get('published') ? 1 : 0, id).run() // 비공개로 고쳐 저장해도 API 예약 발행 시각은 유지
   else await c.env.DB.prepare('INSERT INTO columns (slug,title,excerpt,content_html,thumbnail,author_slug,treatment_slug,meta_title,meta_description,tags,published,published_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(...vals).run()
   if (fd.get('published')) pingLater(c, [`/column/${slug}`, '/column', g('treatment_slug') ? `/treatments/${g('treatment_slug')}` : '', '/sitemap.xml'])
 }

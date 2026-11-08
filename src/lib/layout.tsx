@@ -85,7 +85,7 @@ ${clinic.naverVerify ? raw(`<meta name="naver-site-verification" content="${escA
 <link rel="preload" href="/static/fonts/WantedSansCore-v2.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/fonts/wanted-subsets.css?v=2">
 <link rel="stylesheet" href="/static/style.css?v=10">
-<link rel="stylesheet" href="/static/kinetic.css?v=26">
+<link rel="stylesheet" href="/static/kinetic.css?v=27">
 ${meta.path === '/symptom-check' ? html`<link rel="stylesheet" href="/static/symptom-check.css?v=1">` : ''}
 ${meta.path === '/encyclopedia' || meta.path.startsWith('/encyclopedia/') ? html`<link rel="stylesheet" href="/static/encyclopedia.css?v=20261008">` : ''}
 ${meta.path === '/handover' ? html`<link rel="stylesheet" href="/static/handover.css?v=2">` : ''}
@@ -106,7 +106,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
     </a>
     <nav class="gnb" id="gnb" aria-label="주 메뉴">
       <ul class="gnb-list">
-        <li><a href="/mission">도담의 철학</a></li>
+        <li><a href="/mission">도담의 철학</a></li><li><a href="/special">도담의 특별함</a></li>
         <li><a href="/doctors">의료진 소개</a></li>
         <li class="has-mega">
           <a href="/treatments" aria-haspopup="true" aria-expanded="false">진료 안내</a>
@@ -174,7 +174,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
   </div>
   <nav class="mobile-nav" id="mobile-nav" aria-label="모바일 메뉴" hidden>
     <ul>
-      <li><a href="/mission">도담의 철학</a></li>
+      <li><a href="/mission">도담의 철학</a></li><li><a href="/special">도담의 특별함</a></li>
       <li><a href="/doctors">의료진 소개</a></li>
       <li><details><summary>진료안내</summary><ul>
         <li><a href="/symptom-check">내 증상 체크</a></li>
@@ -194,7 +194,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
     <p class="mobile-nav-hours">${hoursToday}<br>${clinic.hoursException}</p>
   </nav>
 </header>
-<noscript><nav class="nojs-navigation" aria-label="기본 페이지 메뉴"><a href="/mission">도담의 철학</a><a href="/doctors">의료진</a><a href="/treatments">진료 안내</a><a href="/directions">오시는 길</a><a href="/reservation">예약</a></nav></noscript>
+<noscript><nav class="nojs-navigation" aria-label="기본 페이지 메뉴"><a href="/mission">도담의 철학</a><a href="/special">도담의 특별함</a><a href="/doctors">의료진</a><a href="/treatments">진료 안내</a><a href="/directions">오시는 길</a><a href="/reservation">예약</a></nav></noscript>
 
 <main id="main">${body}</main>
 
@@ -231,7 +231,7 @@ ${publicAnalytics ? raw('<script defer src="https://pf-dashboard-2nt.pages.dev/b
     <div class="footer-col">
       <h3>병원</h3>
       <ul>
-        <li><a href="/mission">도담의 철학</a></li>
+        <li><a href="/mission">도담의 철학</a></li><li><a href="/special">도담의 특별함</a></li>
         <li><a href="/doctors">의료진 소개</a></li>
         <li><a href="/floor-guide">장비·감염관리</a></li>
         <li><a href="/cases/gallery">치료 전후</a></li>

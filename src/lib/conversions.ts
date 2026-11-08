@@ -16,7 +16,7 @@ export const locationLabels: Record<string, string> = {
   consultation: '상담 질문', cta_strip: '공통 안내', home: '메인 본문', reservation: '예약 본문',
   content: '본문', form: '신청 저장',
 }
-const pages = new Set(['/', '/first-visit', '/mission', '/doctors', '/floor-guide', '/directions', '/hours', '/pricing', '/faq', '/treatments', '/reservation', '/column', '/notice', '/encyclopedia', '/area', '/cases/gallery', '/privacy', '/terms', '/sitemap', '/doctors/han-hwirim', ...treatments.map(t => `/treatments/${t.slug}`)])
+const pages = new Set(['/', '/first-visit', '/mission', '/special', '/doctors', '/floor-guide', '/directions', '/hours', '/pricing', '/faq', '/treatments', '/reservation', '/column', '/notice', '/encyclopedia', '/area', '/cases/gallery', '/privacy', '/terms', '/sitemap', '/doctors/han-hwirim', ...treatments.map(t => `/treatments/${t.slug}`)])
 export function conversionPage(path: string) {
   if (pages.has(path)) return path
   for (const root of ['/area', '/column', '/notice', '/encyclopedia', '/cases/gallery']) {
