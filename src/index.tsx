@@ -9,6 +9,7 @@ import { readMemberSession, readAdminSession } from './lib/auth'
 import { trackView } from './lib/util'
 import { requestSecurity, requestLimit } from './lib/security'
 import { resolveSiteUrl, isoDate, xmlEscape } from './lib/seo'
+import { isGoogleCrawler, isGoogleHiddenPath, GOOGLE_HIDE_HEADER } from './lib/google-hide'
 import { getNaverBookingUrl } from './data/clinic'
 
 import auth from './routes/auth'
@@ -42,6 +43,16 @@ import { areaPages, getAreaPage } from './data/areas'
 const app = new Hono<Env>()
 
 // ---------- Global middleware ----------
+// 구글 전용 검색 제외(lib/google-hide.ts): 맨 바깥 미들웨어라 다른 모든 처리가 끝난 최종 응답에만 손댄다.
+// 구글 크롤러 UA + 대상 경로 + 200 HTML 일 때만 X-Robots-Tag 를 교체한다. 그 밖의 요청은 그대로 지나간다.
+app.use('*', async (c, next) => {
+  await next()
+  if (c.req.method !== 'GET' && c.req.method !== 'HEAD') return
+  if (!isGoogleCrawler(c.req.header('user-agent'))) return
+  if (c.res.status !== 200 || !(c.res.headers.get('content-type') || '').includes('text/html')) return
+  if (!isGoogleHiddenPath(new URL(c.req.url).pathname)) return
+  c.header('X-Robots-Tag', GOOGLE_HIDE_HEADER)
+})
 // Preserve the delivery document's no-referrer policy after the shared security headers run.
 app.use('/handover', async (c, next) => {
   await next()
