@@ -10,15 +10,17 @@
 //
 // 가리는 구역
 //   /encyclopedia, /encyclopedia/*  — 치과 백과사전(목록 + 용어 약 508쪽)
-//   /area, /area/*                  — 지역 목록 + 지역×진료 조합(13개 지역 × 12개 진료)
+//   /area, /area/*                  — 지역 목록 + 화서역을 뺀 12개 지역의 지역×진료 조합(12 × 12)
 // 남기는 구역(이 함수가 false)
-//   /area/hwaseo-station            — 주 지역 허브(정확히 이 경로만. /area/hwaseo-station-implant 등 조합은 가린다)
+//   /area/hwaseo-station            — 주 지역 허브
+//   /area/hwaseo-station-*          — 화서역×진료 조합 12쪽(/area/hwaseo-station-implant 등). 병원 소재 역이라
+//                                     "화서역 임플란트" 같은 목표 검색어의 착지 페이지다. 화서동(/area/hwaseo-vpt 등)은 가린다.
 //   홈·진료·의료진·비용·소개·오시는 길·예약·FAQ·공지·치료 사례·언론보도·칼럼(전부 D1 에서 오는 글) 등 나머지 전부
 
 export const GOOGLE_HIDE_HEADER = 'googlebot: noindex'
 
-/** 주 지역 허브 — 구글에도 계속 보여 준다. */
-const KEEP_AREA_HUBS = new Set(['/area/hwaseo-station'])
+/** 주 지역 허브와 그 역×진료 조합 — 구글에도 계속 보여 준다. */
+const KEEP_AREA = /^\/area\/hwaseo-station(-[a-z0-9-]+)?$/
 
 /** 구글 검색 크롤러인가. Google-Extended·GoogleOther·AdsBot·Mediapartners 는 대상이 아니다. */
 export const isGoogleCrawler = (ua?: string | null) => /googlebot|google-inspectiontool/i.test(ua || '')
@@ -27,6 +29,6 @@ export const isGoogleCrawler = (ua?: string | null) => /googlebot|google-inspect
 export function isGoogleHiddenPath(pathname: string): boolean {
   if (pathname === '/encyclopedia' || pathname.startsWith('/encyclopedia/')) return true
   if (pathname === '/area') return true
-  if (pathname.startsWith('/area/')) return !KEEP_AREA_HUBS.has(pathname)
+  if (pathname.startsWith('/area/')) return !KEEP_AREA.test(pathname)
   return false
 }
