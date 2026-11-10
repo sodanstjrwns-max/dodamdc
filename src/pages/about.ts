@@ -29,7 +29,7 @@ ${pageHero({ eyebrow: '의료진', title: html`한 명의 원장이<br>처음부
   </div>
 </section>
 ${ctaStrip(clinic)}`
-  return c.html(Layout(c, { title: '의료진 소개', description: `서울도담치과 의료진. 통합치의학과 전문의 한휘림 대표원장이 진단부터 치료, 경과 관찰까지 직접 담당합니다. 수원 화서동.`, path: '/doctors', crumbs: [{ name: '홈', href: '/' }, { name: '의료진', href: '/doctors' }] }, body))
+  return c.html(Layout(c, { title: '의료진 소개', description: `서울도담치과 의료진. 통합치의학과 전문의 한휘림 대표원장이 진단부터 치료, 경과 관찰까지 직접 담당합니다. 수원 화서동.`, path: '/doctors', jsonld: doctors.map((d) => { const { memberOf: _societies, ...person } = physicianLd(d, clinic, c.get('siteUrl')); return person }), crumbs: [{ name: '홈', href: '/' }, { name: '의료진', href: '/doctors' }] }, body))
 }
 
 export async function doctorDetail(c: Context<Env>, d: Doctor) {

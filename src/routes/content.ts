@@ -193,7 +193,8 @@ content.get('/column', async (c) => {
   return c.html(Layout(c, { title: '원장 칼럼', description: '서울도담치과 한휘림 원장이 진료실에서 못 다한 이야기를 씁니다. 생활치수치료, 신경치료, 잇몸관리, 임플란트, 사랑니에 대한 솔직한 설명과 치료 전 알아둘 점을 정리했습니다.', path: '/column', noindex: !!tx || (page > 1 && !rows.length), jsonld: rows.length ? [itemListLd(rows.map((r: any) => ({ name: r.title, path: `/column/${r.slug}` })), c.get('siteUrl'), '/column' + (page > 1 ? `?page=${page}` : ''), (page - 1) * PER)] : [], crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }] }, body))
 })
 
-content.get('/column/rss.xml', async (c) => {
+// /rss.xml 은 같은 칼럼 피드의 별칭(다른 PF 사이트와 같은 주소). 대표 주소는 /column/rss.xml.
+content.on('GET', ['/column/rss.xml', '/rss.xml'], async (c) => {
   const clinic = c.get('clinic') as any, siteUrl = c.get('siteUrl')
   const rows = (await c.env.DB.prepare('SELECT id,slug,title,excerpt,author_slug,published_at FROM columns WHERE published=1 ORDER BY published_at DESC LIMIT 30').all<any>()).results || []
   const x = (s: string) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')

@@ -261,6 +261,37 @@ async function llmsContentList(c: any, full: boolean) {
   } catch { return '' }
 }
 
+// llms(-full).txt 맨 위 표준 사실 블록 (SEO·AEO 1차 정비 2026-11-10).
+// 값은 전부 clinic(관리자 설정 반영)·doctors·treatments와 현재 공개된 수가표에서만 가져온다. 없는 값은 줄을 뺀다.
+async function llmsFactBlock(c: any) {
+  const site = c.get('siteUrl'), clinic = c.get('clinic') as any
+  const booking = getNaverBookingUrl(clinic)
+  const special = specialDaysText(upcomingSpecialDays(clinic, new Date(), 60))
+  // 비용 페이지에 실제로 공개된 항목만: 공개 그룹 순서대로 그룹별 첫 금액 항목(최대 6줄). 전부 비공개거나 조회 실패면 생략.
+  let feeLines: string[] = []
+  try {
+    const stored = await loadPricingGroups(c.env?.DB, true)
+    feeLines = (stored === null ? pricing : stored).flatMap((g) => {
+      const it = g.items.find((i) => i.price != null)
+      return it ? [`  - ${g.group} — ${it.name}: ${won(it.price!)}${it.unit ? ' / ' + it.unit : ''}${it.note ? ' (' + it.note + ')' : ''}`] : []
+    }).slice(0, 6)
+  } catch { /* 금액 줄 생략 */ }
+  return [
+    '## 병원 정보',
+    `- 이름: ${clinic.name} (${clinic.nameEn}${clinic.shortName && clinic.shortName !== clinic.name ? `, 약칭 ${clinic.shortName}` : ''})`,
+    `- 진료 분야: 치과 — ${treatments.map((t) => t.name.split(',')[0]).join(', ')}`,
+    `- 주소: ${clinic.address} / 가까운 역: ${clinic.directions.subway}`,
+    `- 전화: ${clinic.phone}`,
+    `- 진료 시간: ${clinic.hours.map((h: any) => `${h.day} ${h.open ? h.open + '–' + h.close : '휴진'}${h.lunch ? ' (점심 ' + h.lunch + ')' : ''}${h.note ? ' (' + h.note + ')' : ''}`).join(', ')}`,
+    `- 진료 시간 참고: ${hoursNotices(clinic)}`,
+    ...(special ? [`- 기본 시간표와 다른 날(향후 60일): ${special}`] : []),
+    `- 의료진: ${doctors.map((d) => `${d.name}(${d.title}·${d.specialty})`).join(', ')}`,
+    `- 예약: ${site}/reservation${booking ? ` / 네이버 예약: ${booking}` : ''}`,
+    `- 진료 안내: ${site}/treatments / 비용 안내: ${site}/pricing / 의료진: ${site}/doctors / 지역 안내(허브): ${site}/area/hwaseo-station / 자주 묻는 질문: ${site}/faq`,
+    ...(feeLines.length ? [`- 주요 비급여 진료비 (병원이 게시한 공개 금액 그대로이며, 전체 항목·조건은 ${site}/pricing):`, ...feeLines] : []),
+  ].join('\n')
+}
+
 app.get('/llms.txt', async (c) => {
   const site = c.get('siteUrl')
   const clinic = c.get('clinic')
@@ -268,19 +299,15 @@ app.get('/llms.txt', async (c) => {
 
 > ${clinic.region}의 치과의원. ${doctors[0].name} 대표원장(${doctors[0].specialty})이 직접 상담하고 진료합니다. ${clinic.slogan}
 
+${await llmsFactBlock(c)}
+- 주차: ${clinic.directions.parking}
+- 홈페이지 예약 신청은 병원의 확인 연락 후 확정됩니다. 네이버 예약의 가능 일정과 확정 조건은 네이버 예약 페이지에서 확인하세요.
+
 ## 진료 원칙
 - MTA 생활치수치료(VPT)·크라운으로 자연치아 보존 가능성을 먼저 살핍니다.
 - 치주(잇몸)치료로 치아를 지탱하는 조직을 관리합니다.
 - 보존이 어려운 경우 임플란트를 검토합니다. 모든 치아에 같은 치료가 가능한 것은 아닙니다.
 - 치아교정·수면(진정) 진료·보톡스·필러는 시행하지 않습니다.
-
-## 병원 정보
-- 주소: ${clinic.address}
-- 전화: ${clinic.phone}
-- 진료시간: ${clinic.hours.map(h => `${h.day} ${h.open ? h.open + '–' + h.close : '휴진'}${h.lunch ? ' (점심 ' + h.lunch + ')' : ''}${h.note ? ' (' + h.note + ')' : ''}`).join(', ')}
-- 참고: ${hoursNotices(clinic)}
-${(() => { const t = specialDaysText(upcomingSpecialDays(clinic, new Date(), 60)); return t ? `- 기본 시간표와 다른 날(향후 60일): ${t}\n` : '' })()}- 주차: ${clinic.directions.parking}
-- 홈페이지 예약 신청은 병원의 확인 연락 후 확정됩니다. 네이버 예약의 가능 일정과 확정 조건은 네이버 예약 페이지에서 확인하세요.
 
 ## 공식 안내와 근거 페이지
 - [진료 철학](${site}/mission): ${clinic.slogan}
@@ -349,14 +376,10 @@ app.get('/llms-full.txt', async (c) => {
 > ${clinic.region}의 치과의원. ${dr.name} ${dr.title}(${dr.specialty}). ${clinic.slogan}
 > 목차: ${site}/llms.txt
 
-## 병원 정보
-- 주소: ${clinic.address}
-- 전화: ${clinic.phone}
-- 진료시간: ${clinic.hours.map((h: any) => `${h.day} ${h.open ? h.open + '–' + h.close : '휴진'}${h.lunch ? ' (점심 ' + h.lunch + ')' : ''}${h.note ? ' (' + h.note + ')' : ''}`).join(', ')}
-- 참고: ${hoursNotices(clinic)}
-${(() => { const t = specialDaysText(upcomingSpecialDays(clinic, new Date(), 60)); return t ? `- 기본 시간표와 다른 날(향후 60일): ${t}\n` : '' })()}- 주차: ${clinic.directions.parking}
+${await llmsFactBlock(c)}
+- 주차: ${clinic.directions.parking}
 - 시행하지 않는 진료: 치아교정, 수면(진정) 진료, 보톡스·필러
-- 예약: 홈페이지 예약 신청은 병원 확인 연락 후 확정됩니다. ${site}/reservation
+- 예약 안내: 홈페이지 예약 신청은 병원 확인 연락 후 확정됩니다.
 
 ## 의료진
 ### ${dr.name} ${dr.title} (${site}/doctors/${dr.slug})

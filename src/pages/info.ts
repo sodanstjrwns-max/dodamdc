@@ -142,7 +142,7 @@ ${pageHero({ eyebrow: '비급여 진료비 고지', title: html`치료 전에 �
   </div>
 </section>
 ${ctaStrip(clinic, { title: '정확한 비용은 진단 후 안내드립니다', sub: '방사선 사진과 구강 상태를 보고 필요한 항목만 말씀드립니다.' })}`
-  return c.html(Layout(c, { title: '비급여 진료비 안내', description: `서울도담치과 비급여 진료비 고지. 임플란트·크라운·레진·인레이·스케일링·미백 등 항목별 금액. ${legacyDate ? '기준일 ' + legacyDate + '. ' : ''}이벤트·할인 없이 동일 적용.`, path: '/pricing', crumbs: [{ name: '홈', href: '/' }, { name: '비급여 진료비', href: '/pricing' }] }, body))
+  return c.html(Layout(c, { title: '비급여 진료비 안내 — 수원 화서역 치과', description: `서울도담치과 비급여 진료비 고지. 임플란트·크라운·레진·인레이·스케일링·미백 등 항목별 금액. ${legacyDate ? '기준일 ' + legacyDate + '. ' : ''}이벤트·할인 없이 동일 적용.`, path: '/pricing', crumbs: [{ name: '홈', href: '/' }, { name: '비급여 진료비', href: '/pricing' }] }, body))
 }
 
 // ── 지역 SEO 페이지 ─────────────────────────────────────
