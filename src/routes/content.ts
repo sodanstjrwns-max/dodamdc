@@ -249,7 +249,7 @@ content.get('/column/:slug', async (c) => {
     ${more.length ? html`<h2 class="h3">${sameTx.length ? `${t!.name} 관련 칼럼` : '다른 글'}</h2><ul class="notice-list">${more.map((m: any) => html`<li class="notice-row"><a href="/column/${m.slug}">${m.title}</a><span class="date">${fmtDate(m.published_at)}</span></li>`)}</ul>` : ''}
   </footer>
 </article>
-${ctaStrip(clinic)}`
+${ctaStrip(clinic, { cta: 'article-end' })}`
   return c.html(Layout(c, { title: p.meta_title || p.title, description, path: `/column/${p.slug}`, image: leadImage, imageAlt: p.title, type: 'article', author: dr, reviewer: dr, reviewedAt: dr ? p.updated_at || p.published_at : undefined, publishedAt: p.published_at, modifiedAt: p.updated_at, aboutPath: t ? `/treatments/${t.slug}` : undefined, speakable: ['.article-head h1', ...(answer ? ['.answer-summary'] : [])], jsonld: withFaqLd([...(dr ? [physicianLd(dr, clinic, siteUrl)] : []), articleLd({ type: 'BlogPosting', title: p.title, description, path: `/column/${p.slug}`, image: leadImage, author: dr ? `${dr.name}` : undefined, authorPath: dr ? `/doctors/${dr.slug}` : undefined, publishedAt: p.published_at, modifiedAt: p.updated_at, aboutPath: t ? `/treatments/${t.slug}` : undefined, keywords: p.tags || undefined }, clinic, siteUrl)], faqs, absUrl(siteUrl, `/column/${p.slug}`)), crumbs: [{ name: '홈', href: '/' }, { name: '원장 칼럼', href: '/column' }, ...(t ? [{ name: t.name, href: `/column?treatment=${t.slug}` }] : []), { name: p.title, href: `/column/${p.slug}` }] }, body))
 })
 

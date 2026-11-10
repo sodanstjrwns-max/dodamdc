@@ -1,6 +1,7 @@
 /* 서울도담치과 — AI 상담 위젯 (vanilla, no deps)
    대화는 메모리에만 두고 저장하지 않는다. 진단·처방이 아닌 일반 안내.
-   2026-09-21: 첫 방문 말풍선·버튼 강조(한 번만), 연결 실패(429/5xx) 시 전화·예약 카드 + 다시 시도. */
+   2026-09-21: 첫 방문 말풍선·버튼 강조(한 번만), 연결 실패(429/5xx) 시 전화·예약 카드 + 다시 시도.
+   2026-11-10: 말풍선은 약 6초 뒤 또는 스크롤을 시작하면 닫힌다(본문·카드를 가리지 않게). 뜨기 전에 이미 스크롤했으면 그 화면에서는 띄우지 않는다. */
 (function () {
   'use strict';
   var d = document, w = window;
@@ -87,7 +88,19 @@
   }
 
   // ---- 첫 방문 말풍선 + 버튼 강조 (한 번만, localStorage) ----
-  var tipTimer = null, tipHide = null;
+  var tipTimer = null, tipHide = null, tipY = 0, tipOff = false;
+  var TIP_DELAY_MS = 2500, TIP_SHOW_MS = 6000, TIP_SCROLL_PX = 12; // 2.5초 뒤 등장 → 약 6초 표시 → 자동 닫힘
+  function pageY() { return w.pageYOffset || d.documentElement.scrollTop || 0; }
+  function onTipScroll() {
+    if (Math.abs(pageY() - tipY) < TIP_SCROLL_PX) return;
+    if (tip && !tip.hidden) hideTip();          // 보이는 중 스크롤 → 닫고 다시 띄우지 않음
+    else cancelTip();                            // 뜨기 전 스크롤 → 이번 화면에서는 띄우지 않음(기록은 남기지 않음)
+  }
+  function cancelTip() {
+    tipOff = true;
+    if (tipTimer) { clearTimeout(tipTimer); tipTimer = null; }
+    w.removeEventListener('scroll', onTipScroll);
+  }
   function tipSeen() { try { return !!w.localStorage.getItem(TIP_KEY); } catch (_) { return false; } }
   function markTip() { try { w.localStorage.setItem(TIP_KEY, '1'); } catch (_) {} }
   function placeTip() {
@@ -99,25 +112,29 @@
   }
   function showTip() {
     tipTimer = null;
-    if (!tip || !panel.hidden || tipSeen()) return;
+    if (!tip || tipOff || !panel.hidden || tipSeen()) return;
     if (d.hidden) { // 탭이 보이지 않으면 다시 보일 때 한 번만 시도
       d.addEventListener('visibilitychange', function onVis() { d.removeEventListener('visibilitychange', onVis); if (!d.hidden) tipTimer = setTimeout(showTip, 1500); });
       return;
     }
     if (!placeTip()) return;
     tip.hidden = false;
+    tipY = pageY();
     if (!reduced) openBtn.classList.add('is-nudge');
-    tipHide = setTimeout(function () { hideTip(); }, 10000);
+    tipHide = setTimeout(function () { hideTip(); }, TIP_SHOW_MS);
   }
   function hideTip(forget) {
     if (tipTimer) { clearTimeout(tipTimer); tipTimer = null; }
     if (tipHide) { clearTimeout(tipHide); tipHide = null; }
+    w.removeEventListener('scroll', onTipScroll);
     if (tip) tip.hidden = true;
     openBtn.classList.remove('is-nudge');
     if (!forget) markTip();
   }
   if (tip && !tipSeen()) {
-    tipTimer = setTimeout(showTip, 3500);
+    tipY = pageY();
+    tipTimer = setTimeout(showTip, TIP_DELAY_MS);
+    w.addEventListener('scroll', onTipScroll, { passive: true });
     w.addEventListener('resize', function () { if (!tip.hidden && !placeTip()) hideTip(true); });
     if (tipOpen) tipOpen.addEventListener('click', function () { hideTip(); open(); });
     if (tipClose) tipClose.addEventListener('click', function () { hideTip(); openBtn.focus(); });
