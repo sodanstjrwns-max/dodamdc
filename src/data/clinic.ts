@@ -19,7 +19,8 @@ export const clinicDefaults = {
   district: '팔달구',
   dong: '화서동',
   postalCode: '16430',
-  geo: { lat: 37.2848, lng: 126.9954 },
+  // 네이버 플레이스 좌표 (2026-11-10 확인)
+  geo: { lat: 37.2810569, lng: 126.9971351 },
   directions: {
     subway: '1호선 화서역에서 도보 약 10분',
     bus: '블루밍푸른숲아파트 정류장 하차 후 도보 1분',
